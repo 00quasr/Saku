@@ -1,0 +1,8 @@
+{# Antwort auf „Sensei schlägt vor“: übernommen wird nur per Knopf #}
+<p class="sensei-blase klein">
+  <span class="etikett"><span lang="ja" aria-hidden="true">先生</span> Vorschlag</span><br>
+  <strong class="zahl">{{ zahl(b.punkte) }} von {{ zahl(b.max_punkte) }} Punkten</strong>
+  <button type="button" class="btn" data-variant="secondary" data-size="sm" data-feld="{{ feld_id }}" data-wert="{{ '%g' % b.punkte }}"
+          onclick="const f = document.getElementById(this.dataset.feld); if (f) { f.value = this.dataset.wert; f.dispatchEvent(new Event('input', {bubbles: true})); f.dispatchEvent(new Event('change', {bubbles: true})); }">übernehmen</button>
+  {% if b.hinweis %}<br><span class="gedaempft">{{ b.hinweis }}</span>{% endif %}
+</p>

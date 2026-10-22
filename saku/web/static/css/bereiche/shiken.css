@@ -1,0 +1,101 @@
+/* shiken – Übersicht, laufende Simulation mit Timer, Auswertung mit Hanko */
+
+.shiken-motto { margin-top: 8px; }
+.shiken-hinweis { margin-bottom: 48px; }
+.shiken-hinweis a { text-decoration: underline; }
+.shiken-erklaerung { max-width: 68ch; margin-top: 8px; }
+
+.shiken-bereiche { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-top: 24px; }
+.shiken-bereich { display: grid; gap: 8px; align-content: start; }
+.shiken-bereich-name { font-family: var(--schrift-titel); font-weight: 600; font-size: 1.125rem; line-height: 1.5rem; min-height: 3rem; }
+.shiken-bereich form { margin-top: 8px; }
+
+.shiken-verlauf { margin-top: 16px; }
+.shiken-verlauf .rechts { text-align: right; }
+.shiken-verlauf a { text-decoration: none; }
+.shiken-verlauf a:hover { text-decoration: underline; }
+.shiken-gokaku [lang="ja"] { color: var(--shu); }
+
+/* Laufende Simulation: Restzeit bleibt oben sichtbar */
+.seite.shiken-simulation { padding-top: 0; }
+.shiken-leiste {
+  position: sticky; top: var(--leiste); z-index: 30; display: flex; align-items: center; gap: 8px 16px; flex-wrap: wrap;
+  padding: 12px 0; background: var(--washi); border-bottom: 1px solid var(--linie);
+}
+.shiken-zeit { display: flex; align-items: baseline; gap: 12px; margin-right: auto; }
+.shiken-zeit time { font-size: 1.75rem; font-weight: 300; line-height: 2.25rem; letter-spacing: -0.01em; }
+.shiken-aufgabe > * + * { margin-top: 12px; }
+.shiken-teilaufgabe { margin-top: 32px; }
+.shiken-teilaufgabe .textarea { resize: vertical; }
+
+/* Auswertung */
+.shiken-auswertung > .shiken-erklaerung { max-width: none; }
+.shiken-ergebnis {
+  display: flex; flex-wrap: wrap; gap: 32px; align-items: flex-start;
+  padding-bottom: 48px; border-bottom: 1px solid var(--linie);
+}
+.shiken-ergebnis .hanko { flex: none; margin-top: 4px; }
+.shiken-ergebnis > .stapel { flex: 1; min-width: 240px; }
+.shiken-zeile > * + * { margin-top: 12px; }
+.shiken-vergleich { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 24px; }
+.shiken-vergleich > div { display: grid; gap: 8px; align-content: start; }
+.shiken-antwort {
+  white-space: pre-wrap; padding: 12px 16px; background: var(--washi-hell);
+  border: 1px solid var(--linie); border-radius: var(--radius);
+}
+.shiken-punkte .input { width: 6rem; }
+
+/* Hochrechnung der Abschlussprüfung */
+.hochrechnung { display: grid; gap: 16px; padding: 22px 24px; border-radius: 14px; margin-bottom: 8px; }
+.hochrechnung header p { max-width: 70ch; margin-top: 4px; }
+.hochrechnung-gesamt { display: grid; justify-items: end; gap: 2px; text-align: right; }
+.hochrechnung-gesamt .zahl { font-weight: 300; font-size: 2.75rem; line-height: 1; letter-spacing: -0.02em; }
+.hochrechnung-urteil { margin-top: 4px; padding: 2px 10px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; }
+.hochrechnung-urteil--ja { color: var(--matcha); border: 1px solid var(--matcha); }
+.hochrechnung-urteil--nein { color: var(--beni); border: 1px solid var(--beni); }
+.hochrechnung-urteil--offen { color: var(--sumi-mittel); border: 1px solid var(--linie); }
+.hochrechnung-tabelle td, .hochrechnung-tabelle th { padding: 6px 8px; vertical-align: middle; }
+.hochrechnung-tabelle .rechts { text-align: right; }
+.hochrechnung-eingabe { width: 96px; }
+.hochrechnung-regeln { display: grid; gap: 4px; }
+.hochrechnung-regeln .ok span { color: var(--matcha); }
+.hochrechnung-regeln .fehlt span { color: var(--beni); }
+.hochrechnung-regeln .offen { color: var(--sumi-mittel); }
+
+/* Prüfungsansicht wie im IHK-Heft: Blatt mit Korrekturrand, Punkte rechts, Antwortlinien */
+.heft {
+  --rand-breite: 92px;
+  display: grid; gap: 0; margin-top: 16px; border: 1px solid var(--linie); border-radius: 6px; overflow: hidden;
+  background: linear-gradient(90deg, transparent calc(100% - var(--rand-breite)), var(--flaeche) calc(100% - var(--rand-breite)));
+  background-color: var(--washi-hell);
+}
+.heft-deckblatt { display: grid; gap: 6px; padding: 26px calc(var(--rand-breite) + 28px) 22px 28px; border-bottom: 2px solid var(--sumi); }
+.heft-bereich { font-family: var(--schrift-titel); font-weight: 600; font-size: 1.5rem; }
+.heft-daten { font-weight: 500; }
+.heft-hinweise { list-style: decimal; padding-left: 1.2em; color: var(--sumi-mittel); display: grid; gap: 2px; margin-top: 6px; }
+.heft-aufgabe { padding: 22px calc(var(--rand-breite) + 28px) 26px 28px; border-bottom: 1px solid var(--linie); display: grid; gap: 12px; }
+.heft-kopf { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; }
+.heft-kopf h2 { font-weight: 700; font-size: 1.125rem; }
+.heft-zeit { margin-right: calc(-1 * var(--rand-breite) - 12px); width: var(--rand-breite); text-align: center; color: var(--sumi-mittel); }
+.heft-herkunft { margin-top: -8px; }
+.heft-teil { position: relative; display: grid; gap: 10px; padding-top: 8px; }
+.heft-text { display: grid; grid-template-columns: 2.2rem 1fr; gap: 4px; }
+.heft-kennung { font-weight: 600; }
+.heft-punkte { position: absolute; right: calc(-1 * var(--rand-breite) - 14px); top: 10px; width: var(--rand-breite); text-align: center; font-size: 0.8125rem; font-weight: 600; }
+.heft-linien {
+  width: 100%; min-height: 168px; resize: vertical; padding: 4px 6px; border: 0; border-radius: 0; outline: none;
+  font: inherit; line-height: 28px; color: var(--sumi);
+  background: repeating-linear-gradient(transparent 0 27px, var(--linie) 27px 28px); background-attachment: local;
+}
+.heft-linien:focus { background-color: color-mix(in oklab, var(--shu) 4%, transparent); }
+
+/* Fachgespräch */
+.fachgespraech-karte { display: grid; gap: 4px; padding: 18px 22px; border-radius: 14px; text-decoration: none; margin-top: 12px; }
+.fachgespraech-karte:hover { border-color: var(--sumi-mittel); }
+.fachgespraech > * + * { margin-top: 18px; }
+.fachgespraech-upload { display: grid; gap: 10px; padding: 20px 22px; border-radius: 12px; justify-items: start; }
+.fachgespraech-projekt .icon { vertical-align: -3px; }
+.fachgespraech-verlauf { display: grid; gap: 16px; }
+.fachgespraech-verlauf:empty { display: none; }
+.fachgespraech-eingabe { display: grid; gap: 10px; justify-items: start; }
+.fachgespraech-eingabe .textarea { width: 100%; }

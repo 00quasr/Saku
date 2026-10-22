@@ -1,0 +1,35 @@
+{% import "_makros.html" as m %}
+{% import "keiko/_bausteine.html" as k %}
+<section class="tusche keiko-loesung" aria-label="Lösungshinweis">
+  <p class="etikett">Lösungshinweis</p>
+  {{ k.loesung(karte) }}
+  {% if (antwort or zeichnung) and sensei_bereit %}
+  <div id="sensei-vorschlag" hx-post="{{ url_for('sensei.anfrage', modus='pruefen') }}" hx-trigger="load"
+       hx-include="#antwortfeld" hx-vals='{{ {"teilaufgabe": karte.id, "automatisch": "1"}|tojson }}' hx-swap="innerHTML">
+    <p class="klein gedaempft">Sensei vergleicht deine {{ 'Zeichnung' if zeichnung else 'Antwort' }} mit dem Lösungshinweis …</p>
+  </div>
+  {% endif %}
+  {# Wie in der IHK-Korrektur: Punkte vergeben, daraus folgt Rot, Gelb oder Grün; 1, 2, 3 bleiben als Abkürzung #}
+  {% set max_p = (karte.punkte or 0)|round(0, 'ceil')|int %}
+  <div class="keiko-bewertung" role="group" aria-labelledby="wie-lief">
+    <span id="wie-lief" class="ueberschrift">{{ 'Wie viele Punkte hättest du bekommen?' if 0 < max_p <= 20 else 'Wie lief’s?' }}</span>
+    {% if 0 < max_p <= 20 %}
+    <div class="punkte-leiste">
+      {% for p in range(max_p + 1) %}
+      <button type="button" class="punkt-knopf" title="{{ ihk_note(p, max_p) }}"
+              hx-post="{{ url_for('keiko.bewerten', t_id=karte.id) }}" hx-vals='{"ergebnis": 1, "punkte": {{ p }}}'
+              hx-target="#karte" hx-swap="outerHTML">{{ p }}</button>
+      {% endfor %}
+      <span class="klein gedaempft">von {{ max_p }}</span>
+    </div>
+    {% endif %}
+    <div class="zeile">
+      {% for wert, text in [(1, 'Nicht gewusst'), (2, 'Teilweise'), (3, 'Gewusst')] %}
+      <button type="button" class="btn" data-variant="outline" data-size="sm" data-taste="{{ wert }}"
+              hx-post="{{ url_for('keiko.bewerten', t_id=karte.id) }}" hx-vals='{"ergebnis": {{ wert }}}'
+              hx-target="#karte" hx-swap="outerHTML">{{ m.taste(wert) }} {{ text }}</button>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+<div id="loesung-knopf" hx-swap-oob="true"></div>

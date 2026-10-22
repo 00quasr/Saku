@@ -1,0 +1,40 @@
+# --- Private Daten: niemals ins Repo (Urheberrecht) -----------------
+/data/*
+!/data/README.md
+!/data/themen.example.md
+*.pdf
+
+# --- Geheimnisse -----------------------------------------------------
+.env
+
+# --- Datenbanken -----------------------------------------------------
+*.db
+*.db-wal
+*.db-shm
+*.sqlite3
+
+# --- Python ----------------------------------------------------------
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# --- Editor und System -----------------------------------------------
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# --- Erzeugt von python -m saku assets ------------------------------
+/saku/web/static/vendor/
+/saku/web/static/fonts/*.woff2
+/saku/web/static/fonts/LICENSE-*
+
+# --- Werkzeuge ------------------------------------------------------
+/.playwright-mcp/

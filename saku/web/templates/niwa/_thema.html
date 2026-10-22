@@ -1,0 +1,55 @@
+{# Seitenleiste zu einem Thema. Kontext: thema (v_thema_lernstand), teilaufgaben, stufen #}
+{% import "_makros.html" as m %}
+{% set kanji, wort = stufen[thema.stufe] %}
+{% set gesamt = thema.punkte_gesamt or 1 %}
+<div class="notiz niwa-thema tusche" data-sensei-thema="{{ thema.thema_id }}">
+  {% with art=kanji ~ ' ' ~ wort %}{% include "niwa/_notiz_kopf.html" %}{% endwith %}
+  <h2 class="ueberschrift">{{ thema.name }}</h2>
+  <p class="klein gedaempft zahl">{{ (100 * thema.beherrschung)|round|int }} % sicher · {{ '%g'|format(thema.punkte_gesamt)|replace('.', ',') }} Punkte in den Prüfungen</p>
+
+  <div class="niwa-balken" role="img"
+       aria-label="Punkte: {{ '%g'|format(thema.punkte_gruen) }} sicher, {{ '%g'|format(thema.punkte_gelb) }} im Aufbau, {{ '%g'|format(thema.punkte_rot) }} wackelig, {{ '%g'|format(thema.punkte_neu) }} neu">
+    {% for teil in ['gruen', 'gelb', 'rot', 'neu'] %}<span class="niwa-balken--{{ teil }}" style="width: {{ 100 * thema['punkte_' ~ teil] / gesamt }}%"></span>{% endfor %}
+  </div>
+
+  <div class="zeile">
+    <a class="btn" data-size="sm" href="{{ url_for('keiko.index', thema=thema.thema_id) }}">Üben</a>
+    <button type="button" class="btn" data-variant="outline" data-size="sm"
+            hx-post="{{ url_for('sensei.anfrage', modus='thema') }}" hx-vals='{"thema": {{ thema.thema_id }}}'
+            hx-target="#niwa-sensei" hx-swap="innerHTML" hx-disabled-elt="this"
+            {% if not sensei_bereit %}disabled title="Sensei braucht einen API-Schlüssel in .env"{% endif %}>
+      <span lang="ja" aria-hidden="true">先生</span> Sensei erklärt
+    </button>
+  </div>
+  {% if not sensei_bereit %}<p class="klein gedaempft">Sensei ist aus: Es fehlt der API-Schlüssel in <code>.env</code>. <a href="{{ url_for('kern.einstellungen') }}">Einstellungen</a></p>{% endif %}
+  <div id="niwa-sensei"></div>
+
+  {% if wissen %}<div class="notiz-wissen prosa tusche">{{ wissen|markdown|quellen }}</div>{% endif %}
+
+  {% if lernfelder %}
+  <div class="notiz-chips">{% for lf in lernfelder %}<button type="button" class="chip chip--lernfeld" data-knoten="lf{{ lf.id }}">LF{{ lf.nummer }} {{ lf.titel }}</button>{% endfor %}</div>
+  {% endif %}
+  {% if voraussetzungen %}
+  <p class="etikett">Baut auf</p>
+  <div class="notiz-chips">{% for v in voraussetzungen %}<button type="button" class="chip" data-knoten="t{{ v.id }}">{{ v.name }}</button>{% endfor %}</div>
+  {% endif %}
+  {% if begriffe %}
+  <p class="etikett">Fachbegriffe</p>
+  <div class="notiz-chips">{% for b in begriffe %}<button type="button" class="chip chip--begriff" data-knoten="b{{ b.id }}">{{ b.name }}</button>{% endfor %}</div>
+  {% endif %}
+
+  <p class="etikett">{{ teilaufgaben|length }} Teilaufgaben</p>
+  <ul class="niwa-teilaufgaben">
+    {% for t in teilaufgaben %}
+    <li>
+      <a href="{{ url_for('keiko.index', teilaufgabe=t.teilaufgabe_id) }}">
+        <span class="zeile zwischen">
+          <span>{{ m.status(t.status, text=False) }} {{ t.termin }} · Aufgabe {{ t.aufgabe_nr }} {{ t.kennung }}</span>
+          <span class="klein gedaempft zahl">{{ '%g'|format(t.punkte or 0)|replace('.', ',') }} P.</span>
+        </span>
+        <span class="klein gedaempft niwa-auszug">{{ t.text|klartext|truncate(110) }}</span>
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
+</div>

@@ -1,0 +1,22 @@
+{# Eine Teilaufgabe mit Korrektur der Themenzuordnung. Kontext: t, themenwahl #}
+<tr>
+  <td class="zahl">
+    <a href="{{ url_for('keiko.index', teilaufgabe=t.teilaufgabe_id) }}">{{ t.termin }} · {{ t.aufgabe_nr }} {{ t.kennung }}</a>
+    <span class="klein gedaempft bunseki-block">{{ t.bereich }}</span>
+  </td>
+  <td class="klein bunseki-auszug">{{ t.text|klartext|truncate(140) }}</td>
+  {% if t.themen is not none %}
+  <td class="klein">{{ t.themen or '–' }}{% if t.sicherheit is not none %}<span class="gedaempft bunseki-block zahl">Sicherheit {{ '%.2f'|format(t.sicherheit)|replace('.', ',') }}</span>{% endif %}</td>
+  {% endif %}
+  <td>
+    <form class="bunseki-korrektur" hx-post="{{ url_for('bunseki.zuordnung', teilaufgabe_id=t.teilaufgabe_id) }}" hx-target="this" hx-swap="outerHTML">
+      <label class="bunseki-versteckt" for="thema-{{ t.teilaufgabe_id }}">Thema für {{ t.termin }} Aufgabe {{ t.aufgabe_nr }} {{ t.kennung }}</label>
+      {# die Optionen stehen einmal in <template id="themenwahl"> und kommen erst beim Anklicken dazu #}
+      <select id="thema-{{ t.teilaufgabe_id }}" name="thema" class="select" required data-wert="{{ t.haupt_id or '' }}"
+              onfocus="saku.themenwahl(this)" onpointerdown="saku.themenwahl(this)">
+        <option value="">Thema wählen …</option>
+      </select>
+      <button type="submit" class="btn" data-variant="outline" data-size="sm">Speichern</button>
+    </form>
+  </td>
+</tr>

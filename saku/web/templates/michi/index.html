@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block titel %}Lernpfad{% endblock %}
+{% block inhalt %}
+{% if not stationen %}
+{{ m.kopf('willkommen', '道', 'Lernpfad', 'Lernpfad') }}
+<div class="seite eng">
+  {% if katalog_leer %}
+  <p class="leer">Noch ist der Garten leer. Lege deine Prüfungen in <code>data/pdfs</code> und starte die Analyse.</p>
+  {% else %}
+  <p class="leer">Noch gibt es keinen Lernpfad. Die Analyse legt ihn im Schritt <code>lernpfad</code> an. <a href="{{ url_for('keiko.index') }}">Üben</a> kannst du trotzdem schon.</p>
+  {% endif %}
+</div>
+{% else %}
+{% call m.kopf('michi', '道', 'Lernpfad', 'Lernpfad') %}
+<p class="klein michi-stand zahl">
+  {% if aktuell %}Station {{ aktuell.position }} von {{ stationen|length }}{% else %}Alle {{ stationen|length }} Stationen geschafft{% endif %}
+</p>
+{% endcall %}
+
+<div class="seite eng">
+  <ol class="pfad">
+    {% for s in stationen %}
+    {% set kanji, wort = stufen[s.stufe] %}
+    <li class="pfad-station{{ ' pfad-station--fertig' if s.bestanden and not s.gesperrt }}{{ ' pfad-station--aktuell' if s.aktuell }}{{ ' pfad-station--gesperrt' if s.gesperrt }}"
+        {% if s.aktuell %}aria-current="step"{% endif %}>
+      <span class="stein pfad-stein" aria-hidden="true"></span>
+      <span class="pfad-nummer zahl">{{ s.position }}</span>
+      <a class="pfad-titel" href="{{ url_for('michi.station', station_id=s.id) }}">{{ s.titel }}</a>
+      <span class="pfad-stand klein">
+        {% if s.aktuell %}<span class="pfad-hier">← du bist hier</span>
+        {% elif s.gesperrt %}<span class="gedaempft">gesperrt</span>
+        {% elif not s.gesamt %}<span class="gedaempft">ohne Teilaufgaben</span>
+        {% else %}<span lang="ja" aria-hidden="true">{{ kanji }}</span> {{ wort }} · geschafft{% endif %}
+      </span>
+      <span class="pfad-zahlen klein gedaempft zahl">{{ s.sicher }} von {{ s.gesamt }} sicher{% if s.aktuell %} · <span lang="ja" aria-hidden="true">{{ kanji }}</span> {{ wort }}{% endif %}</span>
+    </li>
+    {% endfor %}
+  </ol>
+  <p class="klein gedaempft michi-fuss">Gesperrt ist nur der Pfad. Unter <a href="{{ url_for('keiko.index') }}">Üben</a> kannst du jedes Thema jederzeit üben.</p>
+</div>
+{% endif %}
+{% endblock %}

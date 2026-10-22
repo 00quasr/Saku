@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% import "keiko/_bausteine.html" as k %}
+{% block titel %}{{ station.titel }} · Lernpfad{% endblock %}
+{% block inhalt %}
+{% set kanji, wort = stufen[station.stufe] %}
+{% call m.kopf('michi', '道', 'Lernpfad · Station ' ~ station.position ~ ' von ' ~ stationen|length, station.titel) %}
+<p class="klein michi-stand"><span lang="ja" aria-hidden="true">{{ kanji }}</span> {{ wort }} · <span class="zahl">{{ station.sicher }} von {{ station.gesamt }}</span> sicher</p>
+{% endcall %}
+
+<div class="seite eng michi-station">
+  <p class="klein"><a href="{{ url_for('michi.index') }}">← Lernpfad</a></p>
+
+  {% if station.gesperrt and aktuell %}
+  <p class="hinweis michi-hinweis">Diese Station ist noch gesperrt. Schaffe zuerst den Mini-Test von
+    <a href="{{ url_for('michi.station', station_id=aktuell.id) }}">Station {{ aktuell.position }}: {{ aktuell.titel }}</a>.
+    Üben kannst du die Teilaufgaben trotzdem jederzeit.</p>
+  {% endif %}
+
+  <section class="abschnitt" aria-labelledby="einfuehrung-titel">
+    <h2 class="ueberschrift" id="einfuehrung-titel">Einführung</h2>
+    {% if einfuehrung %}
+    <div class="prosa michi-einfuehrung">{{ einfuehrung|markdown|quellen }}</div>
+    {% else %}
+    <p class="gedaempft">Für diese Station gibt es noch keine Einführung. Starte die Analyse erneut oder frag Sensei nach dem Thema.</p>
+    {% endif %}
+  </section>
+
+  <section class="abschnitt" aria-labelledby="uebungen-titel">
+    <div class="zeile zwischen">
+      <h2 class="ueberschrift" id="uebungen-titel">Übungen</h2>
+      {% if teilaufgaben %}
+      <a class="btn" data-variant="outline" href="{{ url_for('keiko.index', thema=station.themen) }}">Jetzt üben</a>
+      {% endif %}
+    </div>
+    {% if teilaufgaben %}
+    <ul class="michi-uebungen">
+      {% for t in teilaufgaben %}
+      <li>
+        <a href="{{ url_for('keiko.index', teilaufgabe=t.id) }}">
+          {{ m.status(t.status, text=False) }}
+          <span class="michi-uebung">
+            <span class="klein">{{ k.kennung(t) }}{% if t.punkte %} · {{ k.punkte(t.punkte) }} Punkte{% endif %}</span>
+            {% if t.text %}<span class="klein gedaempft michi-auszug">{{ t.text|klartext|truncate(100) }}</span>{% endif %}
+          </span>
+        </a>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="gedaempft">Zu dieser Station gibt es noch keine Teilaufgaben.</p>
+    {% endif %}
+  </section>
+
+  <section class="abschnitt michi-test" aria-labelledby="test-titel">
+    <h2 class="ueberschrift" id="test-titel">Mini-Test</h2>
+    <p>Fünf Teilaufgaben aus dieser Station. Ab {{ (100 * schwelle)|round|int }} % der Punkte ist die Station geschafft{% if not station.bestanden %}, und die nächste wird frei{% endif %}.</p>
+    {% if letzter %}
+    <p class="klein gedaempft zahl">Zuletzt: {{ k.punkte(letzter.punkte_erreicht) }} von {{ k.punkte(letzter.punkte_moeglich) }} Punkten · {{ 'bestanden' if letzter.bestanden else 'noch nicht bestanden' }}</p>
+    {% endif %}
+    {% if station.gesperrt %}
+    <button type="button" class="btn" disabled>Mini-Test starten</button>
+    {% else %}
+    <a class="btn" data-taste="Enter" href="{{ url_for('michi.test', station_id=station.id) }}">Mini-Test starten {{ m.taste('↵') }}</a>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

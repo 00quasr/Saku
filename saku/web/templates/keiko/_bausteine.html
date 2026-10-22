@@ -1,0 +1,164 @@
+{# Bausteine für Teilaufgaben, genutzt von Keiko, Michi (Mini-Test) und Shiken. t = dict aus karten.lade #}
+{% import "_makros.html" as m %}
+
+{% macro punkte(p) %}{{ ('%g' % p)|replace('.', ',') }}{% endmacro %}
+
+{% macro kennung(t) %}{{ t.termin }} · Aufgabe {{ t.aufgabe_nr }} {{ t.kennung }}{% endmacro %}
+
+{# Alternativtext: Termin, Kennung und Anfang des Aufgabentexts #}
+{% macro alt(t) %}{{ kennung(t) }}{% if t.text %}: {{ t.text|klartext|truncate(90) }}{% endif %}{% endmacro %}
+
+{# Bildausschnitte; ein Klick zeigt das Original ohne Farbanpassung #}
+{% macro ausschnitte(bilder, alt) %}
+<button type="button" class="ausschnitte" aria-pressed="false" title="Klick: Original anzeigen"
+        onclick="const an = this.getAttribute('aria-pressed') !== 'true'; this.setAttribute('aria-pressed', an); this.querySelectorAll('img').forEach((b) => b.classList.toggle('original', an))">
+  {% for b in bilder %}<img class="ausschnitt" src="{{ url_for('kern.bild', pfad=b) }}" alt="{{ alt }}{% if bilder|length > 1 %} (Teil {{ loop.index }}){% endif %}">{% endfor %}
+</button>
+{% endmacro %}
+
+{# Die Originale aus dem PDF, eingeklappt, wenn es neu aufgebauten Inhalt gibt #}
+{% macro original(bilder, alt) %}
+{% if bilder %}
+<details class="original">
+  <summary>{{ m.icon('image') }} Original ansehen</summary>
+  {{ ausschnitte(bilder, alt) }}
+</details>
+{% endif %}
+{% endmacro %}
+
+{# Neu aufgebauter Inhalt (Markdown), sonst die Ausschnitte, sonst der erkannte Text #}
+{% macro inhalt(markdown, bilder, text, alt) %}
+{% if markdown %}<div class="prosa aufgabe-inhalt">{{ markdown|markdown }}</div>{{ original(bilder, alt) }}
+{% elif bilder %}{{ ausschnitte(bilder, alt) }}
+{% elif text %}<p class="aufgabe-text">{{ text }}</p>{% endif %}
+{% endmacro %}
+
+{# interaktiv: Üben zeigt Optionen und Vorlage im Antwortfeld; Simulation und Mini-Test hier als Text #}
+{% macro aufgabe(t, interaktiv=False) %}
+{{ inhalt(t.inhalt, t.bilder, t.text, alt(t)|trim) }}
+{% if t.inhalt and not interaktiv and t.antwort and (t.antwort|antwort_als_text) %}
+<div class="prosa aufgabe-inhalt aufgabe-optionen">{{ (t.antwort|antwort_als_text)|markdown }}</div>
+{% endif %}
+{% endmacro %}
+
+{# Ausgangssituation der Prüfung und Einleitung der Aufgabe, eingeklappt #}
+{% macro kontext(t) %}
+{% if t.ausgangssituation_inhalt or t.ausgangssituation or t.ausgangssituation_bilder %}
+<details class="kontext">
+  <summary>Ausgangssituation · {{ t.termin }}</summary>
+  {{ inhalt(t.ausgangssituation_inhalt, t.ausgangssituation_bilder, t.ausgangssituation, 'Ausgangssituation ' ~ t.termin) }}
+</details>
+{% endif %}
+{% if t.einleitung_inhalt or t.einleitung or t.einleitung_bilder %}
+{# die Einleitung enthält oft Tabellen oder Code, die man zum Lösen braucht: neu aufgebaut gleich offen #}
+<details class="kontext" {{ 'open' if t.einleitung_inhalt }}>
+  <summary>Einleitung zu Aufgabe {{ t.aufgabe_nr }}{% if t.aufgabe_titel %} · {{ t.aufgabe_titel }}{% endif %}</summary>
+  {{ inhalt(t.einleitung_inhalt, t.einleitung_bilder, t.einleitung, 'Einleitung ' ~ t.termin ~ ' · Aufgabe ' ~ t.aufgabe_nr) }}
+</details>
+{% endif %}
+{% endmacro %}
+
+{% macro loesung(t) %}
+{% if t.loesung_inhalt or t.loesung_bilder or t.loesung_text %}
+{{ inhalt(t.loesung_inhalt, t.loesung_bilder, t.loesung_text, 'Lösungshinweis zu ' ~ kennung(t)) }}
+{% else %}<p class="hinweis hinweis--fehler">Zu dieser Teilaufgabe fehlt der Lösungshinweis. Bewerte dich nach bestem Wissen oder frag Sensei.</p>{% endif %}
+{% endmacro %}
+
+{# Eingabe passend zur Antwortart; werte (nach dem Prüfen): je Option richtig/falsch, dann ist alles gesperrt #}
+{% macro antwortfeld(t, eingabe=None, werte=None, oob=False) %}
+{% set a = t.antwort %}
+{% set art = a.art if a else 'frei' %}
+{% set fertig = werte is not none %}
+<div id="antwortfeld"{% if oob %} hx-swap-oob="true"{% endif %} class="keiko-antwort keiko-antwort--{{ art }}{{ ' keiko-antwort--fertig' if fertig }}">
+{% if art in ('einfach', 'mehrfach') and a.optionen %}
+  <p class="etikett">{{ 'Eine Antwort wählen' if art == 'einfach' else 'Alle zutreffenden wählen' }}{% if not fertig %} · Zifferntasten{% endif %}</p>
+  <div class="wahl" role="group">
+    {% for o in a.optionen %}
+    {% set gewaehlt = fertig and o.wert in eingabe.wahl %}
+    {% set soll = fertig and o.wert in a.richtig %}
+    <label class="wahl-option{{ ' wahl-option--richtig' if soll }}{{ ' wahl-option--falsch' if gewaehlt and not soll }}"
+           {% if not fertig and o.wert|length == 1 and o.wert.isdigit() %}data-taste="{{ o.wert }}"{% endif %}>
+      <input type="{{ 'radio' if art == 'einfach' else 'checkbox' }}" name="wahl" value="{{ o.wert }}"
+             {{ 'checked' if gewaehlt }} {{ 'disabled' if fertig }}>
+      <span class="wahl-wert">{{ o.wert }}</span>
+      <span class="wahl-text">{{ o.text }}</span>
+      {% if soll %}<span class="wahl-marke" aria-label="richtig">✓</span>{% elif gewaehlt %}<span class="wahl-marke" aria-label="falsch">✕</span>{% endif %}
+    </label>
+    {% endfor %}
+  </div>
+{% elif art == 'reihenfolge' and a.optionen %}
+  <p class="etikett">Reihenfolge: trag Platz 1 bis {{ a.optionen|length }} ein</p>
+  <div class="wahl">
+    {% for o in a.optionen %}
+    {% set soll = (a.richtig.index(o.wert) + 1) if o.wert in a.richtig else '' %}
+    <label class="wahl-option{{ (' wahl-option--richtig' if werte[o.wert] else ' wahl-option--falsch') if fertig and o.wert in werte }}">
+      <input class="input wahl-platz" type="number" min="1" max="{{ a.optionen|length }}" name="position-{{ o.wert }}"
+             value="{{ eingabe.position.get(o.wert, '') if fertig }}" {{ 'disabled' if fertig }} aria-label="Platz für {{ o.wert }}">
+      <span class="wahl-wert">{{ o.wert }}</span>
+      <span class="wahl-text">{{ o.text }}</span>
+      {% if fertig %}<span class="wahl-marke">Platz {{ soll }}</span>{% endif %}
+    </label>
+    {% endfor %}
+  </div>
+{% elif art == 'zuordnung' and a.optionen and a.ziele %}
+  <p class="etikett">Zuordnen</p>
+  <div class="wahl">
+    {% for o in a.optionen %}
+    <label class="wahl-option{{ (' wahl-option--richtig' if werte[o.wert] else ' wahl-option--falsch') if fertig and o.wert in werte }}">
+      <span class="wahl-wert">{{ o.wert }}</span>
+      <span class="wahl-text">{{ o.text }}</span>
+      <select class="select wahl-ziel" name="ziel-{{ o.wert }}" {{ 'disabled' if fertig }} aria-label="Ziel für {{ o.wert }}">
+        <option value="">–</option>
+        {% for z in a.ziele %}<option value="{{ z.wert }}" {{ 'selected' if fertig and eingabe.ziel.get(o.wert) == z.wert }}>{{ z.wert }} · {{ z.text }}</option>{% endfor %}
+      </select>
+    </label>
+    {% endfor %}
+  </div>
+  <p class="klein gedaempft">{% for z in a.ziele %}{{ z.wert }} = {{ z.text }}{{ ' · ' if not loop.last }}{% endfor %}</p>
+{% elif art == 'zahl' %}
+  <label class="etikett" for="zahl">Dein Ergebnis</label>
+  <span class="zeile">
+    <input class="input zahl-eingabe{{ (' zahl-eingabe--richtig' if werte.zahl else ' zahl-eingabe--falsch') if fertig }}" id="zahl" name="zahl"
+           inputmode="decimal" autocomplete="off" value="{{ eingabe.zahl if fertig }}" {{ 'disabled' if fertig }}
+           onkeydown="if (event.key === 'Escape') this.blur()">
+    {% if a.einheit %}<span class="gedaempft">{{ a.einheit }}</span>{% endif %}
+    {% if fertig and not werte.zahl %}<span>Richtig: <strong class="zahl">{{ a.richtig[0] }}</strong> {{ a.einheit }}</span>{% endif %}
+  </span>
+{% elif art == 'tabelle' and a.vorlage and (a.vorlage|tabelle) %}
+  {% set zeilen = a.vorlage|tabelle %}
+  <p class="etikett">Tabelle ausfüllen</p>
+  <div class="tabelle-rahmen">
+    <table class="tabelle-eingabe" oninput="saku.tabelleAlsText(this)">
+      <thead><tr>{% for z in zeilen[0] %}<th>{{ z }}</th>{% endfor %}</tr></thead>
+      <tbody>
+        {% for zeile in zeilen[1:] %}{% set nr = loop.index %}
+        <tr>{% for z in zeile %}<td>{% if z %}{{ z }}{% else %}<input aria-label="{{ zeilen[0][loop.index0] or 'Spalte ' ~ loop.index }}, Zeile {{ nr }}" onkeydown="if (event.key === 'Escape') this.blur()">{% endif %}</td>{% endfor %}</tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <textarea name="antwort" hidden></textarea>
+{% elif art in ('code', 'sql') %}
+  <label class="etikett" for="antwort">{{ 'Deine SQL-Anweisung' if art == 'sql' else 'Dein Code' }} · Tab rückt ein, Esc verlässt das Feld</label>
+  <textarea class="textarea editor" id="antwort" name="antwort" rows="9" spellcheck="false" autocapitalize="off" autocomplete="off"
+            placeholder="{{ 'SELECT …' if art == 'sql' else '' }}" onkeydown="saku.editorTaste(event)">{{ a.vorlage }}</textarea>
+{% else %}
+  <label class="etikett" for="antwort">Deine Antwort</label>
+  <textarea class="textarea" id="antwort" name="antwort" rows="4"
+            placeholder="Überleg dir die Antwort oder tipp sie ein. Esc verlässt das Feld."
+            onkeydown="if (event.key === 'Escape') this.blur()"></textarea>
+{% endif %}
+{# Zeichenaufgaben (UML, ER-Modell, Netzplan …): eigene Zeichnung als Foto oder Screenshot, Sensei vergleicht sie #}
+{% if not fertig and (t.typ == 'zeichnen' or '/bild/' in (t.loesung_inhalt or '')) %}
+<div class="zeichnung" ondragover="event.preventDefault()" ondrop="event.preventDefault(); saku.zeichnung(event.dataTransfer.files[0])">
+  <label class="zeichnung-feld">
+    <input type="file" accept="image/*" onchange="saku.zeichnung(this.files[0])">
+    <span class="zeichnung-titel">{{ m.icon('image-plus') }} Zeichnung hochladen</span>
+    <span class="klein gedaempft">Foto oder Screenshot, auch per ⌘V oder hierher ziehen. Beim Aufdecken vergleicht Sensei sie mit dem Lösungshinweis.</span>
+  </label>
+  <img class="zeichnung-vorschau" alt="Deine Zeichnung" hidden>
+  <input type="hidden" name="zeichnung"><input type="hidden" name="zeichnung_da">
+</div>
+{% endif %}
+</div>
+{% endmacro %}

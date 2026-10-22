@@ -1,0 +1,23 @@
+{% import "_makros.html" as m %}
+<article class="sensei-blase tusche sensei-bewertung">
+  <p class="etikett"><span lang="ja" aria-hidden="true">先生</span> Sensei · {{ 'Vorschlag zu deiner Antwort' if automatisch else 'Antwort prüfen' }}</p>
+  {% if ohne_loesung %}<p class="hinweis klein">Zu dieser Teilaufgabe gibt es keinen offiziellen Lösungshinweis. Die Bewertung ist nur eine Schätzung.</p>{% endif %}
+  <p class="sensei-punktzahl"><span class="zahl">{{ zahl(b.punkte) }}</span> von {{ zahl(b.max_punkte) }} Punkten
+    <span class="gedaempft">· {{ ihk_note(b.punkte, b.max_punkte) }} (geschätzt)</span></p>
+  {% if b.richtig %}
+  <p class="etikett">Richtig</p>
+  <ul class="sensei-liste sensei-liste--richtig">{% for punkt in b.richtig %}<li>{{ punkt }}</li>{% endfor %}</ul>
+  {% endif %}
+  {% if b.fehlt %}
+  <p class="etikett">Fehlt</p>
+  <ul class="sensei-liste sensei-liste--fehlt">{% for punkt in b.fehlt %}<li>{{ punkt }}</li>{% endfor %}</ul>
+  {% endif %}
+  <p class="sensei-hinweis">{{ b.hinweis }}</p>
+  <div class="zeile sensei-vorschlag">
+    <span>Vorschlag: <strong>{{ zahl(b.punkte) }} Punkte</strong> · {{ wort }}</span>
+    <button type="button" class="btn" data-size="sm" data-taste="Enter"
+            hx-post="{{ url_for('keiko.bewerten', t_id=t_id) }}" hx-vals='{{ {"ergebnis": wert, "punkte": b.punkte, "quelle": "sensei"}|tojson }}' hx-include="#karte"
+            hx-target="#karte" hx-swap="outerHTML">Übernehmen {{ m.taste('↵') }}</button>
+    <span class="klein gedaempft">oder selbst mit {{ m.taste('1') }} {{ m.taste('2') }} {{ m.taste('3') }}</span>
+  </div>
+</article>

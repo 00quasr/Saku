@@ -1,0 +1,50 @@
+{# Frag Sensei: Seitenpanel rechts, bindet base.html ein. Sichtbar bei body.sensei-offen (S), Esc schließt. #}
+{% import "_makros.html" as m %}
+<aside id="sensei-panel" class="sensei-panel{{ ' pausiert' if sensei_pausiert() }}" aria-labelledby="sensei-panel-titel">
+  <header class="sensei-panel-kopf">
+    <h2 id="sensei-panel-titel" class="ueberschrift"><span lang="ja" aria-hidden="true">先生</span> Frag Sensei</h2>
+    <button type="button" class="btn" data-variant="ghost" data-size="icon" onclick="saku.sensei()" aria-label="Sensei schließen">{{ m.icon('x') }}</button>
+  </header>
+
+  <p class="hinweis sensei-pause" role="status">Sensei ist während der Simulation pausiert. Wie im Prüfungsraum: Danach hilft er dir wieder.</p>
+
+  {# hx-preserve: das Gespräch überlebt die Navigation per hx-boost #}
+  <div id="sensei-chat" class="sensei-chat" hx-preserve="true">
+    <div id="sensei-verlauf" class="sensei-verlauf">
+      <p class="klein gedaempft">Frag nach allem, was in den Prüfungen vorkam, z. B. „Was wurde zu Normalisierung schon gefragt?“ Sensei sucht die passenden Aufgaben und nennt sie als Quelle. Ist gerade eine Teilaufgabe oder ein Thema offen, kennt er es.</p>
+    </div>
+    {% if sensei_bereit %}
+    <form class="sensei-frage" hx-post="{{ url_for('sensei.anfrage', modus='chat') }}" hx-target="#sensei-verlauf" hx-swap="beforeend scroll:bottom"
+          hx-vals='js:{teilaufgabe: document.querySelector("[data-sensei-teilaufgabe]")?.dataset.senseiTeilaufgabe ?? "", thema: document.querySelector("[data-sensei-thema]")?.dataset.senseiThema ?? ""}'
+          hx-on::after-request="if (event.detail.successful) this.reset()">
+      <input type="hidden" name="gespraech" value="{{ neues_gespraech() }}">
+      <label for="sensei-eingabe" class="etikett">Deine Frage</label>
+      <textarea id="sensei-eingabe" name="frage" class="textarea" rows="3" required
+                placeholder="Was wurde zu SQL-Joins schon gefragt?"
+                onkeydown="if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); this.form.requestSubmit(); }"></textarea>
+      <div class="zeile zwischen">
+        <span class="klein gedaempft">{{ m.taste('↵') }} senden · {{ m.taste('⇧') }} {{ m.taste('↵') }} neue Zeile</span>
+        <button type="submit" class="btn" data-size="sm">Fragen</button>
+      </div>
+    </form>
+    {% else %}
+    <p class="hinweis">Sensei ist aus: Es fehlt der API-Schlüssel. Trag ANTHROPIC_API_KEY in die Datei <code>.env</code> ein und starte Saku neu. <a href="{{ url_for('kern.einstellungen') }}">Einstellungen</a></p>
+    {% endif %}
+  </div>
+
+  <script>
+    // Einmal je Fenster: Esc schließt das Panel, beim Öffnen landet der Fokus im Eingabefeld
+    if (!window.senseiPanel) {
+      window.senseiPanel = true;
+      document.addEventListener("keydown", (e) => {
+        if (e.key !== "Escape" || !document.body.classList.contains("sensei-offen") || document.querySelector("dialog[open]")) return;
+        e.preventDefault();
+        saku.sensei();
+      });
+      document.addEventListener("sensei:umschalten", () => {
+        if (document.body.classList.contains("sensei-offen")) document.getElementById("sensei-eingabe")?.focus();
+        else if (document.getElementById("sensei-panel").contains(document.activeElement)) document.getElementById("sensei-knopf")?.focus();
+      });
+    }
+  </script>
+</aside>

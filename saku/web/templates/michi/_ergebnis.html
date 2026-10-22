@@ -1,0 +1,29 @@
+{% import "_makros.html" as m %}
+{% import "keiko/_bausteine.html" as k %}
+{% set e = ergebnis %}
+<section id="test" class="michi-ergebnis tusche" aria-live="polite">
+  {% if e.bestanden %}
+  <p class="ueberschrift">Station geschafft.</p>
+  {% else %}
+  <p class="ueberschrift">Noch nicht.</p>
+  {% endif %}
+  <p class="zahl">{{ k.punkte(e.erreicht) }} von {{ k.punkte(e.moeglich) }} Punkten · {{ (100 * e.erreicht / e.moeglich)|round|int if e.moeglich else 0 }} %
+    <span class="gedaempft">(nötig: {{ (100 * e.schwelle)|round|int }} %)</span></p>
+
+  {% if e.bestanden and naechste %}
+  <p>Station {{ naechste.position }} ist jetzt frei.</p>
+  <nav class="zeile" aria-label="Weiter">
+    <a class="btn" data-taste="Enter" href="{{ url_for('michi.station', station_id=naechste.id) }}">Weiter zu {{ naechste.titel }} {{ m.taste('↵') }}</a>
+    <a class="btn" data-variant="ghost" href="{{ url_for('michi.index') }}">Zum Lernpfad</a>
+  </nav>
+  {% elif e.bestanden %}
+  <p>Das war die letzte Station. Der ganze Pfad ist geschafft.</p>
+  <a class="btn" data-taste="Enter" href="{{ url_for('michi.index') }}">Zum Lernpfad {{ m.taste('↵') }}</a>
+  {% else %}
+  <p>Übe die Teilaufgaben dieser Station und versuch es dann noch einmal.</p>
+  <nav class="zeile" aria-label="Weiter">
+    <a class="btn" data-taste="Enter" href="{{ url_for('keiko.index', thema=station.themen) }}">Jetzt üben {{ m.taste('↵') }}</a>
+    <a class="btn" data-variant="outline" href="{{ url_for('michi.test', station_id=station.id) }}">Noch einmal</a>
+  </nav>
+  {% endif %}
+</section>

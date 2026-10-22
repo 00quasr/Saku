@@ -1,0 +1,293 @@
+/* Saku 咲く – Theme und gemeinsame Bausteine (siehe docs/DESIGN.md) */
+
+/* --- Schriften ------------------------------------------------------ */
+@font-face { font-family: "Inter"; src: url("../fonts/inter.woff2") format("woff2"); font-weight: 100 900; font-display: swap; }
+@font-face { font-family: "JetBrains Mono"; src: url("../fonts/jetbrains-mono.woff2") format("woff2"); font-weight: 100 800; font-display: swap; }
+@font-face { font-family: "Shippori Mincho"; src: url("../fonts/shippori-mincho-600.woff2") format("woff2"); font-weight: 600; font-display: swap; }
+@font-face { font-family: "Shippori Mincho"; src: url("../fonts/shippori-mincho-700.woff2") format("woff2"); font-weight: 700; font-display: swap; }
+
+/* --- Farben: hell (Washi) ---------------------------------------------- */
+:root {
+  --washi: #F6F4EF;  --washi-hell: #FBFAF7;  --flaeche: #EDE9E1;
+  --sumi: #1F1D1A;   --sumi-mittel: #6B665D; --linie: #E4DFD5;
+  --shu: #C2452D;    --ai: #2F4A63;          --beni: #A63A3A;
+  --yamabuki: #A97A22; --matcha: #5E7F4F;
+
+  --schrift: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --schrift-titel: "Shippori Mincho", "Hiragino Mincho ProN", "Yu Mincho", serif;
+  --schrift-code: "JetBrains Mono", ui-monospace, monospace;
+  --leiste: 0px;  /* keine Leiste oben mehr; sticky-Elemente kleben am Rand */
+  --kurz: 150ms; --mittel: 250ms;
+
+  /* Basecoat / shadcn */
+  --background: var(--washi);       --foreground: var(--sumi);
+  --card: var(--washi-hell);        --card-foreground: var(--sumi);
+  --popover: var(--washi-hell);     --popover-foreground: var(--sumi);
+  --primary: var(--sumi);           --primary-foreground: var(--washi);
+  --secondary: var(--flaeche);      --secondary-foreground: var(--sumi);
+  --muted: var(--flaeche);          --muted-foreground: var(--sumi-mittel);
+  --accent: var(--flaeche);         --accent-foreground: var(--sumi);
+  --destructive: var(--beni);
+  --border: var(--linie);           --input: var(--linie);
+  --ring: var(--shu);
+  --radius: 0.375rem;
+}
+
+/* --- Farben: dunkel (Sumi) ------------------------------------------- */
+.dark {
+  --washi: #141412;  --washi-hell: #1C1B18;  --flaeche: #24221F;
+  --sumi: #ECE8DF;   --sumi-mittel: #A39E92; --linie: #2E2B27;
+  --shu: #E0603F;    --ai: #8FA9C4;          --beni: #D46A5E;
+  --yamabuki: #D9AE4F; --matcha: #8DAA7A;
+}
+
+/* Tuschestufen für die Heatmap */
+:root, .dark {
+  --tusche-1: color-mix(in oklab, var(--sumi)  8%, var(--washi));
+  --tusche-2: color-mix(in oklab, var(--sumi) 20%, var(--washi));
+  --tusche-3: color-mix(in oklab, var(--sumi) 38%, var(--washi));
+  --tusche-4: color-mix(in oklab, var(--sumi) 60%, var(--washi));
+  --tusche-5: color-mix(in oklab, var(--sumi) 85%, var(--washi));
+}
+
+/* --- Grundlagen ---------------------------------------------------------- */
+html { background: var(--washi); color: var(--sumi); scroll-padding-top: 16px; }
+body {
+  font-family: var(--schrift); font-size: 1rem; line-height: 1.625;
+  background: var(--washi); color: var(--sumi); min-height: 100vh;
+  -webkit-font-smoothing: antialiased; font-feature-settings: "cv11", "ss01";
+}
+[lang="ja"] { font-family: var(--schrift-titel); font-weight: 600; }
+code, pre, kbd, samp { font-family: var(--schrift-code); }
+pre { font-size: 0.875rem; line-height: 1.375rem; }
+a:not(.btn) { color: inherit; text-underline-offset: 3px; }
+:focus-visible { outline: 2px solid var(--shu); outline-offset: 2px; }
+::selection { background: color-mix(in oklab, var(--shu) 30%, transparent); }
+.defs { position: absolute; }
+
+.sprung { position: absolute; left: -999px; top: 8px; z-index: 100; }
+.sprung:focus { left: 16px; background: var(--washi-hell); padding: 8px 12px; border-radius: var(--radius); }
+
+/* Typografie */
+.titel { font-family: var(--schrift-titel); font-weight: 600; font-size: 2rem; line-height: 2.5rem; letter-spacing: 0.01em; }
+.ueberschrift { font-family: var(--schrift-titel); font-weight: 600; font-size: 1.375rem; line-height: 1.875rem; }
+.zahl-gross { font-weight: 300; font-size: 3.5rem; line-height: 3.75rem; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.klein { font-size: 0.8125rem; line-height: 1.25rem; }
+.etikett { font-size: 0.6875rem; line-height: 1rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.12em; color: var(--sumi-mittel); }
+.etikett [lang="ja"] { text-transform: none; letter-spacing: 0.04em; margin-right: 0.25em; }
+.gedaempft { color: var(--sumi-mittel); }
+.zahl, .tabular { font-variant-numeric: tabular-nums; }
+.prosa { max-width: 68ch; }
+.prosa > * + * { margin-top: 0.75em; }
+.prosa h1, .prosa h2, .prosa h3 { font-family: var(--schrift-titel); font-weight: 600; margin-top: 1.25em; }
+.prosa ul { list-style: disc; padding-left: 1.25em; }
+.prosa ol { list-style: decimal; padding-left: 1.25em; }
+.prosa code { font-size: 0.875em; background: var(--flaeche); padding: 0.1em 0.3em; border-radius: 4px; }
+.prosa pre { background: var(--flaeche); padding: 12px 16px; border-radius: var(--radius); overflow-x: auto; }
+.prosa pre code { background: none; padding: 0; }
+.prosa table { border-collapse: collapse; }
+.prosa th, .prosa td { border: 1px solid var(--linie); padding: 4px 8px; }
+
+/* --- Layout: Seitenleiste links, Inhalt linksbündig ----------------------- */
+.app { display: grid; grid-template-columns: var(--leiste-breite) minmax(0, 1fr); min-height: 100dvh; }
+:root { --leiste-breite: 232px; --rand: 40px; }
+.app > main { min-width: 0; }
+.seite { padding: 32px var(--rand) 96px; }
+.weit { max-width: calc(1120px + 2 * var(--rand)); }
+.eng { max-width: calc(760px + 2 * var(--rand)); }
+.abschnitt { margin-top: 56px; }
+.abschnitt:first-child { margin-top: 0; }
+.stapel > * + * { margin-top: 16px; }
+.zeile { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.zwischen { justify-content: space-between; }
+.raster-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; }
+
+/* Seitenleiste */
+.seitenleiste {
+  position: sticky; top: 0; height: 100dvh; z-index: 40; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 4px; padding: 20px 12px 16px;
+  background: var(--washi-hell); border-right: 1px solid var(--linie);
+}
+.logo { display: inline-flex; align-items: center; gap: 10px; padding: 0 10px; font-family: var(--schrift-titel); font-weight: 600; font-size: 1.1875rem; text-decoration: none; }
+.logo [lang="ja"] { color: var(--shu); font-size: 1.5rem; }
+/* Umfang-Schalter: AE/SI × AP1/AP2, klappt als kleines Menü auf */
+.umfang { position: relative; z-index: 50; margin: 12px 0 18px; }  /* eigene Ebene: in WebKit sonst unter der Navigation */
+.umfang > summary {
+  display: flex; align-items: center; gap: 8px; padding: 6px 8px; list-style: none; cursor: pointer;
+  font-size: 0.8125rem; color: var(--sumi); border: 1px solid var(--linie); border-radius: 8px; background: var(--washi);
+}
+.umfang > summary::-webkit-details-marker { display: none; }
+.umfang > summary:hover { border-color: var(--sumi-mittel); }
+.umfang-teil { padding: 1px 6px; border-radius: 5px; background: var(--sumi); color: var(--washi); font-size: 0.6875rem; font-weight: 600; letter-spacing: .04em; }
+.umfang > summary > .seitenleiste-text:not(.umfang-pfeil) { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.umfang-pfeil { margin-left: auto; display: inline-flex; color: var(--sumi-mittel); }
+.umfang-pfeil .icon { width: 14px; height: 14px; }
+.umfang-menue {
+  position: absolute; z-index: 45; top: calc(100% + 6px); left: 0; right: 0; min-width: 210px;
+  display: grid; gap: 2px; padding: 8px; border-radius: 10px;
+  background: var(--washi-hell); border: 1px solid var(--linie); box-shadow: 0 16px 40px -16px rgb(0 0 0 / .45);
+}
+.umfang-menue .etikett { padding: 6px 8px 2px; }
+.umfang-menue button { padding: 6px 8px; border-radius: 6px; text-align: left; font-size: 0.875rem; color: var(--sumi-mittel); }
+.umfang-menue button:hover { background: var(--flaeche); color: var(--sumi); }
+.umfang-menue button[aria-pressed="true"] { color: var(--sumi); font-weight: 500; }
+.umfang-menue button[aria-pressed="true"]::after { content: " ✓"; color: var(--shu); }
+.nav, .seitenleiste-fuss { display: grid; gap: 2px; }
+.seitenleiste-fuss { margin-top: auto; padding-top: 12px; border-top: 1px solid var(--linie); }
+:is(.nav, .seitenleiste-fuss) > :is(a, button) {
+  display: flex; align-items: center; gap: 10px; width: 100%; padding: 6px 10px; border-radius: 8px;
+  font-size: 0.875rem; color: var(--sumi-mittel); text-decoration: none; text-align: left;
+  transition: color var(--kurz) ease-out, background var(--kurz) ease-out;
+}
+:is(.nav, .seitenleiste-fuss) > :is(a, button):hover { color: var(--sumi); background: var(--flaeche); }
+:is(.nav, .seitenleiste-fuss) > [aria-current="page"] { color: var(--sumi); background: var(--flaeche); font-weight: 500; }
+.nav-zeichen { display: grid; place-items: center; width: 28px; height: 28px; flex: none; border-radius: 7px; font-size: 1rem; }
+.nav .nav-zeichen { background: var(--washi); border: 1px solid var(--linie); }
+.nav [aria-current="page"] .nav-zeichen { background: var(--shu); border-color: var(--shu); color: #FBFAF7; }
+.nav-zahl { margin-left: auto; min-width: 20px; padding: 0 6px; border-radius: 10px; background: var(--flaeche); color: var(--sumi); font-size: 0.6875rem; line-height: 20px; text-align: center; font-variant-numeric: tabular-nums; }
+.seitenleiste-fuss .taste { margin-left: auto; }
+
+/* Schmal: nur noch die Zeichen, Beschriftung als Tooltip */
+@media (max-width: 1100px) {
+  :root { --leiste-breite: 64px; --rand: 24px; }
+  .seitenleiste { padding-inline: 10px; align-items: center; }
+  .seitenleiste-text, .seitenleiste .taste, .nav-zahl { display: none; }
+  .logo { padding: 0; }
+  .umfang > summary { padding: 6px 4px; justify-content: center; border: 0; background: none; }
+  .umfang-menue { right: auto; }
+  :is(.nav, .seitenleiste-fuss) > :is(a, button) { padding: 4px; justify-content: center; }
+}
+
+/* --- Bildband über dem Inhalt ---------------------------------------------- */
+.kopf {
+  position: relative; isolation: isolate; overflow: hidden;
+  height: 168px; margin: 20px var(--rand) 0; border-radius: 14px;
+  display: flex; align-items: flex-end; background: #141412; color: #ECE8DF;
+}
+.kopf-bild { position: absolute; inset: 0; z-index: -2; width: 100%; height: 100%; object-fit: cover; }
+.kopf::after {
+  content: ""; position: absolute; inset: 0; z-index: -1;
+  background: linear-gradient(90deg, rgba(10, 10, 9, .78) 0%, rgba(10, 10, 9, .3) 50%, rgba(10, 10, 9, .55) 100%),
+              linear-gradient(180deg, transparent 30%, rgba(10, 10, 9, .4) 100%);
+}
+.kopf-inhalt { width: 100%; padding: 0 28px 20px; }
+.kopf-inhalt .etikett { color: #ECE8DF; opacity: 0.8; }
+.kopf-inhalt .titel { margin-top: 4px; font-size: 1.75rem; line-height: 2.25rem; }
+.kopf--schmal { height: 64px; align-items: center; }
+.kopf--schmal .kopf-inhalt { padding-bottom: 0; display: flex; align-items: baseline; gap: 16px; }
+.kopf--schmal .titel { margin-top: 0; font-size: 1.25rem; line-height: 1.75rem; }
+
+/* --- Bausteine ------------------------------------------------------------ */
+/* Karten: nur Linie, keine Schatten */
+.card, .flaeche { background: var(--washi-hell); border: 1px solid var(--linie); border-radius: var(--radius); box-shadow: none; }
+.flaeche { padding: 24px; }
+
+/* Tastenhinweis */
+.taste {
+  display: inline-flex; align-items: center; justify-content: center; min-width: 1.6em; height: 1.6em;
+  padding: 0 0.4em; font-size: 0.6875rem; line-height: 1; color: var(--sumi-mittel);
+  border: 1px solid var(--linie); border-bottom-width: 2px; border-radius: 4px; background: var(--washi-hell);
+}
+
+/* Icons */
+.icon { width: 18px; height: 18px; stroke: currentColor; stroke-width: 1.5; fill: none; flex: none; }
+
+/* Fahrschul-Status: nie nur Farbe, immer mit Symbol */
+.status { display: inline-flex; align-items: center; gap: 6px; font-size: 0.8125rem; white-space: nowrap; }
+.status-punkt { width: 8px; height: 8px; border-radius: 50%; background: var(--status-farbe); flex: none; }
+.status--neu   { --status-farbe: var(--linie); color: var(--sumi-mittel); }
+.status--rot   { --status-farbe: var(--beni); }
+.status--gelb  { --status-farbe: var(--yamabuki); }
+.status--gruen { --status-farbe: var(--matcha); }
+.dark .status--neu { --status-farbe: #5A564F; }
+
+/* Fortschritt: 2 px */
+.linie-fortschritt { height: 2px; background: var(--linie); border-radius: 2px; overflow: hidden; }
+.linie-fortschritt > span { display: block; height: 100%; background: var(--sumi); transition: width var(--mittel) ease-out; }
+
+/* Hinweise */
+.hinweis { padding: 12px 16px; border-left: 2px solid var(--matcha); background: var(--washi-hell); border-radius: 0 var(--radius) var(--radius) 0; }
+.hinweis--fehler { border-left-color: var(--beni); }
+.leer { text-align: center; padding: 64px 24px; color: var(--sumi-mittel); }
+
+/* Formulare */
+.formular { display: grid; gap: 24px; }
+.formular .field { display: grid; gap: 6px; }
+.auswahl-reihe { display: flex; gap: 16px; flex-wrap: wrap; }
+.auswahl { display: inline-flex; gap: 6px; align-items: center; }
+.formular > .btn { justify-self: start; }
+
+/* Bildausschnitt aus dem PDF: verschmilzt mit dem Papier */
+.ausschnitt { display: block; max-width: 100%; height: auto; mix-blend-mode: multiply; }
+.dark .ausschnitt { filter: invert(1) hue-rotate(180deg); mix-blend-mode: screen; }
+.ausschnitt.original, .dark .ausschnitt.original { filter: none; mix-blend-mode: normal; background: #fff; }
+
+/* Sensei-Sprechblase */
+.sensei-blase { border-left: 2px solid var(--ai); padding: 4px 0 4px 16px; }
+.sensei-blase > .etikett { color: var(--ai); }
+
+/* Tusche-Einblendung */
+.tusche { animation: tusche .45s ease-out backwards; }  /* nicht "both": eine anhaltende Animation isoliert den Blend-Modus der Ausschnitte */
+@keyframes tusche { from { opacity: 0; filter: blur(6px); } }
+
+/* Ensō */
+.enso { overflow: visible; }
+.enso-spur { fill: none; stroke: var(--linie); stroke-width: 6; }
+.enso-strich {
+  fill: none; stroke: var(--sumi); stroke-width: 7; stroke-linecap: round;
+  stroke-dasharray: 100; stroke-dashoffset: calc(100 - var(--wert));
+  transform: rotate(-80deg); transform-origin: 50% 50%;
+  filter: url(#pinsel);
+  animation: enso-zeichnen 1.4s cubic-bezier(.65, 0, .35, 1) both;
+}
+.enso--mankai .enso-strich { stroke: var(--shu); }
+@keyframes enso-zeichnen { from { stroke-dashoffset: 100; } }
+
+/* Hanko-Stempel */
+.hanko {
+  display: inline-block; writing-mode: vertical-rl;
+  font-family: var(--schrift-titel); font-weight: 700;
+  font-size: 2.25rem; letter-spacing: .15em; padding: .3em .15em; line-height: 1;
+  color: var(--shu); border: 3px solid currentColor; border-radius: .4rem;
+  rotate: -6deg; filter: url(#pinsel);
+  animation: stempeln .35s cubic-bezier(.2, .9, .3, 1.3) both;
+}
+.hanko--sai { color: var(--sumi-mittel); }
+@keyframes stempeln { from { scale: 1.6; rotate: -14deg; opacity: 0; } }
+
+/* Trittsteine */
+.stein                 { border-radius: 48% 52% 45% 55% / 55% 45% 52% 48%; }
+.stein:nth-child(3n+2) { border-radius: 55% 45% 50% 50% / 45% 55% 48% 52%; }
+.stein:nth-child(3n)   { border-radius: 45% 55% 55% 45% / 50% 50% 45% 55%; }
+
+/* Dialoge: schwebende Ebenen dürfen einen weichen Schatten haben */
+dialog.dialog > div { background: var(--washi-hell); border: 1px solid var(--linie); box-shadow: 0 24px 64px -24px rgb(0 0 0 / .45); }
+.tasten-tabelle td { padding: 6px 8px; vertical-align: middle; }
+.tasten-tabelle td:first-child { white-space: nowrap; }
+
+/* --- Bewegung ------------------------------------------------------------- */
+/* Bereichswechsel: der neue Inhalt blendet kurz ein, nur Deckkraft (keine View Transitions: in WebKit ruckeln die Bilder) */
+.app > main { animation: inhalt-ein 150ms ease-out; }
+@keyframes inhalt-ein { from { opacity: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+
+/* Rückmeldung unten rechts */
+.toast {
+  position: fixed; right: 24px; bottom: 24px; z-index: 60; padding: 8px 14px; border-radius: 8px;
+  background: var(--sumi); color: var(--washi); font-size: 0.875rem;
+  opacity: 0; translate: 0 8px; pointer-events: none; transition: opacity var(--mittel) ease-out, translate var(--mittel) ease-out;
+}
+.toast.sichtbar { opacity: 1; translate: 0 0; }
+
+/* Vorschläge für offizielle IHK-Termine */
+.termin-vorschlaege { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.termin-chip {
+  padding: 3px 10px; border-radius: 999px; font-size: 0.75rem; cursor: pointer;
+  border: 1px solid color-mix(in oklab, currentColor 30%, transparent); background: transparent; color: inherit; opacity: .85;
+}
+.termin-chip:hover { opacity: 1; border-color: currentColor; }
+.einstellung-termin { display: grid; justify-items: end; }
+.einstellung-termin .termin-vorschlaege { justify-content: flex-end; max-width: 300px; }

@@ -1,0 +1,91 @@
+"""Suche ⌘K: Befehle, Sprünge zu Bereichen und Themen und Live-Suche über alle Prüfungen."""
+
+from flask import Blueprint, render_template, request
+
+from saku.sensei import vektoren
+from saku.web import BEREICHE, db
+
+bp = Blueprint("suche", __name__, url_prefix="/suche")
+
+_TREFFER = """
+SELECT v.teilaufgabe_id, v.termin, v.aufgabe_nr, v.kennung, v.status, t.text
+FROM {quelle} JOIN v_teilaufgabe v ON v.teilaufgabe_id = s.teilaufgabe_id JOIN teilaufgabe t ON t.id = v.teilaufgabe_id
+"""
+
+
+# Befehlspalette: (Icon, Name, Suchwörter, Ziel). Ziel ist (Endpunkt, Argumente) oder ("einstellung", Schlüssel, Wert);
+# die ersten vier stehen schon bei leerer Eingabe da
+BEFEHLE = [
+    ("timer", "Prüfung simulieren", "simulation shiken test klausur", ("shiken.index", {})),
+    ("circle-x", "Fehlerkorb üben", "fehler rot wackelig wiederholen", ("keiko.index", {"modus": "fehler"})),
+    ("book-open", "Grundwissen üben", "begriffe karten definitionen vokabeln", ("keiko.grundwissen", {})),
+    ("calendar", "Prüfungstermin setzen", "termin datum countdown ihk", ("kern.einstellungen", {"_anchor": "termin"})),
+    ("sparkles", "Neue Teilaufgaben üben", "neu unbekannt", ("keiko.index", {"modus": "neu"})),
+    ("star", "Markierte üben", "markiert gemerkt", ("keiko.index", {"modus": "markiert"})),
+    ("messages-square", "Fachgespräch üben", "projekt mündlich präsentation prüfer", ("shiken.fachgespraech", {})),
+    ("settings", "Einstellungen", "optionen sensei daten", ("kern.einstellungen", {})),
+    ("briefcase", "Zu Anwendungsentwicklung wechseln", "ae fiae beruf umfang", ("einstellung", "beruf", "1201")),
+    ("briefcase", "Zu Systemintegration wechseln", "si fisi beruf umfang", ("einstellung", "beruf", "1202")),
+    ("layers", "Zu AP1 wechseln", "teil 1 umfang", ("einstellung", "teil", "AP1")),
+    ("layers", "Zu AP2 wechseln", "teil 2 umfang", ("einstellung", "teil", "AP2")),
+    ("sun", "Farbschema hell", "hell light farbe", ("einstellung", "farbschema", "hell")),
+    ("moon", "Farbschema dunkel", "dunkel dark farbe", ("einstellung", "farbschema", "dunkel")),
+    ("monitor", "Farbschema wie System", "system auto farbe", ("einstellung", "farbschema", "system")),
+]
+
+
+def befehle(q: str) -> list[tuple]:
+    """Befehle, deren Name oder Suchwörter alle Wortteile der Anfrage enthalten."""
+    if not q:
+        return BEFEHLE[:4]
+    woerter = q.casefold().split()
+    return [b for b in BEFEHLE if all(w in f"{b[1]} {b[2]}".casefold() for w in woerter)][:6]
+
+
+def _like(q: str) -> str:
+    return "%" + q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"
+
+
+def suchen(con, q: str, anzahl: int = 12) -> list:
+    """Volltext (Wortteile) und Bedeutung (Vektoren) zusammen, im Umfang; ab vier Zeichen kommt die Bedeutung dazu."""
+    worttreffer = _volltext(con, q, anzahl)
+    if len(q) < 4:
+        return worttreffer
+    umfang = {z[0] for z in con.execute("SELECT teilaufgabe_id FROM v_teilaufgabe")}
+    nah = [i for i, _ in vektoren.suchen(con, "teilaufgabe", q, n=anzahl, erlaubt=umfang, schwelle=0.4)]
+    ids = vektoren.verschmelzen([z["teilaufgabe_id"] for z in worttreffer], nah)[:anzahl]
+    if not ids:
+        return []
+    zeilen = {z["teilaufgabe_id"]: z for z in con.execute(
+        _TREFFER.format(quelle="(SELECT id AS teilaufgabe_id FROM teilaufgabe) s") +
+        f"WHERE v.teilaufgabe_id IN ({','.join('?' * len(ids))})", ids)}
+    return [zeilen[i] for i in ids if i in zeilen]
+
+
+def _volltext(con, q: str, anzahl: int) -> list:
+    """Teilaufgaben zur Suche. Trigramme greifen erst ab 3 Zeichen je Wort, kürzere Anfragen laufen über LIKE."""
+    woerter = q.split()
+    if woerter and all(len(w) >= 3 for w in woerter):
+        ausdruck = " AND ".join('"' + w.replace('"', '""') + '"' for w in woerter)
+        return con.execute(_TREFFER.format(quelle="(SELECT teilaufgabe_id, bm25(suche) AS rang FROM suche WHERE suche MATCH ?) s")
+                           + "ORDER BY s.rang LIMIT ?", (ausdruck, anzahl)).fetchall()
+    muster = _like(q)
+    return con.execute(_TREFFER.format(quelle="suche s") + "WHERE s.titel LIKE ?1 ESCAPE '\\' OR s.text LIKE ?1 ESCAPE '\\' "
+                       "OR s.loesung LIKE ?1 ESCAPE '\\' ORDER BY v.termin_index DESC, v.aufgabe_nr, v.kennung LIMIT ?2",
+                       (muster, anzahl)).fetchall()
+
+
+@bp.get("/")
+def index():
+    q = request.args.get("q", "").strip()[:100]
+    if not q:
+        return render_template("suche/_treffer.html", q=q, befehle=befehle(q), bereiche=BEREICHE, themen=[], treffer=[])
+    con = db()
+    gesucht = q.casefold()
+    return render_template(
+        "suche/_treffer.html", q=q, befehle=befehle(q),
+        bereiche=[b for b in BEREICHE if gesucht in b[2].casefold() or gesucht in b[1]],
+        themen=con.execute("SELECT id, name, ebene FROM thema WHERE name LIKE ?1 ESCAPE '\\' OR stichworte LIKE ?1 ESCAPE '\\' "
+                           "ORDER BY ebene, position LIMIT 6", (_like(q),)).fetchall(),
+        treffer=suchen(con, q),
+    )

@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+{% block titel %}Heute{% endblock %}
+{% block inhalt %}
+{% if leer %}
+{{ m.kopf('willkommen', '今', 'Heute', 'Willkommen bei Saku') }}
+<div class="seite weit">
+  <div class="leer">
+    <p>Noch ist der Garten leer. Lege deine Prüfungen in <code>data/pdfs</code> und starte die Analyse.</p>
+    <pre class="heute-befehl"><code>python -m saku analyse</code></pre>
+  </div>
+</div>
+{% else %}
+{% call m.kopf('heute', '今', None, gross=True) %}
+<div class="held">
+  <div class="held-links">
+    <p class="etikett"><span lang="ja" aria-hidden="true">今日</span> {{ datum }}</p>
+    <h1 class="held-titel"><span lang="ja">{{ gruss[0] }}</span> {{ gruss[1] }}</h1>
+    <p class="held-satz">
+      {% if ziel.erreicht %}Für heute ist alles geschafft. <span lang="ja">お疲れ様</span>.
+      {% else %}{{ ziel.neu_offen }} {{ 'neue Teilaufgabe' if ziel.neu_offen == 1 else 'neue Teilaufgaben' }}{% if ziel.wdh_offen %} und {{ ziel.wdh_offen }} {{ 'Wiederholung' if ziel.wdh_offen == 1 else 'Wiederholungen' }}{% endif %}, etwa {{ minuten }} Minuten.{% endif %}
+    </p>
+    <div class="zeile held-knoepfe">
+      <a class="btn" data-size="lg" data-taste="Enter" href="{{ url_for('keiko.index') }}">{{ 'Weiter üben' if ziel.erreicht else 'Los geht’s' }} {{ m.taste('↵') }}</a>
+      {% if rot %}<a class="btn held-zweit" data-size="lg" href="{{ url_for('keiko.index', modus='fehler') }}">Fehlerkorb · {{ rot }}</a>{% endif %}
+      {% if grundwissen.faellig %}<a class="btn held-zweit" data-size="lg" href="{{ url_for('keiko.grundwissen') }}">Grundwissen · {{ grundwissen.faellig }}</a>{% endif %}
+    </div>
+  </div>
+  {% if tage is none %}
+  <form class="heute-termin" method="post" action="{{ url_for('heute.termin') }}">
+    <label class="etikett" for="heute-termin">Wann ist deine {{ umfang.teil }}?</label>
+    <div class="zeile">
+      <input class="input" type="date" id="heute-termin" name="pruefungstermin" required min="{{ datum_iso }}">
+      <button class="btn held-zweit" type="submit">Eintragen</button>
+    </div>
+    {{ m.termin_vorschlaege(umfang.teil, 'heute-termin', absenden=True) }}
+  </form>
+  {% elif tage >= 0 %}
+  <div class="held-countdown">
+    <span class="held-zahl zahl">{{ tage }}</span>
+    <span class="held-einheit">{{ 'Tag' if tage == 1 else 'Tage' }} bis zur {{ umfang.teil }}</span>
+    <span class="held-datum">{{ termin_lang }}</span>
+  </div>
+  {% else %}
+  <p class="held-countdown"><span>Der Termin liegt hinter dir.</span> <a href="{{ url_for('kern.einstellungen') }}">Neuen eintragen</a></p>
+  {% endif %}
+</div>
+{% endcall %}
+
+<div class="seite weit heute">
+  {% if laufend %}
+  <p class="hinweis heute-hinweis">Eine Simulation läuft noch. <a href="{{ url_for('shiken.simulation', sim_id=laufend.id) }}">Weiter zur Simulation</a></p>
+  {% endif %}
+
+  <div class="heute-raster">
+    <section class="flaeche heute-plan" aria-labelledby="plan-titel">
+      <header class="karte-kopf"><p class="etikett" id="plan-titel">Tagesplan</p>
+        <span class="klein gedaempft zahl">{{ ziel.erledigt }} von {{ ziel.ziel }} erledigt</span></header>
+      <div class="plan-zahlen">
+        <div><span class="plan-zahl zahl">{{ ziel.neu_offen }}</span><span class="etikett">Neu</span></div>
+        <div><span class="plan-zahl zahl">{{ ziel.wdh_offen }}</span><span class="etikett">Wiederholen</span></div>
+        <div><span class="plan-zahl zahl">{{ rot }}</span><span class="etikett">Fehlerkorb</span></div>
+        <div><span class="plan-zahl zahl">{{ minuten }}</span><span class="etikett">Minuten</span></div>
+      </div>
+      <div class="linie-fortschritt plan-balken" role="progressbar" aria-label="Tagesziel" aria-valuemin="0" aria-valuemax="{{ ziel.ziel }}" aria-valuenow="{{ ziel.erledigt }}">
+        <span style="width: {{ [100, 100 * ziel.erledigt / ziel.ziel]|min if ziel.ziel else 100 }}%"></span>
+      </div>
+      <p class="klein gedaempft">Neue Teilaufgaben kommen in der Reihenfolge deines Lernpfads, fällige Wiederholungen zuerst.</p>
+    </section>
+
+    <a class="flaeche heute-reife" href="{{ url_for('bunseki.index') }}" aria-labelledby="reife-titel">
+      <header class="karte-kopf"><p class="etikett" id="reife-titel">Prüfungsreife</p></header>
+      <div class="reife-inhalt">
+        <div class="heute-enso">
+          {{ m.enso(prozent, mankai, 112) }}
+          <span class="heute-enso-zahl zahl" aria-hidden="true">{{ prozent|round|int }}<small>%</small></span>
+        </div>
+        <ul class="reife-liste klein">
+          <li>{{ m.status('gruen') }} <span class="zahl">{{ reife.gruen or 0 }}</span></li>
+          <li>{{ m.status('gelb') }} <span class="zahl">{{ reife.gelb or 0 }}</span></li>
+          <li>{{ m.status('rot') }} <span class="zahl">{{ reife.rot or 0 }}</span></li>
+          <li>{{ m.status('neu') }} <span class="zahl">{{ reife.neu or 0 }}</span></li>
+        </ul>
+      </div>
+      <p class="klein gedaempft">{% if mankai %}{{ m.wort('満開', 'Volle Blüte, prüfungsreif') }}{% elif prozent >= 80 %}Fast da: noch zwei bestandene Simulationen in Folge.{% elif prozent > 0 %}Anteil der Prüfungspunkte, die bei dir sitzen.{% else %}Zählt die Punkte, die bei dir sicher sitzen.{% endif %}</p>
+    </a>
+
+    {% if station %}
+    <a class="flaeche kachel" href="{{ url_for('michi.station', station_id=station.id) }}">
+      <header class="karte-kopf"><p class="etikett"><span lang="ja" aria-hidden="true">道</span> Nächste Station</p>
+        <span class="klein gedaempft zahl">{{ station.position }} / {{ stationen|length }}</span></header>
+      <p class="kachel-titel">{{ station.titel }}</p>
+      <ol class="mini-steine" aria-hidden="true">
+        {% set von = [station.position - 2, 0]|max %}
+        {% for s in stationen[von:von + 7] %}
+        <li class="stein mini-stein{{ ' mini-stein--fertig' if s.bestanden }}{{ ' mini-stein--aktuell' if s.aktuell }}"></li>
+        {% endfor %}
+      </ol>
+      <p class="klein gedaempft">{{ station.sicher }} von {{ station.gesamt }} Teilaufgaben sicher</p>
+    </a>
+    {% endif %}
+
+    <section class="flaeche kachel" aria-labelledby="serie-titel">
+      <header class="karte-kopf"><p class="etikett" id="serie-titel"><span lang="ja" aria-hidden="true">連</span> Lernserie</p></header>
+      <p class="kachel-zahl"><span class="zahl">{{ lernserie }}</span> {{ 'Tag' if lernserie == 1 else 'Tage' }} in Folge</p>
+      <ol class="heute-woche" aria-label="Die letzten sieben Tage">
+        {% for t in woche %}
+        <li class="{{ 'gelernt' if t.n }}{{ ' heute-tag' if loop.last }}" title="{{ t.tag.strftime('%d.%m.') }}: {{ t.n }} Bewertungen">
+          <span aria-hidden="true">{{ 'MDMDFSS'[t.tag.weekday()] }}</span>
+        </li>
+        {% endfor %}
+      </ol>
+    </section>
+
+    <section class="flaeche kachel" aria-labelledby="themen-titel">
+      <header class="karte-kopf"><p class="etikett" id="themen-titel"><span lang="ja" aria-hidden="true">庭</span> Hier liegen die Punkte</p></header>
+      {% set groesst = (themen|map(attribute='punkte_gesamt')|max) if themen else 1 %}
+      <ul class="heute-themen">
+        {% for t in themen %}
+        <li><a href="{{ url_for('keiko.index', thema=t.thema_id) }}">
+          <span class="heute-thema-zeile"><span>{{ t.name }}</span><span class="klein gedaempft zahl">{{ t.punkte_gesamt|round|int }} P.</span></span>
+          <span class="heute-thema-balken" aria-hidden="true">
+            <span class="b-gruen" style="width: {{ 100 * t.punkte_gruen / groesst }}%"></span><span class="b-gelb" style="width: {{ 100 * t.punkte_gelb / groesst }}%"></span><span class="b-rot" style="width: {{ 100 * t.punkte_rot / groesst }}%"></span><span class="b-rest" style="width: {{ 100 * (t.punkte_gesamt - t.punkte_gruen - t.punkte_gelb - t.punkte_rot) / groesst }}%"></span>
+          </span>
+        </a></li>
+        {% endfor %}
+      </ul>
+    </section>
+
+    {% if luecken %}
+    <section class="flaeche heute-luecken" aria-labelledby="luecken-titel">
+      <header class="karte-kopf"><p class="etikett" id="luecken-titel"><span lang="ja" aria-hidden="true">隙</span> Deine typischen Lücken</p>
+        <span class="klein gedaempft">aus Senseis Bewertungen</span></header>
+      <ul class="luecken-liste">
+        {% for l in luecken %}
+        <li><a href="{{ url_for('keiko.index', thema=l.thema_id) }}">
+          <span class="heute-thema-zeile"><span><strong>{{ l.operator }}</strong> · {{ l.name }}</span><span class="klein gedaempft zahl">{{ l.n }}×</span></span>
+          <span class="klein gedaempft luecke-beispiel">z. B. {{ l.beispiel }}</span>
+        </a></li>
+        {% endfor %}
+      </ul>
+    </section>
+    {% endif %}
+  </div>
+
+  <section class="flaeche heute-kalender" aria-labelledby="kalender-titel">
+    <header class="karte-kopf"><p class="etikett" id="kalender-titel">Lernkalender · 20 Wochen</p>
+      <span class="kalender-legende klein gedaempft" aria-hidden="true">weniger {% for s in range(5) %}<span class="kalender-tag stufe-{{ s }}"></span>{% endfor %} mehr</span></header>
+    <div class="kalender-monate klein gedaempft" aria-hidden="true">
+      {% for w in kalender %}<span>{% if loop.first or w[0].tag.month != kalender[loop.index0 - 1][0].tag.month %}{{ ['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'][w[0].tag.month - 1] }}{% endif %}</span>{% endfor %}
+    </div>
+    <div class="kalender" role="img" aria-label="An {{ kalender|sum(start=[])|selectattr('n')|list|length }} von 140 Tagen gelernt">
+      {% for w in kalender %}{% for t in w %}<span class="kalender-tag stufe-{{ t.stufe }}{{ ' zukunft' if t.zukunft }}" title="{{ t.tag.strftime('%d.%m.%Y') }}: {{ t.n }}"></span>{% endfor %}{% endfor %}
+    </div>
+  </section>
+</div>
+{% endif %}
+{% endblock %}

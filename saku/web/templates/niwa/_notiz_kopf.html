@@ -1,0 +1,6 @@
+{# Kopf jeder Notiz im Graphen: Art, Titel, Schließen #}
+<header class="notiz-kopf">
+  <p class="etikett">{{ art }}</p>
+  <button type="button" class="btn" data-variant="ghost" data-size="icon" aria-label="Notiz schließen"
+          onclick="this.closest('.graph-notiz').hidden = true">{{ m.icon('x') }}</button>
+</header>

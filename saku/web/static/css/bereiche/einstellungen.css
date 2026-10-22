@@ -1,0 +1,40 @@
+/* einstellungen – Abschnitte links, gruppierte Karten mit Zeilen rechts; alles speichert beim Ändern */
+
+.einstellungen { display: grid; grid-template-columns: 168px minmax(0, 760px); gap: 48px; }
+.einstellungen-nav { position: sticky; top: 24px; align-self: start; display: grid; gap: 2px; }
+.einstellungen-nav a { padding: 5px 10px; border-radius: 6px; font-size: 0.875rem; color: var(--sumi-mittel); text-decoration: none; }
+.einstellungen-nav a:hover { color: var(--sumi); background: var(--flaeche); }
+
+.einstellungen-gruppe { scroll-margin-top: 24px; }
+.einstellungen-gruppe + .einstellungen-gruppe { margin-top: 36px; }
+.einstellungen-gruppe h2 { font-family: var(--schrift-titel); font-weight: 600; font-size: 1.125rem; margin-bottom: 12px; }
+.einstellungen-gruppe h2 [lang="ja"] { color: var(--ai); }
+.einstellungen-karte { padding: 0; border-radius: 12px; }
+
+.einstellung-zeile { display: flex; justify-content: space-between; align-items: center; gap: 32px; padding: 18px 22px; }
+.einstellung-zeile + .einstellung-zeile { border-top: 1px solid var(--linie); }
+.einstellung-zeile > div:first-child { display: grid; gap: 2px; max-width: 52ch; }
+.einstellung-zeile > :last-child:not(:first-child) { flex: none; }
+.einstellung-name { font-weight: 500; }
+.einstellung-info { margin-top: 4px; color: var(--sumi); }
+.einstellung-zeile .input[type="date"] { width: 170px; }
+.einstellung-zahl { width: 76px; }
+.einstellung-wert { min-width: 3.5em; text-align: right; }
+.einstellung-modelle { display: grid; gap: 4px; justify-items: end; }
+.einstellung-befehle pre { margin-top: 8px; padding: 10px 14px; background: var(--flaeche); border-radius: 8px; font-size: 0.8125rem; }
+input[type="range"] { accent-color: var(--shu); width: 160px; }
+
+/* Segment-Schalter: Radios bleiben fokussierbar, nur unsichtbar */
+.segment { display: inline-flex; gap: 2px; padding: 3px; background: var(--flaeche); border-radius: 9px; }
+.segment label { position: relative; }
+.segment input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.segment > span, .segment label > span { display: block; padding: 5px 12px; border-radius: 7px; font-size: 0.875rem; color: var(--sumi-mittel); white-space: nowrap; }
+.segment > span.aktiv, .segment input:checked + span { background: var(--washi-hell); color: var(--sumi); box-shadow: 0 1px 2px rgb(0 0 0 / .15); }
+.segment input:focus-visible + span { outline: 2px solid var(--shu); outline-offset: 1px; }
+.segment[aria-disabled="true"] { opacity: .7; }
+
+@media (max-width: 900px) {
+  .einstellungen { grid-template-columns: 1fr; gap: 24px; }
+  .einstellungen-nav { position: static; display: flex; flex-wrap: wrap; }
+  .einstellung-zeile { flex-direction: column; align-items: flex-start; gap: 12px; }
+}

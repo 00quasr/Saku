@@ -1,0 +1,34 @@
+{% import "_makros.html" as m %}
+<section id="karte" class="keiko-abschluss tusche" aria-live="polite">
+  {% if sicher_geworden %}<p class="hinweis" role="status">Sicher. Das sitzt.</p>{% endif %}
+
+  {% if art == 'tagesziel' %}
+  <p class="ueberschrift">Tagesziel geschafft. <span lang="ja">お疲れ様</span>, gute Arbeit.</p>
+  {% elif art == 'runde' %}
+  <p class="ueberschrift">Runde geschafft.</p>
+  <p class="gedaempft">{{ zustand.runde|length }} {{ 'Teilaufgabe' if zustand.runde|length == 1 else 'Teilaufgaben' }} in „{{ rundenname }}“.</p>
+  {% else %}
+  <p class="ueberschrift">{{ leer_text }}</p>
+  {% endif %}
+
+  {% if sicher_heute %}
+  <div class="keiko-sicher">
+    <p class="etikett">Heute sicher geworden</p>
+    <ul class="keiko-sicher-liste">
+      {% for s in sicher_heute %}
+      <li>{{ m.status('gruen', text=False) }} <a href="{{ url_for('keiko.index', teilaufgabe=s.teilaufgabe_id) }}">{{ s.termin }} · Aufgabe {{ s.aufgabe_nr }} {{ s.kennung }}</a></li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  <p class="keiko-serie"><span class="zahl">{{ lernserie }}</span> {{ 'Tag' if lernserie == 1 else 'Tage' }} in Folge gelernt</p>
+
+  <nav class="zeile keiko-weiter" aria-label="Weiter üben">
+    <a class="btn" href="{{ url_for('heute.index') }}" data-taste="Enter">Zu Heute {{ m.taste('↵') }}</a>
+    {% if rot %}<a class="btn" data-variant="outline" href="{{ url_for('keiko.index', modus='fehler') }}">Fehlerkorb · {{ rot }}</a>{% endif %}
+    {% if neu %}<a class="btn" data-variant="outline" href="{{ url_for('keiko.index', modus='neu') }}">Neue Teilaufgaben · {{ neu }}</a>{% endif %}
+    {% if markiert %}<a class="btn" data-variant="outline" href="{{ url_for('keiko.index', modus='markiert') }}">Markiert · {{ markiert }}</a>{% endif %}
+    <a class="btn" data-variant="outline" href="{{ url_for('keiko.grundwissen') }}">Grundwissen</a>
+  </nav>
+</section>

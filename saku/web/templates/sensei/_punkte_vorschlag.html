@@ -1,0 +1,10 @@
+{# Shiken-Auswertung. Kontext: teilaufgabe (Row), antwort, feld_id (ID des Punkte-Inputs) #}
+{% set tid = teilaufgabe.teilaufgabe_id or teilaufgabe.id %}
+<div class="sensei-punkte">
+  <button type="button" class="btn" data-variant="outline" data-size="sm"
+          hx-post="{{ url_for('sensei.punkte') }}" hx-target="closest .sensei-punkte" hx-swap="innerHTML"
+          hx-vals='{{ {"teilaufgabe": tid, "feld_id": feld_id, "antwort": antwort or ""}|tojson }}' hx-disabled-elt="this"
+          {% if not sensei_bereit %}disabled title="Sensei braucht einen API-Schlüssel in .env"{% endif %}>
+    <span lang="ja" aria-hidden="true">先生</span> Sensei schlägt vor<span class="htmx-indicator"> …</span>
+  </button>
+</div>

@@ -1,0 +1,62 @@
+{# Gemeinsame Bausteine. Einbinden mit: {% import "_makros.html" as m %} #}
+
+{# Bildband über dem Inhalt. bild: heute, michi, keiko, shiken, niwa, sensei, bunseki, willkommen, mankai #}
+{% macro kopf(bild, kanji, wort, titel=None, schmal=False, gross=False) %}
+<section class="kopf{{ ' kopf--schmal' if schmal }}{{ ' kopf--gross' if gross }}">
+  <img class="kopf-bild" alt="" aria-hidden="true" fetchpriority="high"
+       src="{{ url_for('static', filename='img/' ~ bild ~ '-1200.jpg') }}"
+       srcset="{{ url_for('static', filename='img/' ~ bild ~ '-1200.jpg') }} 1200w, {{ url_for('static', filename='img/' ~ bild ~ '-2400.jpg') }} 2400w"
+       sizes="(min-width: 1100px) calc(100vw - 300px), calc(100vw - 120px)">
+  <div class="kopf-inhalt">
+    {% if wort %}<p class="etikett"><span lang="ja" aria-hidden="true">{{ kanji }}</span> {{ wort }}</p>{% endif %}
+    {% if titel %}<h1 class="titel">{{ titel }}</h1>{% endif %}
+    {% if caller %}{{ caller() }}{% endif %}
+  </div>
+</section>
+{% endmacro %}
+
+{# Fahrschul-Status: neu, rot, gelb, gruen #}
+{% macro status(wert, text=True) %}
+{% set s = {'neu': ('○', 'Neu'), 'rot': ('✕', 'Wackelig'), 'gelb': ('◐', 'Im Aufbau'), 'gruen': ('✓', 'Sicher')}[wert or 'neu'] %}
+<span class="status status--{{ wert or 'neu' }}" {% if not text %}title="{{ s[1] }}" aria-label="{{ s[1] }}"{% endif %}>
+  <span class="status-punkt" aria-hidden="true"></span><span aria-hidden="true">{{ s[0] }}</span>{% if text %} {{ s[1] }}{% endif %}
+</span>
+{% endmacro %}
+
+{# Prüfungsreife als Pinselkreis; prozent 0–100 #}
+{% macro enso(prozent, mankai=False, groesse=168) %}
+<svg class="enso{{ ' enso--mankai' if mankai }}" viewBox="0 0 120 120" width="{{ groesse }}" height="{{ groesse }}"
+     role="img" aria-label="Prüfungsreife {{ prozent|round|int }} Prozent">
+  <circle class="enso-spur" cx="60" cy="60" r="48"/>
+  <circle class="enso-strich" cx="60" cy="60" r="48" pathLength="100" style="--wert: {{ prozent }}"/>
+</svg>
+{% endmacro %}
+
+{# Prüfungsstempel #}
+{% macro hanko(bestanden) %}
+{% if bestanden %}<div class="hanko" lang="ja" role="img" aria-label="Bestanden">合格</div>
+{% else %}<div class="hanko hanko--sai" lang="ja" role="img" aria-label="Noch einmal">再</div>{% endif %}
+{% endmacro %}
+
+{# Tastenhinweis #}
+{% macro taste(k) %}<kbd class="taste">{{ k }}</kbd>{% endmacro %}
+
+{# Lucide-Icon aus dem Sprite #}
+{% macro icon(name, klasse='') %}<svg class="icon {{ klasse }}" aria-hidden="true"><use href="{{ url_for('static', filename='vendor/lucide-sprite.svg') }}#{{ name }}"/></svg>{% endmacro %}
+
+{# Kanji mit deutschem Wort (Kanji nie allein) #}
+{% macro wort(kanji, deutsch) %}<span class="wort"><span lang="ja" aria-hidden="true">{{ kanji }}</span> {{ deutsch }}</span>{% endmacro %}
+
+{# Offizielle IHK-Termine als Vorschlag: ein Klick trägt das Datum ins Feld ein (und löst change aus) #}
+{% macro termin_vorschlaege(teil, feld_id, absenden=False) %}
+{% set termine = ihk_termine(teil) %}
+{% if termine %}
+<div class="termin-vorschlaege" role="group" aria-label="Offizielle IHK-Termine">
+  {% for t in termine %}
+  <button type="button" class="termin-chip"
+          onclick="const f = document.getElementById('{{ feld_id }}'); f.value = '{{ t.datum }}'; f.dispatchEvent(new Event('change', {bubbles: true})){% if absenden %}; f.form.requestSubmit(){% endif %}">
+    {{ t.name }} · {{ t.anzeige }}</button>
+  {% endfor %}
+</div>
+{% endif %}
+{% endmacro %}

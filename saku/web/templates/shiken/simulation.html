@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% import "keiko/_bausteine.html" as k %}
+{% block titel %}Simulation{% endblock %}
+{% block main_klasse %} shiken-laeuft{% endblock %}
+{% block inhalt %}
+{{ m.kopf('shiken', '試', 'Prüfung · Simulation', sim.bereich, schmal=True) }}
+<form id="simulation" class="seite eng shiken-simulation" method="post" action="{{ url_for('shiken.abgeben', sim_id=sim.id) }}"
+      hx-post="{{ url_for('shiken.speichern', sim_id=sim.id) }}" hx-trigger="input delay:1s" hx-target="#gespeichert" hx-swap="innerHTML">
+  <div class="shiken-leiste">
+    <p class="shiken-zeit"><span class="etikett">Restzeit</span>
+      <time id="uhr" class="zahl" role="timer" data-rest="{{ rest }}">{{ rest // 60 }}:{{ '%02d' % (rest % 60) }}</time></p>
+    <span id="gespeichert" class="klein gedaempft" aria-live="polite"></span>
+    <div class="zeile">
+      <button type="button" class="btn" data-variant="outline" data-size="sm"
+              hx-post="{{ url_for('shiken.speichern', sim_id=sim.id) }}" hx-target="#gespeichert">Zwischenspeichern</button>
+      <button type="submit" class="btn" data-size="sm"
+              onclick="return saku_abgeben(this)">Abgeben</button>
+    </div>
+  </div>
+
+  {# Wie das IHK-Aufgabenheft: Deckblatt, Aufgaben mit Punkten am Korrekturrand, Antwortlinien, Zeitplan je Aufgabe #}
+  {% set gesamt = aufgaben|map('map', attribute='punkte')|map('select')|map('sum')|sum %}
+  {% set minuten_je_punkt = sim.dauer_min / (gesamt or 1) %}
+  <div class="heft">
+    <header class="heft-deckblatt">
+      <p class="etikett">Abschlussprüfung · Simulation</p>
+      <h2 class="heft-bereich">{{ sim.bereich }}</h2>
+      <p class="heft-daten zahl">{{ aufgaben|length }} Aufgaben · {{ sim.dauer_min }} Minuten Prüfungszeit · {{ k.punkte(gesamt) }} Punkte</p>
+      <ul class="heft-hinweise klein">
+        <li>Lies jede Aufgabe ganz, bevor du anfängst. Plane etwa {{ '%.1f'|format(minuten_je_punkt)|replace('.', ',') }} Minuten je Punkt.</li>
+        <li>Beachte die Operatoren: „nennen“ verlangt Stichworte, „erläutern“ eine Begründung.</li>
+        <li>Deine Antworten werden laufend gespeichert. Die Bewertung machst du nach der Abgabe, auf Wunsch mit Sensei.</li>
+      </ul>
+    </header>
+    {% for gruppe in aufgaben %}
+    {% set erste = gruppe[0] %}
+    {% set summe = gruppe|map(attribute='punkte')|select|sum %}
+    <section class="heft-aufgabe" aria-labelledby="aufgabe-{{ loop.index }}">
+      <header class="heft-kopf">
+        <h2 id="aufgabe-{{ loop.index }}">{{ loop.index }}. Aufgabe ({{ k.punkte(summe) }} Punkte)</h2>
+        <span class="heft-zeit klein">≈ {{ (summe * minuten_je_punkt)|round|int }} min</span>
+      </header>
+      <p class="klein gedaempft heft-herkunft">aus {{ erste.termin }}, Aufgabe {{ erste.aufgabe_nr }}</p>
+      <div class="stapel">{{ k.kontext(erste) }}</div>
+      {% for t in gruppe %}
+      <div class="heft-teil">
+        <div class="heft-text">
+          <span class="heft-kennung">{{ t.kennung }})</span>
+          <div class="heft-inhalt">{{ k.aufgabe(t) }}</div>
+        </div>
+        <span class="heft-punkte zahl">{% if t.punkte %}{{ k.punkte(t.punkte) }} Punkte{% endif %}</span>
+        <label class="bunseki-versteckt" for="antwort-{{ t.id }}">Antwort zu {{ t.kennung }})</label>
+        <textarea class="heft-linien" id="antwort-{{ t.id }}" name="antwort-{{ t.id }}" rows="6">{{ t.antwort or '' }}</textarea>
+      </div>
+      {% endfor %}
+    </section>
+    {% endfor %}
+  </div>
+
+  <div class="abschnitt">
+    <button type="submit" class="btn" data-size="lg" onclick="return saku_abgeben(this)">Abgeben</button>
+  </div>
+</form>
+
+<script>
+  // Abgeben in zwei Schritten statt eines Browser-Dialogs: erster Klick fragt, zweiter gibt ab
+  function saku_abgeben(knopf) {
+    if (knopf.dataset.sicher) return true;
+    knopf.dataset.sicher = "1";
+    knopf.textContent = "Wirklich abgeben? Noch einmal klicken";
+    setTimeout(() => { delete knopf.dataset.sicher; knopf.textContent = "Abgeben"; }, 4000);
+    return false;
+  }
+
+  // Restzeit kommt vom Server; läuft sie ab, wird automatisch abgegeben
+  (() => {
+    const uhr = document.getElementById("uhr");
+    const ende = Date.now() + Number(uhr.dataset.rest) * 1000;
+    const takt = setInterval(() => {
+      if (!uhr.isConnected) return clearInterval(takt);
+      const rest = Math.max(0, Math.round((ende - Date.now()) / 1000));
+      uhr.textContent = `${Math.floor(rest / 60)}:${String(rest % 60).padStart(2, "0")}`;
+      if (!rest) {
+        clearInterval(takt);
+        document.getElementById("simulation").submit();
+      }
+    }, 1000);
+  })();
+</script>
+{% endblock %}

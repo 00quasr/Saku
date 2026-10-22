@@ -1,0 +1,124 @@
+/* heute – Cockpit: großes Bildband mit Start, Tagesplan, Prüfungsreife, Kacheln, Lernkalender */
+
+.heute-befehl { display: inline-block; margin-top: 16px; padding: 8px 16px; background: var(--flaeche); border-radius: var(--radius); color: var(--sumi); }
+.heute-hinweis { margin-bottom: 20px; max-width: 68ch; }
+.heute-hinweis a { text-decoration: underline; }
+
+/* Bildband: groß, Begrüßung und Start links, Countdown rechts */
+.kopf--gross { height: clamp(260px, 34vh, 340px); }
+.kopf--gross::after {
+  background: linear-gradient(90deg, rgba(10, 10, 9, .86) 0%, rgba(10, 10, 9, .45) 48%, rgba(10, 10, 9, .25) 70%, rgba(10, 10, 9, .7) 100%),
+              linear-gradient(180deg, rgba(10, 10, 9, .15) 0%, rgba(10, 10, 9, .55) 100%);
+}
+.kopf--gross .kopf-inhalt { padding: 0 36px 32px; }
+.held { display: flex; align-items: flex-end; justify-content: space-between; gap: 32px; flex-wrap: wrap; }
+.held-links { display: grid; gap: 10px; max-width: 620px; }
+.held-titel { font-family: var(--schrift-titel); font-weight: 600; font-size: clamp(2rem, 3.4vw, 2.75rem); line-height: 1.15; letter-spacing: .01em; }
+.held-titel [lang="ja"] { margin-right: .35em; }
+.held-satz { font-size: 1.0625rem; opacity: .85; }
+.held-knoepfe { margin-top: 6px; gap: 10px; }
+.held-knoepfe .btn { gap: 10px; }
+.kopf .btn:not([data-variant]):not(.held-zweit) { background: #F6F4EF; color: #1F1D1A; }
+.kopf .btn:not([data-variant]):not(.held-zweit) .taste { background: transparent; color: inherit; border-color: rgb(31 29 26 / .3); }
+.held-zweit { background: rgb(255 255 255 / .1); color: #F6F4EF; border: 1px solid rgb(255 255 255 / .25); backdrop-filter: blur(6px); }
+.held-zweit:hover { background: rgb(255 255 255 / .18); }
+.held-countdown { display: grid; justify-items: end; text-align: right; gap: 2px; }
+.held-countdown a { color: inherit; }
+.held-zahl { font-weight: 200; font-size: clamp(3.5rem, 6vw, 5rem); line-height: .9; letter-spacing: -0.03em; }
+.held-einheit { font-size: 1rem; }
+.held-datum { font-size: 0.8125rem; opacity: .7; }
+.heute-termin { display: grid; gap: 6px; }
+.heute-termin .etikett { color: inherit; opacity: .8; }
+.heute-termin .input { width: 170px; color-scheme: dark; background: rgb(255 255 255 / .08); border-color: rgb(255 255 255 / .25); color: inherit; }
+
+/* Raster: Tagesplan breit, Reife daneben, darunter drei Kacheln */
+.heute-raster { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.heute .flaeche { border-radius: 14px; padding: 22px 24px; display: grid; gap: 14px; align-content: start; }
+.heute-plan { grid-column: span 2; }
+.karte-kopf { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.karte-kopf .etikett [lang="ja"] { color: var(--shu); }
+a.flaeche { text-decoration: none; transition: border-color var(--kurz) ease-out, background var(--kurz) ease-out; }
+a.flaeche:hover { border-color: var(--sumi-mittel); }
+
+.plan-zahlen { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.plan-zahlen > div { display: grid; gap: 2px; padding: 4px 0; }
+.plan-zahlen > div + div { padding-left: 18px; border-left: 1px solid var(--linie); }
+.plan-zahl { font-weight: 300; font-size: 2.5rem; line-height: 1; letter-spacing: -0.02em; }
+.plan-balken { height: 4px; }
+.plan-balken > span { background: var(--shu); }
+
+.reife-inhalt { display: flex; align-items: center; gap: 22px; }
+.heute-enso { display: grid; place-items: center; flex: none; }
+.heute-enso > * { grid-area: 1 / 1; }
+.heute-enso-zahl { font-weight: 300; font-size: 1.75rem; line-height: 1; letter-spacing: -0.02em; }
+.heute-enso-zahl small { font-size: 0.45em; margin-left: 2px; color: var(--sumi-mittel); }
+.reife-liste { display: grid; gap: 6px; }
+.reife-liste li { display: flex; justify-content: space-between; gap: 16px; min-width: 150px; }
+
+/* Kacheln */
+.kachel-titel { font-family: var(--schrift-titel); font-weight: 600; font-size: 1.125rem; line-height: 1.45; }
+.kachel-zahl { font-size: 0.9375rem; }
+.kachel-zahl .zahl { font-weight: 300; font-size: 2.5rem; line-height: 1; letter-spacing: -0.02em; margin-right: 6px; }
+
+.heute-woche { display: flex; gap: 6px; }
+.heute-woche li {
+  display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%;
+  font-size: 0.6875rem; color: var(--sumi-mittel); border: 1px solid var(--linie);
+}
+.heute-woche li.gelernt { background: var(--shu); border-color: var(--shu); color: #FBFAF7; }
+.heute-woche li.heute-tag:not(.gelernt) { border-style: dashed; border-color: var(--shu); color: var(--shu); }
+
+.heute-themen { display: grid; gap: 4px; margin-inline: -8px; }
+.heute-themen a { display: grid; gap: 6px; padding: 6px 8px; border-radius: 8px; text-decoration: none; }
+.heute-themen a:hover { background: var(--flaeche); }
+.heute-thema-zeile { display: flex; justify-content: space-between; gap: 12px; font-size: 0.9375rem; }
+.heute-thema-zeile > :first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.heute-thema-balken { display: flex; height: 4px; border-radius: 2px; overflow: hidden; background: transparent; }
+.heute-thema-balken > span { display: block; height: 100%; }
+.b-gruen { background: var(--matcha); }
+.b-gelb { background: var(--yamabuki); }
+.b-rot { background: var(--beni); }
+.b-rest { background: var(--linie); }
+
+/* Lücken aus Sensei-Bewertungen: volle Breite, bis vier nebeneinander */
+.heute-luecken { grid-column: 1 / -1; }
+.luecken-liste { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 4px 16px; margin-inline: -8px; }
+.luecken-liste a { display: grid; gap: 4px; padding: 6px 8px; border-radius: 8px; text-decoration: none; }
+.luecken-liste a:hover { background: var(--flaeche); }
+.luecken-liste strong { font-weight: 500; color: var(--shu); }
+.luecke-beispiel { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* Mini-Trittsteine: geschafft in Tusche, aktuell in Zinnoberrot, gesperrt nur umrandet */
+.mini-steine { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; margin: 2px 0; }
+.mini-stein { position: relative; width: 14px; height: 14px; flex: none; border: 1.5px solid var(--sumi-mittel); }
+.mini-stein + .mini-stein::before {
+  content: ""; position: absolute; top: 50%; right: calc(100% + 4px); width: 16px; border-top: 1px dotted var(--sumi-mittel);
+}
+.mini-stein--fertig { background: var(--sumi); border-color: var(--sumi); }
+.mini-stein--fertig + .mini-stein::before { border-top: 1px solid var(--sumi-mittel); }
+.mini-stein--aktuell { width: 18px; height: 18px; background: var(--shu); border-color: var(--shu); }
+
+/* Lernkalender: Spalten sind Wochen, Zeilen Montag bis Sonntag */
+.heute-kalender { margin-top: 16px; }
+.kalender-monate, .kalender { display: grid; grid-auto-flow: column; grid-auto-columns: 14px; gap: 4px; justify-content: start; }
+.kalender { grid-template-rows: repeat(7, 14px); }
+.kalender-monate { grid-template-rows: auto; }
+.kalender-monate span { white-space: nowrap; overflow: visible; }
+.kalender-tag { border-radius: 3px; background: var(--tusche-1); }
+.kalender-tag.stufe-1 { background: color-mix(in oklab, var(--shu) 30%, var(--washi)); }
+.kalender-tag.stufe-2 { background: color-mix(in oklab, var(--shu) 55%, var(--washi)); }
+.kalender-tag.stufe-3 { background: color-mix(in oklab, var(--shu) 78%, var(--washi)); }
+.kalender-tag.stufe-4 { background: var(--shu); }
+.kalender-tag.zukunft { visibility: hidden; }
+.kalender-legende { display: inline-flex; align-items: center; gap: 4px; }
+.kalender-legende .kalender-tag { width: 10px; height: 10px; }
+
+/* Tastenhinweis auf dunklem Primärknopf (Lernbereiche) */
+:is(.bereich-heute, .bereich-keiko, .bereich-michi, .bereich-shiken) .btn:not([data-variant]) .taste { background: transparent; color: inherit; border-color: color-mix(in oklab, currentColor 35%, transparent); }
+
+@media (max-width: 1000px) {
+  .heute-raster { grid-template-columns: 1fr; }
+  .heute-plan { grid-column: auto; }
+  .plan-zahlen { grid-template-columns: repeat(2, 1fr); }
+  .plan-zahlen > div + div { padding-left: 0; border-left: 0; }
+}

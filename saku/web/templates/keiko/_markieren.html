@@ -1,0 +1,6 @@
+{% import "_makros.html" as m %}
+<button type="button" class="btn keiko-markieren" data-variant="ghost" data-size="sm" data-taste="m"
+        aria-pressed="{{ 'true' if markiert else 'false' }}"
+        hx-post="{{ url_for('keiko.markieren', t_id=t_id) }}" hx-target="this" hx-swap="outerHTML">
+  {{ m.icon('star') }} {{ 'Markiert' if markiert else 'Markieren' }} {{ m.taste('M') }}
+</button>

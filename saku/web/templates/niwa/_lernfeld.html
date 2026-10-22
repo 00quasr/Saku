@@ -1,0 +1,19 @@
+{# Notiz zu einem Lernfeld: Themen und wie oft sie geprüft wurden #}
+{% import "_makros.html" as m %}
+<div class="notiz tusche">
+  {% with art='Lernfeld ' ~ feld.nummer ~ ' · ' ~ feld.jahr ~ '. Ausbildungsjahr' %}{% include "niwa/_notiz_kopf.html" %}{% endwith %}
+  <h2 class="ueberschrift">{{ feld.titel }}</h2>
+  <p class="klein gedaempft">{{ feld.stunden }} Unterrichtsstunden · {{ feld.teilaufgaben }} Teilaufgaben in den Prüfungen</p>
+  {% if feld.themen %}
+  <ul class="niwa-teilaufgaben">
+    {% for t in feld.themen %}
+    <li><button type="button" class="notiz-zeile" data-knoten="t{{ t.id }}">
+      <span>{{ t.name }}</span>
+      <span class="klein gedaempft zahl">{{ t.teilaufgaben }} Teilaufgaben · {{ t.termine }} Termine</span>
+    </button></li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="gedaempft">Zu diesem Lernfeld gab es in deinem Prüfungsteil noch keine Themen.</p>
+  {% endif %}
+</div>

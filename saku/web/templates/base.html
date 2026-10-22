@@ -1,0 +1,116 @@
+{% import "_makros.html" as m %}<!doctype html>
+<html lang="de" class="{{ 'dark' if farbschema == 'dunkel' }}{{ ' app-fenster' if config.FENSTER }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="{{ 'dark' if farbschema == 'dunkel' else 'light' if farbschema == 'hell' else 'light dark' }}">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%23C2452D'/%3E%3Ctext x='32' y='44' font-size='34' text-anchor='middle' fill='%23F6F4EF' font-family='serif'%3E%E5%92%B2%3C/text%3E%3C/svg%3E">
+  <title>{% block titel %}Saku{% endblock %} · 咲く</title>
+  {% if farbschema == 'system' %}<script>document.documentElement.classList.toggle("dark", matchMedia("(prefers-color-scheme: dark)").matches)</script>{% endif %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='vendor/basecoat.cdn.min.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/saku.css') }}">
+  {% for b in ['heute', 'michi', 'keiko', 'shiken', 'niwa', 'sensei', 'bunseki', 'suche', 'willkommen', 'einstellungen'] %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/bereiche/' ~ b ~ '.css') }}">
+  {% endfor %}
+  <script src="{{ url_for('static', filename='vendor/htmx.min.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='vendor/sse.min.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='vendor/basecoat.all.min.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='js/saku.js') }}" defer></script>
+  {% block kopfzeilen %}{% endblock %}
+</head>
+<body>
+  <a class="sprung" href="#inhalt">Zum Inhalt</a>
+
+  <svg width="0" height="0" class="defs" aria-hidden="true">
+    <defs>
+      <filter id="pinsel">
+        <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="2"/>
+        <feDisplacementMap in="SourceGraphic" scale="2.5"/>
+      </filter>
+    </defs>
+  </svg>
+
+  <div class="app">
+  {% block leiste %}
+  {# Nur der Inhalt wechselt: die Leiste bleibt stehen, #nav kommt für die Markierung mit (hx-select-oob) #}
+  <aside class="seitenleiste" hx-boost="true" hx-target="#inhalt" hx-select="#inhalt" hx-select-oob="#nav,#fuss,#umfang"
+         hx-swap="outerHTML show:window:top">
+    <a class="logo" href="{{ url_for('heute.index') }}" aria-label="Saku, zur Startseite">
+      <span lang="ja" aria-hidden="true">咲</span><span class="seitenleiste-text">Saku</span>
+    </a>
+    <details id="umfang" class="umfang">
+      <summary title="Ausbildung und Prüfungsteil wechseln">
+        <span class="umfang-teil">{{ umfang.teil }}</span>
+        <span class="seitenleiste-text">{{ BERUFE[umfang.beruf] }}</span>
+        <span class="seitenleiste-text umfang-pfeil" aria-hidden="true">{{ m.icon('chevrons-up-down') }}</span>
+      </summary>
+      <form class="umfang-menue" method="post" action="{{ url_for('kern.umfang') }}">
+        <p class="etikett">Ausbildung</p>
+        {% for nr, name in BERUFE.items() %}
+        <button name="beruf" value="{{ nr }}" aria-pressed="{{ 'true' if umfang.beruf == nr else 'false' }}">{{ name }}</button>
+        {% endfor %}
+        <p class="etikett">Prüfung</p>
+        <button name="teil" value="AP1" aria-pressed="{{ 'true' if umfang.teil == 'AP1' else 'false' }}">AP1 · Teil 1</button>
+        <button name="teil" value="AP2" aria-pressed="{{ 'true' if umfang.teil == 'AP2' else 'false' }}">AP2 · Teil 2</button>
+      </form>
+    </details>
+    <nav id="nav" class="nav" aria-label="Bereiche">
+      {% for endpunkt, kanji, wort in BEREICHE %}
+      <a href="{{ url_for(endpunkt) }}" title="{{ wort }}" {% if bereich == endpunkt.split('.')[0] %}aria-current="page"{% endif %}>
+        <span class="nav-zeichen" lang="ja" aria-hidden="true">{{ kanji }}</span>
+        <span class="seitenleiste-text">{{ wort }}</span>
+        {% if endpunkt == 'keiko.index' and faellig %}<span class="nav-zahl" aria-label="{{ faellig }} fällig">{{ faellig }}</span>{% endif %}
+      </a>
+      {% endfor %}
+    </nav>
+    <div id="fuss" class="seitenleiste-fuss">
+      <button type="button" id="sensei-knopf" data-taste="s" onclick="saku.sensei()" aria-controls="sensei-panel" title="Sensei (S)">
+        <span class="nav-zeichen" lang="ja" aria-hidden="true">先</span><span class="seitenleiste-text">Sensei</span>{{ m.taste('S') }}
+      </button>
+      <button type="button" onclick="saku.oeffne('suche-dialog')" title="Suche (⌘K)">
+        <span class="nav-zeichen">{{ m.icon('search') }}</span><span class="seitenleiste-text">Suche</span>{{ m.taste('⌘K') }}
+      </button>
+      <a href="{{ url_for('kern.einstellungen') }}" title="Einstellungen" {% if request.endpoint == 'kern.einstellungen' %}aria-current="page"{% endif %}>
+        <span class="nav-zeichen">{{ m.icon('settings') }}</span><span class="seitenleiste-text">Einstellungen</span>
+      </a>
+      <button type="button" onclick="saku.oeffne('hilfe-dialog')" title="Tastenkürzel (?)">
+        <span class="nav-zeichen">{{ m.icon('keyboard') }}</span><span class="seitenleiste-text">Tastenkürzel</span>{{ m.taste('?') }}
+      </button>
+    </div>
+  </aside>
+  {% endblock %}
+
+  <main id="inhalt" class="bereich-{{ bereich }}{% block main_klasse %}{% endblock %}">
+    {% block inhalt %}{% endblock %}
+  </main>
+  </div>
+
+  <p id="toast" class="toast" role="status" aria-live="polite"></p>
+  {% include "suche/_dialog.html" ignore missing %}
+  {% include "sensei/_panel.html" ignore missing %}
+
+  <dialog id="hilfe-dialog" class="dialog" aria-labelledby="hilfe-titel">
+    <div>
+      <header><h2 id="hilfe-titel" class="ueberschrift">Tastenkürzel</h2></header>
+      <section>
+        <table class="table tasten-tabelle">
+          <tbody>
+            <tr><td>{{ m.taste('⌘K') }} / {{ m.taste('Strg K') }}</td><td>Suche öffnen</td></tr>
+            <tr><td>{{ m.taste('S') }}</td><td>Sensei öffnen oder schließen</td></tr>
+            <tr><td>{{ m.taste('?') }}</td><td>diese Hilfe</td></tr>
+            <tr><td>{{ m.taste('Esc') }}</td><td>schließen, zurück</td></tr>
+            <tr><td>{{ m.taste('↵') }}</td><td>Heute: Los geht's</td></tr>
+            <tr><td>{{ m.taste('␣') }}</td><td>Üben: Lösung zeigen</td></tr>
+            <tr><td>{{ m.taste('1') }} {{ m.taste('2') }} {{ m.taste('3') }}</td><td>Üben: Nicht gewusst, Teilweise, Gewusst</td></tr>
+            <tr><td>{{ m.taste('T') }} {{ m.taste('E') }} {{ m.taste('P') }} {{ m.taste('V') }}</td><td>Üben: Sensei Tipp, Erklären, Prüfen, Variante</td></tr>
+            <tr><td>{{ m.taste('M') }}</td><td>Üben: markieren</td></tr>
+            <tr><td>{{ m.taste('→') }}</td><td>Üben: überspringen</td></tr>
+          </tbody>
+        </table>
+        <p class="klein gedaempft">In Eingabefeldern sind die Einzeltasten abgeschaltet. <a href="{{ url_for('heute.willkommen') }}">Einführung noch einmal ansehen</a></p>
+      </section>
+      <button type="button" aria-label="Schließen" onclick="this.closest('dialog').close()">{{ m.icon('x') }}</button>
+    </div>
+  </dialog>
+</body>
+</html>

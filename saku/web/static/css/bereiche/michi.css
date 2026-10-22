@@ -1,0 +1,63 @@
+/* michi – Trittsteinpfad, Station, Mini-Test */
+
+.michi-stand { margin-top: 6px; }
+.michi-stand [lang="ja"] { margin-right: 2px; }
+.michi-fuss { margin-top: 48px; }
+.michi-fuss a, .michi-station .hinweis a { text-decoration: underline; }
+
+/* Der Pfad: Stein, Nummer, Titel, Stand; darunter die Zahlen */
+.pfad-station {
+  position: relative; display: grid; grid-template-columns: 28px 1.5rem minmax(0, 1fr) auto;
+  column-gap: 12px; row-gap: 2px; align-items: center; padding-bottom: 36px;
+}
+.pfad-station:last-child { padding-bottom: 0; }
+/* Verbindung zum nächsten Stein: bis zur aktuellen Station durchgezogen, danach gepunktet */
+.pfad-station:not(:last-child)::after {
+  content: ""; position: absolute; left: 13px; top: 34px; bottom: 6px; border-left: 1.5px solid var(--sumi-mittel);  /* 6 px Luft zu beiden Steinen */
+}
+.pfad-station--aktuell::after, .pfad-station--gesperrt::after { border-left-style: dotted; }
+
+.pfad-stein { grid-row: span 2; align-self: start; position: relative; z-index: 1; width: 28px; height: 28px; border: 1.5px solid var(--sumi-mittel); background: var(--washi); }
+.pfad-station:nth-child(3n+2) .pfad-stein { border-radius: 55% 45% 50% 50% / 45% 55% 48% 52%; }
+.pfad-station:nth-child(3n) .pfad-stein   { border-radius: 45% 55% 55% 45% / 50% 50% 45% 55%; }
+.pfad-station--fertig .pfad-stein  { background: var(--sumi); border-color: var(--sumi); }
+.pfad-station--aktuell .pfad-stein { background: var(--shu); border-color: var(--shu); }
+.pfad-station--gesperrt .pfad-stein { border-style: dashed; }
+
+.pfad-nummer { font-size: 0.875rem; color: var(--sumi-mittel); text-align: right; }
+.pfad-titel { font-family: var(--schrift-titel); font-weight: 600; font-size: 1.125rem; line-height: 1.75rem; text-decoration: none; }
+.pfad-titel:hover { text-decoration: underline; text-decoration-color: var(--linie); }
+.pfad-station--gesperrt .pfad-titel { color: var(--sumi-mittel); }
+.pfad-stand { text-align: right; white-space: nowrap; }
+.pfad-hier { color: var(--shu); }
+.pfad-zahlen { grid-column: 3 / -1; }
+.pfad-stand [lang="ja"], .pfad-zahlen [lang="ja"] { color: var(--sumi); }
+@media (max-width: 520px) {
+  .pfad-stand { grid-column: 3 / -1; text-align: left; }
+}
+
+/* Station */
+.michi-uebungen { margin-top: 16px; border-top: 1px solid var(--linie); }
+.michi-uebungen li { border-bottom: 1px solid var(--linie); }
+.michi-uebungen a {
+  display: flex; align-items: baseline; gap: 12px; padding: 10px 4px; text-decoration: none;
+  transition: background var(--kurz) ease-out;
+}
+.michi-uebungen a:hover { background: var(--flaeche); }
+.michi-uebung { display: grid; min-width: 0; }
+.michi-test > * + * { margin-top: 16px; }
+
+/* Mini-Test */
+.michi-testform > p:first-child { margin-top: 24px; }
+.michi-testaufgabe { margin-top: 48px; padding-top: 32px; border-top: 1px solid var(--linie); }
+.michi-testaufgabe > .etikett { margin-bottom: 16px; }
+.michi-loesung > summary {
+  display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; list-style: none; cursor: pointer;
+  font-size: 0.875rem; font-weight: 500; border: 1px solid var(--linie); border-radius: var(--radius);
+  transition: background var(--kurz) ease-out;
+}
+.michi-loesung > summary::-webkit-details-marker { display: none; }
+.michi-loesung > summary:hover { background: var(--flaeche); }
+.michi-loesung[open] > summary { margin-bottom: 16px; }
+.michi-punkte .input { width: 6rem; }
+.michi-ergebnis { display: grid; gap: 16px; justify-items: start; margin-top: 24px; }

@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% import "keiko/_bausteine.html" as k %}
+{% block titel %}Mini-Test · {{ station.titel }}{% endblock %}
+{% block inhalt %}
+{{ m.kopf('michi', '道', 'Lernpfad · Mini-Test', station.titel, schmal=True) }}
+<div class="seite eng michi-station">
+  <p class="klein"><a href="{{ url_for('michi.station', station_id=station.id) }}">← {{ station.titel }}</a></p>
+  {% if ergebnis %}
+  {% include "michi/_ergebnis.html" %}
+  {% elif not aufgaben %}
+  <p class="leer">Diese Station hat noch keine Teilaufgaben mit Punkten. Ohne Punkte lässt sich kein Mini-Test auswerten.</p>
+  {% else %}
+  <form id="test" class="michi-testform" method="post" action="{{ url_for('michi.test', station_id=station.id) }}"
+        hx-post="{{ url_for('michi.test', station_id=station.id) }}" hx-target="this" hx-swap="outerHTML">
+    <p>Bearbeite jede Teilaufgabe im Kopf oder auf Papier, deck dann die Lösung auf und vergib dir ehrlich Punkte.</p>
+    {% for t in aufgaben %}
+    <section class="abschnitt michi-testaufgabe" aria-labelledby="testaufgabe-{{ t.id }}">
+      <input type="hidden" name="teilaufgabe" value="{{ t.id }}">
+      <p class="etikett" id="testaufgabe-{{ t.id }}"><span class="zahl">{{ loop.index }} / {{ aufgaben|length }}</span> · {{ k.kennung(t) }} · {{ k.punkte(t.punkte) }} Punkte</p>
+      <div class="stapel">
+        {{ k.kontext(t) }}
+        {{ k.aufgabe(t) }}
+        <details class="michi-loesung">
+          <summary>Lösung aufdecken</summary>
+          <div class="tusche">{{ k.loesung(t) }}</div>
+        </details>
+        <p class="zeile michi-punkte">
+          <label for="punkte-{{ t.id }}">Deine Punkte</label>
+          <input class="input zahl" type="number" id="punkte-{{ t.id }}" name="punkte-{{ t.id }}"
+                 min="0" max="{{ t.punkte }}" step="0.5" required inputmode="decimal">
+          <span class="gedaempft">von {{ k.punkte(t.punkte) }}</span>
+        </p>
+      </div>
+    </section>
+    {% endfor %}
+    <div class="abschnitt">
+      <button type="submit" class="btn" data-size="lg">Auswerten</button>
+    </div>
+  </form>
+  {% endif %}
+</div>
+{% endblock %}

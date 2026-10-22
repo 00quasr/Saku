@@ -1,0 +1,12 @@
+{# Einführung: was der Prüfungstermin für das Tagesziel bedeutet #}
+<div class="einfuehrung-rechnung tusche">
+{% if tage is none %}
+  <p class="gedaempft">Noch kein Termin. Bis dahin plant Saku {{ ziel.neu }} neue Teilaufgaben am Tag. Du kannst ihn jederzeit in den Einstellungen eintragen.</p>
+{% elif tage < 0 %}
+  <p>Dieser Termin liegt hinter dir. Trag den nächsten ein.</p>
+{% else %}
+  <p><span class="zahl-gross">{{ tage }}</span> {{ 'Tag' if tage == 1 else 'Tage' }} bis zur {{ umfang.teil }}.</p>
+  <p>Das heißt: <strong>{{ ziel.neu }} {{ 'neue Teilaufgabe' if ziel.neu == 1 else 'neue Teilaufgaben' }} am Tag</strong>, dazu die fälligen Wiederholungen. Die letzten {{ puffer }} Tage gehören den Simulationen.</p>
+  {% if ziel.neu > 25 %}<p class="gedaempft">Das ist sportlich. Fang mit den Dauerbrennern an, sie bringen die meisten Punkte.</p>{% endif %}
+{% endif %}
+</div>

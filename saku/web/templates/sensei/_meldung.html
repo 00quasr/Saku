@@ -1,0 +1,1 @@
+<p class="hinweis{{ ' hinweis--fehler' if fehler }} sensei-meldung" role="status">{{ meldung }}{% if 'API-Schlüssel' in meldung %} <a href="{{ url_for('kern.einstellungen') }}">Einstellungen</a>{% endif %}</p>

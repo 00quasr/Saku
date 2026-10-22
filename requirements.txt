@@ -1,0 +1,14 @@
+# Saku – Laufzeit-Abhängigkeiten (Python 3.12+)
+# Installation: pip install -r requirements.txt
+
+flask>=3.0              # Web-App
+pymupdf>=1.24           # PDFs lesen, Ausschnitte rendern
+anthropic>=0.40         # Claude-API (Sensei und Pipeline)
+python-dotenv>=1.0      # .env einlesen
+fsrs>=6.0               # Wiederholungsplanung wie in Anki
+networkx>=3.2           # Graph für Lernpfad und Garten
+fastembed>=0.9.0           # lokale Vektoren für Suche, Ähnlichkeit, Muster (ONNX, offline)
+scikit-learn>=1.4       # TF-IDF für ähnliche Aufgaben
+markdown-it-py>=3.0     # KI-Antworten als sicheres HTML
+rich>=13.7              # Terminal-Ausgabe der Pipeline
+pywebview>=5.0          # eigenes App-Fenster

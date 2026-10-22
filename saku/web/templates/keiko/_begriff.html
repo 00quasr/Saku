@@ -1,0 +1,36 @@
+{# Begriffs-Karte: Vorderseite der Begriff, Rückseite die Definition. Kontext: karte, faellig, neu, runde #}
+{% import "_makros.html" as m %}
+{% if karte %}
+<form id="karte" class="karte begriff-karte" onsubmit="event.preventDefault()" aria-label="Begriff {{ karte.name }}">
+  <input type="hidden" name="runde" value="{{ runde|join(',') }}">
+  <div class="zeile zwischen">
+    <p class="etikett">Grundwissen · {{ faellig }} fällig · {{ neu }} neu</p>
+    {{ m.status(karte.status) }}
+  </div>
+  <p class="begriff-name">{{ karte.name }}</p>
+  <p class="klein gedaempft">{{ karte.n }}× in deinen Prüfungen</p>
+
+  <button type="button" class="btn" data-taste=" " onclick="this.hidden = true; this.nextElementSibling.hidden = false">
+    Aufdecken {{ m.taste('␣') }}</button>
+  <section class="begriff-rueckseite tusche" hidden aria-live="polite">
+    <div class="prosa">{{ karte.erklaerung|markdown }}</div>
+    <div class="zeile">
+      {% for wert, text in [(1, 'Nicht gewusst'), (2, 'Teilweise'), (3, 'Gewusst')] %}
+      <button type="button" class="btn" data-variant="outline" data-size="sm" data-taste="{{ wert }}"
+              hx-post="{{ url_for('keiko.grundwissen_bewerten', begriff_id=karte.id) }}" hx-vals='{"ergebnis": {{ wert }}}'
+              hx-target="#karte" hx-swap="outerHTML">{{ m.taste(wert) }} {{ text }}</button>
+      {% endfor %}
+    </div>
+    <p class="klein"><a href="{{ url_for('niwa.index', begriff=karte.id) }}" class="gedaempft">Fundstellen im Themengarten</a></p>
+  </section>
+</form>
+{% else %}
+<section id="karte" class="keiko-abschluss tusche" aria-live="polite">
+  <p class="ueberschrift">{{ 'Grundwissen für heute geschafft.' if runde else 'Noch keine Begriffs-Karten.' }}</p>
+  {% if not runde %}<p class="gedaempft">Die Definitionen entstehen mit <code>python -m saku analyse --schritt wissen</code>.</p>{% endif %}
+  <nav class="zeile keiko-weiter" aria-label="Weiter">
+    <a class="btn" href="{{ url_for('heute.index') }}" data-taste="Enter">Zu Heute {{ m.taste('↵') }}</a>
+    <a class="btn" data-variant="outline" href="{{ url_for('keiko.index') }}">Aufgaben üben</a>
+  </nav>
+</section>
+{% endif %}

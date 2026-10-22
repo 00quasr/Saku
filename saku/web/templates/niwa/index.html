@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block titel %}Themen{% endblock %}
+{% block inhalt %}
+{% if not daten.knoten %}
+{{ m.kopf('willkommen', '庭', 'Themen', 'Wissensgraph') }}
+<div class="seite weit">
+  <p class="leer">Noch ist der Garten leer. Lege deine Prüfungen in <code>data/quellen</code> und starte die Analyse.</p>
+</div>
+{% else %}
+{{ m.kopf('niwa', '庭', 'Themen', 'Wissensgraph', schmal=True) }}
+<div class="seite niwa">
+  <section class="graph" aria-label="Wissensgraph">
+    <div id="graph" class="graph-flaeche" role="img"
+         aria-label="Wissensgraph mit {{ daten.knoten|length }} Knoten. Themen und Lernfelder stehen auch in den Listen darunter."></div>
+
+    <div class="graph-werkzeuge">
+      <input id="graph-suche" class="input graph-suche" type="search" placeholder="Thema oder Begriff suchen" aria-label="Im Graphen suchen" autocomplete="off">
+      <div class="graph-filter" role="group" aria-label="Was der Graph zeigt">
+        {% for art, name in [('unterthema', 'Unterthemen'), ('lernfeld', 'Lernfelder'), ('begriff', 'Begriffe')] %}
+        <label><input type="checkbox" data-art="{{ art }}" checked> {{ name }}</label>
+        {% endfor %}
+      </div>
+      <button type="button" id="graph-alles" class="btn graph-alles" data-variant="outline" data-size="sm"
+              title="Ganzen Graphen zeigen (auch Rechtsklick auf die Fläche)">{{ m.icon('maximize') }} Alles zeigen</button>
+    </div>
+
+    <ul class="graph-legende klein" aria-label="Legende">
+      <li><span class="punkt punkt--bereich"></span> Prüfungsbereich</li>
+      <li><span class="punkt punkt--lernstand"></span> Thema, Farbe = Lernstand</li>
+      <li><span class="punkt punkt--neu"></span> noch nicht geübt</li>
+      <li><span class="punkt punkt--lernfeld"></span> Lernfeld</li>
+      <li><span class="punkt punkt--begriff"></span> Fachbegriff</li>
+      <li><span class="strich strich--voraussetzung"></span> Voraussetzung</li>
+    </ul>
+
+    <aside id="notiz" class="graph-notiz" aria-live="polite" hidden></aside>
+  </section>
+
+  {% if lehrplan %}
+  <section class="abschnitt" aria-labelledby="lehrplan-titel">
+    <h2 class="ueberschrift" id="lehrplan-titel">Lehrplan</h2>
+    <p class="gedaempft klein">Die Lernfelder aus dem Rahmenlehrplan und wie oft ihre Themen in den Prüfungen drankamen.</p>
+    <div class="lehrplan">
+      {% for lf in lehrplan %}
+      <button type="button" class="lehrplan-feld{{ ' lehrplan-feld--leer' if not lf.teilaufgaben }}" data-knoten="lf{{ lf.id }}"
+              hx-get="{{ url_for('niwa.lernfeld', lernfeld_id=lf.id) }}" hx-target="#notiz" hx-swap="innerHTML"
+              onclick="document.getElementById('notiz').hidden = false">
+        <span class="lehrplan-nummer">LF{{ lf.nummer }}</span>
+        <span class="lehrplan-titel">{{ lf.titel }}</span>
+        <span class="klein gedaempft">{{ lf.jahr }}. Jahr · {{ lf.themen|length }} Themen · {{ lf.teilaufgaben }} Teilaufgaben</span>
+      </button>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  <section class="abschnitt" aria-labelledby="themen-titel">
+    <h2 class="ueberschrift" id="themen-titel">Alle Themen</h2>
+    <ul class="niwa-liste">
+      {% for t in themen %}
+      {% set kanji, wort = stufen[t.stufe] %}
+      <li>
+        <button type="button" class="niwa-eintrag" data-knoten="t{{ t.thema_id }}"
+                hx-get="{{ url_for('niwa.thema', thema_id=t.thema_id) }}" hx-target="#notiz" hx-swap="innerHTML"
+                onclick="document.getElementById('notiz').hidden = false">
+          <span class="niwa-stufe" lang="ja" aria-hidden="true">{{ kanji }}</span>
+          <span class="niwa-name">{{ t.name }}</span>
+          <span class="klein gedaempft zahl">{{ wort }} · {{ (100 * t.beherrschung)|round|int }} % sicher · {{ '%g'|format(t.punkte_gesamt)|replace('.', ',') }} P.</span>
+        </button>
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+</div>
+
+<script type="application/json" id="graph-daten">{{ daten|tojson }}</script>
+<script defer src="{{ url_for('static', filename='vendor/force-graph.min.js') }}" onload='saku.graph(document.getElementById("graph"), {{ auswahl|tojson }})'></script>
+{% endif %}
+{% endblock %}

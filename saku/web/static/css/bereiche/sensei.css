@@ -1,0 +1,68 @@
+/* sensei – Panel, Sprechblasen, Knöpfe in Keiko und Shiken */
+
+/* Panel: gleitet rechts über den Inhalt */
+.sensei-panel {
+  position: fixed; inset: 0 0 0 auto; z-index: 50; width: min(400px, 100vw);
+  display: flex; flex-direction: column; gap: 16px; padding: 16px 24px 24px;
+  background: var(--washi-hell); border-left: 1px solid var(--linie);
+  box-shadow: -24px 0 64px -32px rgb(0 0 0 / .45);
+  transform: translateX(100%); visibility: hidden;
+  transition: transform var(--mittel) ease-in, visibility 0s linear var(--mittel);
+}
+body.sensei-offen .sensei-panel {
+  transform: none; visibility: visible;
+  transition: transform var(--mittel) ease-out, visibility 0s;
+}
+.sensei-panel-kopf { display: flex; align-items: center; justify-content: space-between; }
+.sensei-panel-kopf [lang="ja"] { color: var(--ai); margin-right: 0.25em; }
+.sensei-chat { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 16px; }
+.sensei-verlauf { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; padding-right: 4px; }
+.sensei-frage { display: grid; gap: 8px; }
+.sensei-frage .textarea { resize: vertical; }
+
+/* Pausiert während einer Simulation: serverseitig (.pausiert) oder auf der Simulationsseite */
+.sensei-pause { display: none; }
+.sensei-panel.pausiert .sensei-pause, main.shiken-laeuft ~ #sensei-panel .sensei-pause { display: block; }
+.sensei-panel.pausiert .sensei-chat, main.shiken-laeuft ~ #sensei-panel .sensei-chat { display: none; }
+
+/* Sprechblasen */
+.sensei-blase .etikett [lang="ja"] { color: var(--ai); }
+.sensei-blase > * + * { margin-top: 8px; }
+.sensei-roh:empty::before { content: "Sensei denkt nach …"; color: var(--sumi-mittel); }
+.sensei-text { font-size: 0.9375rem; line-height: 1.6; }
+.sensei-du { align-self: flex-end; max-width: 90%; padding: 8px 12px; background: var(--flaeche); border-radius: var(--radius); }
+.sensei-du p:last-child { white-space: pre-wrap; }
+.sensei-meldung { font-size: 0.875rem; }
+
+/* Quellen [T123] als Link zur Teilaufgabe */
+a.quelle {
+  display: inline-block; padding: 0 6px; border: 1px solid var(--linie); border-radius: 4px;
+  font-size: 0.8125rem; line-height: 1.375rem; text-decoration: none; color: var(--ai); white-space: nowrap;
+  font-variant-numeric: tabular-nums; transition: border-color var(--kurz) ease-out;
+}
+a.quelle:hover { border-color: var(--ai); }
+
+/* Keiko: Knöpfe T E P V */
+.sensei-keiko { display: grid; gap: 12px; }
+.sensei-knoepfe { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.sensei-knoepfe > .etikett { margin-right: 8px; color: var(--ai); }
+.sensei-knoepfe .btn { gap: 6px; }
+.sensei-antwort:empty { display: none; }
+
+/* Antwort prüfen */
+.sensei-punktzahl { font-size: 1.125rem; }
+.sensei-punktzahl .zahl { font-size: 1.75rem; font-weight: 300; }
+.sensei-liste { padding-left: 1.25em; }
+.sensei-liste li { list-style: none; position: relative; }
+.sensei-liste li::before { position: absolute; left: -1.25em; }
+.sensei-liste--richtig li::before { content: "✓"; color: var(--matcha); }
+.sensei-liste--fehlt li::before { content: "✕"; color: var(--beni); }
+.sensei-vorschlag { padding-top: 8px; border-top: 1px solid var(--linie); }
+
+/* Shiken: Punkte-Vorschlag */
+.sensei-punkte .btn { gap: 6px; }
+.sensei-punkte .sensei-blase .btn { margin-left: 8px; }
+
+/* Seite /sensei/ */
+.sensei-modi td { padding: 8px; vertical-align: middle; }
+.sensei-modi td:first-child { width: 3rem; }

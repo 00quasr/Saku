@@ -1,0 +1,19 @@
+{# Sensei in Keiko. Kontext: teilaufgabe (Row mit teilaufgabe_id oder id), Antwortfeld #antwort #}
+{% import "_makros.html" as m %}
+{% set tid = teilaufgabe.teilaufgabe_id or teilaufgabe.id %}
+<section class="sensei-keiko" data-sensei-teilaufgabe="{{ tid }}" aria-label="Sensei">
+  <div class="sensei-knoepfe">
+    <span class="etikett"><span lang="ja" aria-hidden="true">先生</span> Sensei</span>
+    {% for modus, wort, taste in [('tipp', 'Tipp', 't'), ('erklaeren', 'Erklären', 'e'), ('pruefen', 'Prüfen', 'p'), ('variante', 'Variante', 'v')] %}
+    <button type="button" class="btn" data-variant="ghost" data-size="sm" data-taste="{{ taste }}"
+            hx-post="{{ url_for('sensei.anfrage', modus=modus) }}" hx-vals='{"teilaufgabe": {{ tid }}}' hx-include="#antwort"
+            hx-target="#sensei-antwort" hx-swap="innerHTML" hx-indicator="#sensei-arbeitet" hx-disabled-elt="this"
+            {% if not sensei_bereit %}disabled{% endif %}>{{ wort }} {{ m.taste(taste|upper) }}</button>
+    {% endfor %}
+    <span id="sensei-arbeitet" class="htmx-indicator klein gedaempft">Sensei denkt nach …</span>
+  </div>
+  {% if not sensei_bereit %}
+  <p class="klein gedaempft">Sensei ist aus: Es fehlt der API-Schlüssel. Trag ANTHROPIC_API_KEY in die Datei <code>.env</code> ein und starte Saku neu. <a href="{{ url_for('kern.einstellungen') }}">Einstellungen</a></p>
+  {% endif %}
+  <div id="sensei-antwort" class="sensei-antwort"></div>
+</section>

@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block titel %}Grundwissen{% endblock %}
+{% block main_klasse %}{{ ' fokus' if karte }}{% endblock %}
+{% block inhalt %}
+{{ m.kopf('keiko', '稽', 'Üben', 'Grundwissen', schmal=True) }}
+<div class="seite eng keiko">{% include "keiko/_begriff.html" %}</div>
+{% endblock %}

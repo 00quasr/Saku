@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block titel %}Fachgespräch{% endblock %}
+{% block inhalt %}
+{{ m.kopf('sensei', '試', 'Prüfung · Fachgespräch', 'Fachgespräch üben', schmal=True) }}
+<div class="seite eng fachgespraech">
+  <p class="gedaempft">Das Fachgespräch gehört zur betrieblichen Projektarbeit und zählt mit ihr 50 % der Abschlussprüfung. Sensei fragt wie ein Prüfer zu deinem Projekt: Entscheidungen, Alternativen und das Fachwissen drumherum. Nach jeder Antwort bekommst du eine kurze Rückmeldung. Schreib „Auswertung“, wenn du eine Gesamteinschätzung willst.</p>
+
+  {% if not projekt %}
+  <form class="flaeche fachgespraech-upload" method="post" enctype="multipart/form-data" action="{{ url_for('shiken.projekt_hochladen') }}">
+    <label class="einstellung-name" for="projekt-datei">Projektantrag oder Dokumentation</label>
+    <p class="klein gedaempft">PDF mit Textebene, Markdown oder Text, bis 20 MB. Die Datei bleibt auf deinem Rechner (data/projekt), an Claude geht nur der Text, wenn du fragst.</p>
+    <input class="input" type="file" id="projekt-datei" name="datei" accept=".pdf,.md,.txt" required>
+    <button class="btn" type="submit">Hochladen</button>
+  </form>
+  {% else %}
+  <div class="zeile zwischen fachgespraech-projekt">
+    <span>{{ m.icon('file-text') }} <strong>{{ projekt_name or 'Projektdokumentation' }}</strong> <span class="klein gedaempft">· {{ woerter }} Wörter</span></span>
+    <form method="post" action="{{ url_for('shiken.projekt_entfernen') }}"><button class="btn" data-variant="ghost" data-size="sm">Anderes Dokument</button></form>
+  </div>
+
+  {% if not sensei_bereit %}
+  <p class="hinweis hinweis--fehler">Für das Fachgespräch braucht Sensei den API-Schlüssel in <code>.env</code>.</p>
+  {% else %}
+  <div id="fg-verlauf" class="fachgespraech-verlauf" aria-live="polite"></div>
+  <form class="fachgespraech-eingabe" hx-post="{{ url_for('sensei.anfrage', modus='fachgespraech') }}" hx-target="#fg-verlauf" hx-swap="beforeend scroll:bottom"
+        hx-on::after-request="this.reset(); this.querySelector('.fg-start')?.remove()">
+    <input type="hidden" name="gespraech" value="{{ gespraech }}">
+    <button type="submit" class="btn fg-start" data-size="lg">Fachgespräch starten</button>
+    <label class="bunseki-versteckt" for="fg-frage">Deine Antwort</label>
+    <textarea class="textarea" id="fg-frage" name="frage" rows="3" placeholder="Deine Antwort an die Prüfer … (⌘↵ zum Senden)"
+              onkeydown="if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) { event.preventDefault(); this.form.requestSubmit(); }"></textarea>
+    <button type="submit" class="btn" data-variant="outline">Antworten</button>
+  </form>
+  {% endif %}
+  {% endif %}
+</div>
+{% endblock %}

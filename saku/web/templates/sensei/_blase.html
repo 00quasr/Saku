@@ -1,0 +1,9 @@
+{# Leere Sprechblase, die sich per SSE füllt: delta zeigt den bisherigen Text als Markdown, fertig ersetzt ihn mit Quellen-Links #}
+<article class="sensei-blase tusche" hx-ext="sse" sse-connect="{{ url_for('sensei.stream', anfrage_id=anfrage_id) }}" sse-close="fertig">
+  <p class="etikett"><span lang="ja" aria-hidden="true">先生</span> Sensei · {{ titel }}</p>
+  {% if modus == 'variante' %}<p><span class="badge" data-variant="outline">KI-Übung, keine IHK-Aufgabe</span></p>{% endif %}
+  {% if ohne_loesung %}<p class="hinweis klein">Zu dieser Teilaufgabe gibt es keinen offiziellen Lösungshinweis. Sensei erklärt trotzdem, prüf seine Antwort kritisch.</p>{% endif %}
+  <div class="prosa sensei-text" sse-swap="fertig" hx-target="this" hx-swap="innerHTML" aria-live="polite">
+    <div class="sensei-roh" sse-swap="delta" hx-target="this" hx-swap="innerHTML" aria-hidden="true"></div>
+  </div>
+</article>

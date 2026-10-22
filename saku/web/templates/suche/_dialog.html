@@ -1,0 +1,33 @@
+{% import "_makros.html" as m %}
+<dialog id="suche-dialog" class="dialog suche-dialog" aria-label="Suche" onclick="if (event.target === this) this.close()">
+  <div>
+    <header class="suche-kopf">
+      {{ m.icon('search') }}
+      <input id="suche-eingabe" class="suche-eingabe" type="text" name="q" autocomplete="off" spellcheck="false"
+             placeholder="Suchen oder Befehl: Prüfung, Termin, AP1, dunkel …" aria-label="Suchen" aria-controls="suche-treffer"
+             hx-get="{{ url_for('suche.index') }}" hx-trigger="input changed delay:150ms" hx-target="#suche-treffer" hx-swap="innerHTML">
+      {{ m.taste('Esc') }}
+    </header>
+    <section id="suche-treffer" class="suche-treffer" hx-boost="true">
+      {% with q='', befehle=befehle_start, bereiche=BEREICHE, themen=[], treffer=[] %}{% include "suche/_treffer.html" %}{% endwith %}
+    </section>
+    <footer class="suche-fuss klein gedaempft">{{ m.taste('↑') }} {{ m.taste('↓') }} wählen · {{ m.taste('↵') }} öffnen</footer>
+  </div>
+</dialog>
+<script>
+  // Pfeiltasten wandern zwischen Eingabe und Treffern; Enter in der Eingabe öffnet den ersten Treffer
+  document.getElementById("suche-dialog").addEventListener("keydown", (e) => {
+    if (!["ArrowDown", "ArrowUp", "Enter"].includes(e.key)) return;
+    const ziele = [document.getElementById("suche-eingabe"), ...document.querySelectorAll("#suche-treffer a")];
+    const i = ziele.indexOf(document.activeElement);
+    if (e.key === "Enter") {
+      if (i === 0 && ziele[1]) {
+        e.preventDefault();
+        ziele[1].click();
+      }
+      return;
+    }
+    e.preventDefault();
+    ziele[(i + (e.key === "ArrowDown" ? 1 : ziele.length - 1)) % ziele.length].focus();
+  });
+</script>

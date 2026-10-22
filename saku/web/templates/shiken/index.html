@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block titel %}Prüfung{% endblock %}
+{% block inhalt %}
+{% if not bereiche %}
+{{ m.kopf('willkommen', '試', 'Prüfung', 'Prüfungssimulation') }}
+<div class="seite weit">
+  <p class="leer">Noch ist der Garten leer. Lege deine Prüfungen in <code>data/pdfs</code> und starte die Analyse.</p>
+</div>
+{% else %}
+{% call m.kopf('shiken', '試', 'Prüfung', 'Prüfungssimulation') %}
+<p class="shiken-motto"><span lang="ja">頑張って</span> · Viel Erfolg. Die Zeit läuft, sobald du startest.</p>
+{% endcall %}
+
+<div class="seite weit">
+  {% if laufend %}
+  <p class="hinweis shiken-hinweis">Eine Simulation läuft noch: {{ laufend.bereich }}.
+    <a href="{{ url_for('shiken.simulation', sim_id=laufend.id) }}">Weiter zur Simulation</a></p>
+  {% endif %}
+
+  {% include "shiken/_hochrechnung.html" %}
+  <a class="flaeche fachgespraech-karte" href="{{ url_for('shiken.fachgespraech') }}">
+    <span class="etikett">Projektarbeit</span>
+    <span class="kachel-titel">Fachgespräch üben</span>
+    <span class="klein gedaempft">Sensei fragt wie ein Prüfer zu deinem Projekt, du antwortest und bekommst Rückmeldung.</span>
+  </a>
+
+  <section aria-labelledby="start-titel" class="abschnitt">
+    <h2 class="ueberschrift" id="start-titel">Neue Simulation</h2>
+    <p class="gedaempft shiken-erklaerung">Saku stellt aus Aufgaben verschiedener Jahrgänge eine Prüfung zusammen, die es so nie gab. Bevorzugt kommt, was noch nicht sitzt. Sensei ist währenddessen pausiert, wie im Prüfungsraum.</p>
+    <ul class="shiken-bereiche">
+      {% for b in bereiche %}
+      <li class="flaeche shiken-bereich">
+        <p class="etikett">Prüfungsbereich</p>
+        <p class="shiken-bereich-name">{{ b.bereich }}</p>
+        <p class="klein gedaempft zahl">{{ b.dauer }} Minuten · {{ b.aufgaben }} {{ 'Aufgabe' if b.aufgaben == 1 else 'Aufgaben' }} · aus {{ b.pruefungen }} {{ 'Prüfung' if b.pruefungen == 1 else 'Prüfungen' }}</p>
+        <form method="post" action="{{ url_for('shiken.neu') }}">
+          <input type="hidden" name="bereich" value="{{ b.bereich }}">
+          <button type="submit" class="btn" {% if laufend %}disabled title="Es läuft schon eine Simulation"{% endif %}>Starten</button>
+        </form>
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+
+  <section class="abschnitt" aria-labelledby="verlauf-titel">
+    <h2 class="ueberschrift" id="verlauf-titel">Verlauf</h2>
+    {% if verlauf %}
+    <table class="table shiken-verlauf">
+      <thead><tr><th>Datum</th><th>Prüfungsbereich</th><th class="rechts">Punkte</th><th>Note</th><th>Ergebnis</th></tr></thead>
+      <tbody>
+        {% for s in verlauf %}
+        <tr>
+          <td class="zahl">{{ s.datum }}</td>
+          <td><a href="{{ url_for('shiken.auswertung' if s.beendet_am else 'shiken.simulation', sim_id=s.id) }}">{{ s.bereich }}</a></td>
+          {% if s.note %}
+          <td class="zahl rechts">{{ s.punkte_100 }}</td>
+          <td>{{ s.note }} · {{ noten[s.note] }}</td>
+          <td class="{{ 'shiken-gokaku' if s.bestanden }}">{{ m.wort('合格', 'Bestanden') if s.bestanden else m.wort('再', 'Noch nicht') }}</td>
+          {% elif s.beendet_am %}
+          <td colspan="3" class="gedaempft">Auswertung offen</td>
+          {% else %}
+          <td colspan="3">Läuft</td>
+          {% endif %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="gedaempft">Noch keine Simulation. Zwei bestandene in Folge gehören zur vollen Blüte, <span lang="ja">満開</span>.</p>
+    {% endif %}
+  </section>
+</div>
+{% endif %}
+{% endblock %}

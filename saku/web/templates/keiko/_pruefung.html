@@ -1,0 +1,24 @@
+{# Antwort nach „Prüfen“: Urteil, Lösungshinweis und die Bewertung (↵ übernimmt den Vorschlag); das Antwortfeld zeigt richtig/falsch #}
+{% import "_makros.html" as m %}
+{% import "keiko/_bausteine.html" as k %}
+<section class="tusche keiko-loesung" aria-label="Auswertung">
+  {% set erreicht = ((karte.punkte or 0) * {3: 1, 2: 0.5, 1: 0}[ergebnis])|round(1) %}
+  <p class="keiko-urteil keiko-urteil--{{ ergebnis }}" role="status">
+    {{ {3: 'Richtig.', 2: 'Teilweise richtig.', 1: 'Leider falsch.'}[ergebnis] }}
+    {% if karte.punkte %}<span class="klein gedaempft">{{ erreicht|string|replace('.0', '')|replace('.', ',') }} von {{ (karte.punkte|round(1))|string|replace('.0', '')|replace('.', ',') }} Punkten</span>{% endif %}
+  </p>
+  {% if karte.loesung_inhalt or karte.loesung_bilder or karte.loesung_text %}
+  <p class="etikett">Lösungshinweis</p>
+  {{ k.loesung(karte) }}
+  {% endif %}
+  <div class="zeile keiko-bewertung" role="group" aria-label="Bewertung">
+    {% for wert, text in [(1, 'Nicht gewusst'), (2, 'Teilweise'), (3, 'Gewusst')] %}
+    <button type="button" class="btn" {% if wert != ergebnis %}data-variant="outline"{% endif %}
+            data-taste="{{ 'Enter' if wert == ergebnis else wert }}"
+            hx-post="{{ url_for('keiko.bewerten', t_id=karte.id) }}" hx-vals='{{ {"ergebnis": wert, "antwort": zusammenfassung} | tojson if wert != ergebnis else {"ergebnis": wert, "antwort": zusammenfassung, "punkte": erreicht} | tojson }}'
+            hx-target="#karte" hx-swap="outerHTML">{{ m.taste('↵' if wert == ergebnis else wert) }} {{ text }}</button>
+    {% endfor %}
+  </div>
+</section>
+<div id="loesung-knopf" hx-swap-oob="true"></div>
+{{ k.antwortfeld(karte, eingabe, werte, oob=True) }}

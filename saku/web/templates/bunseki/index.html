@@ -1,0 +1,276 @@
+{% extends "base.html" %}
+{% block titel %}Analyse{% endblock %}
+{% block inhalt %}
+{% if leer %}
+{{ m.kopf('willkommen', '析', 'Analyse', 'Analyse') }}
+<div class="seite weit">
+  <p class="leer">Noch ist nichts analysiert. Lege deine Prüfungen in <code>data/pdfs</code> und starte die Analyse mit <code>python -m saku analyse</code>.</p>
+</div>
+{% else %}
+{{ m.kopf('bunseki', '析', 'Analyse', 'Was in den Prüfungen drankam') }}
+<div class="seite weit">
+  {% set teilaufgaben = inventar|sum(attribute='teilaufgaben') %}
+  {% set mit_loesung = inventar|sum(attribute='mit_loesung') %}
+  {% set reiter = [
+    ('ueberblick', 'Überblick', none),
+    ('katalog', 'Katalog', none),
+    ('inventar', 'Inventar', inventar|length),
+    ('heatmap', 'Heatmap', none),
+    ('dauerbrenner', 'Dauerbrenner', dauerbrenner|length),
+    ('lange', 'Lange nicht dran', lange_nicht_dran|length),
+    ('nie', 'Nie geprüft', nie_geprueft|length),
+    ('ohne', 'Ohne Thema', ohne_thema|length),
+    ('kontrolle', 'Kontrolle', kontrolle|length),
+    ('ki', 'KI-Nutzung', none),
+  ] %}
+  <div class="tabs bunseki-tabs" id="bunseki">
+    <nav role="tablist" aria-orientation="horizontal" aria-label="Auswertungen">
+      {% for id, name, anzahl in reiter %}
+      <button type="button" role="tab" id="bunseki-tab-{{ id }}" aria-controls="bunseki-{{ id }}" aria-selected="{{ 'true' if loop.first else 'false' }}" tabindex="{{ 0 if loop.first else -1 }}">
+        {{ name }}{% if anzahl is not none %} <span class="zahl gedaempft">{{ anzahl }}</span>{% endif %}
+      </button>
+      {% endfor %}
+    </nav>
+
+    {# Überblick: Kennzahlen und die Dauerbrenner als Balken #}
+    <div role="tabpanel" id="bunseki-ueberblick" aria-labelledby="bunseki-tab-ueberblick" tabindex="-1" class="bunseki-reiter">
+      <div class="bunseki-kennzahlen">
+        <div class="flaeche"><span class="etikett">Prüfungen</span><span class="kennzahl zahl">{{ inventar|length }}</span><span class="klein gedaempft">aus {{ heatmap.termine|length }} Terminen</span></div>
+        <div class="flaeche"><span class="etikett">Teilaufgaben</span><span class="kennzahl zahl">{{ teilaufgaben }}</span><span class="klein gedaempft">alle als Text aufbereitet</span></div>
+        <div class="flaeche"><span class="etikett">Mit Lösungshinweis</span><span class="kennzahl zahl">{{ (100 * mit_loesung / teilaufgaben)|round|int if teilaufgaben else 0 }} %</span><span class="klein gedaempft">{{ mit_loesung }} von {{ teilaufgaben }}</span></div>
+        <div class="flaeche"><span class="etikett">Themen</span><span class="kennzahl zahl">{{ themen_gesamt }}</span><span class="klein gedaempft">{{ nie_geprueft|length }} weitere nie geprüft</span></div>
+      </div>
+      <section class="flaeche bunseki-top">
+        <header class="zeile zwischen"><p class="etikett">Die meisten Punkte über alle Termine</p><span class="klein gedaempft">Balken: in wie vielen Terminen das Thema drankam</span></header>
+        <ol class="bunseki-balken">
+          {% for s in top %}
+          <li><a href="{{ url_for('keiko.index', thema=s.thema_id) }}">
+            <span class="bunseki-balken-name">{{ s.name }} <span class="klein gedaempft">{{ s.eltern }}</span></span>
+            <span class="bunseki-balken-spur" aria-hidden="true"><span style="width: {{ s.termine_prozent }}%"></span></span>
+            <span class="klein zahl gedaempft">{{ s.termine }} / {{ s.alle_termine }} · {{ s.punkte|round|int }} P.</span>
+          </a></li>
+          {% endfor %}
+        </ol>
+      </section>
+    </div>
+
+    {# Katalog: die Themenliste aus den IHK-Prüfungskatalogen als Checkliste #}
+    <div role="tabpanel" id="bunseki-katalog" aria-labelledby="bunseki-tab-katalog" tabindex="-1" class="bunseki-reiter" hidden>
+      <p class="klein gedaempft">Alle Inhalte der IHK-Prüfungskataloge für deinen Prüfungsteil. Je Punkt: in wie vielen Terminen er drankam und wie gut er bei dir sitzt. „nie dran“ heißt nicht „nie prüfbar“.</p>
+      {% for b in katalog %}
+      <section class="katalog-bereich">
+        <header class="zeile zwischen"><h3 class="ueberschrift">{{ b.name }}</h3>
+          <span class="klein gedaempft zahl">{{ b.geprueft }} von {{ b.gesamt }} schon geprüft · {{ b.sicher }} sitzen bei dir</span></header>
+        <div class="katalog-themen">
+          {% for t in b.themen %}
+          <details class="katalog-thema" {{ 'open' if loop.index <= 2 }}>
+            <summary><span>{{ t.name }}</span><span class="klein gedaempft zahl">{{ t.termine }} Termine · {{ t.teilaufgaben }} Teilaufg.</span></summary>
+            <ul>
+              {% for u in t.unterthemen %}
+              <li class="{{ 'nie' if not u.termine }}">
+                <span class="katalog-haken" aria-hidden="true">{{ '◆' if u.stufe in ('knospe', 'bluete') else '◇' if u.termine else '·' }}</span>
+                <a href="{{ url_for('keiko.index', thema=u.id) }}">{{ u.name }}</a>
+                <span class="klein gedaempft zahl">{% if u.termine %}{{ u.termine }}× · {{ (100 * u.beherrschung)|round|int }} % sicher{% else %}nie dran{% endif %}</span>
+              </li>
+              {% endfor %}
+            </ul>
+          </details>
+          {% endfor %}
+        </div>
+      </section>
+      {% endfor %}
+    </div>
+
+    {# Inventar: Termine × Prüfungsbereiche #}
+    <div role="tabpanel" id="bunseki-inventar" aria-labelledby="bunseki-tab-inventar" tabindex="-1" class="bunseki-reiter" hidden>
+      <p class="klein gedaempft">Je Zelle die Teilaufgaben; ✓ alle mit Lösungshinweis, ◐ teilweise, ✕ keiner. Grau: Scan statt Text-PDF.</p>
+      <div class="table-container">
+        <table class="table bunseki-matrix">
+          <thead><tr><th scope="col">Termin</th>{% for sp in matrix.spalten %}<th scope="col" class="rechts">{{ sp.name }}</th>{% endfor %}</tr></thead>
+          <tbody>
+            {% for termin, zellen in matrix.zeilen %}
+            <tr>
+              <th scope="row" class="zahl">{{ termin }}</th>
+              {% for sp in matrix.spalten %}{% set p = zellen.get(sp.schluessel) %}
+              <td class="rechts zahl{{ ' bunseki-scan' if p and p.textebene == 0 }}" {% if p %}title="{{ p.bereich }} · {{ p.seiten or '–' }} Seiten · {{ 'Scan' if p.textebene == 0 else 'Text' }} · {{ p.mit_loesung }} von {{ p.teilaufgaben }} mit Lösung"{% endif %}>
+                {% if p %}{{ p.teilaufgaben }} <span aria-hidden="true">{{ '✓' if p.teilaufgaben and p.mit_loesung == p.teilaufgaben else '◐' if p.mit_loesung else '✕' }}</span>{% else %}<span class="gedaempft">·</span>{% endif %}
+              </td>
+              {% endfor %}
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    {# Heatmap: Thema × Termin in Tuschestufen #}
+    <div role="tabpanel" id="bunseki-heatmap" aria-labelledby="bunseki-tab-heatmap" tabindex="-1" class="bunseki-reiter" hidden>
+      <p class="klein gedaempft">Je kräftiger die Zelle, desto mehr Punkte brachte das Thema an diesem Termin.</p>
+      <div class="table-container">
+        <table class="bunseki-heatmap">
+          <thead>
+            <tr>
+              <th scope="col"><span class="bunseki-versteckt">Thema</span></th>
+              {% for termin in heatmap.termine %}
+              {% set jahr = termin.termin_index // 2 %}
+              <th scope="col" class="klein zahl"><abbr title="{{ termin.termin }}">{{ 'Wi' if termin.termin_index % 2 else 'So' }}<br>{{ '%02d'|format(jahr % 100) }}{% if termin.termin_index % 2 %}/{{ '%02d'|format((jahr + 1) % 100) }}{% endif %}</abbr></th>
+              {% endfor %}
+              <th scope="col" class="klein rechts">Punkte</th>
+            </tr>
+          </thead>
+          {% for bereich in heatmap.bereiche if bereich.zeilen %}
+          <tbody>
+            <tr><th scope="colgroup" colspan="{{ heatmap.termine|length + 2 }}" class="etikett bunseki-bereich">{{ bereich.name }}</th></tr>
+            {% for zeile in bereich.zeilen %}
+            <tr>
+              <th scope="row" class="bunseki-thema"><a href="{{ url_for('niwa.index', thema=zeile.id) }}">{{ zeile.name }}</a></th>
+              {% for z in zeile.zellen %}
+              {% set text = z.termin ~ ' · ' ~ ('%g'|format(z.punkte)|replace('.', ',') ~ ' Punkte' if z.punkte else 'nicht geprüft') %}
+              <td><span class="heat heat-{{ z.stufe }}" data-tooltip="{{ text }}"><span class="bunseki-versteckt">{{ text }}</span></span></td>
+              {% endfor %}
+              <td class="klein zahl rechts gedaempft">{{ '%g'|format(zeile.summe)|replace('.', ',') }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+          {% endfor %}
+        </table>
+      </div>
+      <p class="bunseki-legende klein gedaempft" aria-hidden="true">
+        wenige Punkte {% for stufe in range(1, 6) %}<span class="heat heat-{{ stufe }}"></span>{% endfor %} viele Punkte
+        <span class="heat heat-0"></span> nicht geprüft
+      </p>
+    </div>
+
+    {# Dauerbrenner #}
+    <div role="tabpanel" id="bunseki-dauerbrenner" aria-labelledby="bunseki-tab-dauerbrenner" tabindex="-1" class="bunseki-reiter" hidden>
+      <p class="klein gedaempft">Themen, die in mindestens {{ grenzen.dauerbrenner }} % der Termine vorkamen. Sie lohnen sich fast immer.</p>
+      {% if dauerbrenner %}
+      <div class="table-container">
+        <table class="table">
+          <thead><tr><th scope="col">Thema</th><th scope="col">Termine</th><th scope="col" class="rechts">Punkte</th><th scope="col"><span class="bunseki-versteckt">Üben</span></th></tr></thead>
+          <tbody>
+            {% for s in dauerbrenner %}
+            <tr>
+              <td class="bunseki-umbruch">{{ s.name }} <span class="klein gedaempft bunseki-block">{{ s.eltern }}</span></td>
+              <td class="zahl">
+                {{ s.termine }} von {{ s.alle_termine }} · {{ s.termine_prozent|round|int }} %
+                <div class="linie-fortschritt bunseki-anteil" aria-hidden="true"><span style="width: {{ s.termine_prozent }}%"></span></div>
+              </td>
+              <td class="zahl rechts">{{ '%g'|format(s.punkte)|replace('.', ',') }}</td>
+              <td class="rechts"><a class="btn" data-variant="ghost" data-size="sm" href="{{ url_for('keiko.index', thema=s.thema_id) }}">Üben</a></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <p class="leer">Noch kein Thema kam in {{ grenzen.dauerbrenner }} % der Termine vor.</p>
+      {% endif %}
+    </div>
+
+    {# Lange nicht dran #}
+    <div role="tabpanel" id="bunseki-lange" aria-labelledby="bunseki-tab-lange" tabindex="-1" class="bunseki-reiter" hidden>
+      <p class="hinweis klein">Themen, deren letzter Auftritt mehr als {{ grenzen.lange }} Termine zurückliegt. Das ist ein Hinweis, keine Vorhersage: Niemand weiß, was in der nächsten Prüfung drankommt.</p>
+      {% if lange_nicht_dran %}
+      <div class="table-container">
+        <table class="table">
+          <thead><tr><th scope="col">Thema</th><th scope="col">Zuletzt</th><th scope="col" class="rechts">Termine seitdem</th><th scope="col" class="rechts">Punkte insgesamt</th></tr></thead>
+          <tbody>
+            {% for s in lange_nicht_dran %}
+            <tr>
+              <td class="bunseki-umbruch"><a href="{{ url_for('keiko.index', thema=s.thema_id) }}">{{ s.name }}</a> <span class="klein gedaempft bunseki-block">{{ s.eltern }}</span></td>
+              <td class="zahl">{{ termin_name(s.letzter_termin) }}</td>
+              <td class="zahl rechts">{{ s.seitdem }}</td>
+              <td class="zahl rechts">{{ '%g'|format(s.punkte)|replace('.', ',') }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <p class="leer">Jedes geprüfte Thema kam in den letzten {{ grenzen.lange }} Terminen mindestens einmal vor.</p>
+      {% endif %}
+    </div>
+
+    {# Nie geprüft #}
+    <div role="tabpanel" id="bunseki-nie" aria-labelledby="bunseki-tab-nie" tabindex="-1" class="bunseki-reiter" hidden>
+      <p class="klein gedaempft">Themen aus der Themenliste ohne eine einzige Teilaufgabe.</p>
+      {% if nie_geprueft %}
+      <ul class="bunseki-liste">
+        {% for s in nie_geprueft %}<li>{{ s.name }} <span class="klein gedaempft">{{ s.eltern }}</span></li>{% endfor %}
+      </ul>
+      {% else %}
+      <p class="leer">Zu jedem Thema gibt es mindestens eine Teilaufgabe.</p>
+      {% endif %}
+    </div>
+
+    {# Ohne Thema #}
+    <div role="tabpanel" id="bunseki-ohne" aria-labelledby="bunseki-tab-ohne" tabindex="-1" class="bunseki-reiter" hidden>
+      <p class="klein gedaempft">Teilaufgaben, die zu keinem Thema passen: ein Zeichen für Lücken in der Themenliste. Du kannst sie hier von Hand zuordnen.</p>
+      {% if ohne_thema %}
+      <div class="table-container">
+        <table class="table bunseki-zuordnung">
+          <thead><tr><th scope="col">Teilaufgabe</th><th scope="col">Text</th><th scope="col">Thema zuordnen</th></tr></thead>
+          <tbody>{% for t in ohne_thema %}{% include "bunseki/_zuordnung.html" %}{% endfor %}</tbody>
+        </table>
+      </div>
+      {% else %}
+      <p class="leer">Jede Teilaufgabe hat ein Thema.</p>
+      {% endif %}
+    </div>
+
+    {# Kontrolle #}
+    <div role="tabpanel" id="bunseki-kontrolle" aria-labelledby="bunseki-tab-kontrolle" tabindex="-1" class="bunseki-reiter" hidden>
+      <p class="klein gedaempft">Zuordnungen, bei denen sich die KI unsicher war (Sicherheit unter {{ '%g'|format(grenzen.kontrolle)|replace('.', ',') }}). Was du hier speicherst, gilt als manuell und bleibt bei jedem neuen Analyse-Lauf erhalten.</p>
+      {% if kontrolle %}
+      <div class="table-container">
+        <table class="table bunseki-zuordnung">
+          <thead><tr><th scope="col">Teilaufgabe</th><th scope="col">Text</th><th scope="col">Zuordnung der KI</th><th scope="col">Korrektur</th></tr></thead>
+          <tbody>{% for t in kontrolle %}{% include "bunseki/_zuordnung.html" %}{% endfor %}</tbody>
+        </table>
+      </div>
+      {% else %}
+      <p class="leer">Nichts zu kontrollieren: Alle Zuordnungen sind sicher oder von dir bestätigt.</p>
+      {% endif %}
+    </div>
+
+    {# KI-Nutzung #}
+    <div role="tabpanel" id="bunseki-ki" aria-labelledby="bunseki-tab-ki" tabindex="-1" class="bunseki-reiter" hidden>
+      <p class="klein gedaempft">Alle Aufrufe der Claude-API, aus Pipeline und Sensei. Antworten aus dem Cache kosten nichts.</p>
+      {% if ki_nutzung %}
+      <div class="table-container">
+        <table class="table">
+          <thead><tr><th scope="col">Zweck</th><th scope="col">Modell</th><th scope="col" class="rechts">Aufrufe</th><th scope="col" class="rechts">davon Cache</th><th scope="col" class="rechts">Tokens ein</th><th scope="col" class="rechts">Tokens aus</th></tr></thead>
+          <tbody>
+            {% for k in ki_nutzung %}
+            <tr>
+              <td>{{ k.zweck }}</td>
+              <td class="klein"><code>{{ k.modell }}</code></td>
+              <td class="zahl rechts">{{ '{:,}'.format(k.aufrufe).replace(',', '.') }}</td>
+              <td class="zahl rechts">{{ '{:,}'.format(k.aus_cache or 0).replace(',', '.') }}</td>
+              <td class="zahl rechts">{{ '{:,}'.format(k.tokens_ein or 0).replace(',', '.') }}</td>
+              <td class="zahl rechts">{{ '{:,}'.format(k.tokens_aus or 0).replace(',', '.') }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+          <tfoot>
+            <tr>
+              <th scope="row" colspan="2">Summe</th>
+              {% for spalte in ['aufrufe', 'aus_cache', 'tokens_ein', 'tokens_aus'] %}<td class="zahl rechts">{{ '{:,}'.format(ki_summe[spalte]).replace(',', '.') }}</td>{% endfor %}
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      {% else %}
+      <p class="leer">Noch keine KI-Aufrufe. Die Analyse lief ohne KI, und Sensei wurde noch nicht gefragt.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endif %}
+<template id="themenwahl">
+  {% for gruppe in themenwahl %}
+  <optgroup label="{{ gruppe.name }}">{% for id, name in gruppe.optionen %}<option value="{{ id }}">{{ name }}</option>{% endfor %}</optgroup>
+  {% endfor %}
+</template>
+{% endblock %}

@@ -1,0 +1,82 @@
+{% import "_makros.html" as m %}
+{% import "keiko/_bausteine.html" as k %}
+{% if karte %}
+{% set t = karte %}
+<form id="karte" class="karte" data-sensei-teilaufgabe="{{ t.id }}" onsubmit="event.preventDefault()" aria-label="Teilaufgabe {{ k.kennung(t)|trim }}">
+  <input type="hidden" name="modus" value="{{ zustand.modus or '' }}">
+  {% for th in zustand.themen %}<input type="hidden" name="thema" value="{{ th }}">{% endfor %}
+  {% if zustand.muster %}<input type="hidden" name="muster" value="{{ zustand.muster }}">{% endif %}
+  <input type="hidden" name="runde" value="{{ zustand.runde|join(',') }}">
+  <input type="hidden" name="start" value="{{ start }}">
+
+  <div class="keiko-fortschritt">
+    <div class="linie-fortschritt" role="progressbar" aria-label="Fortschritt: {{ rundenname }}"
+         aria-valuemin="0" aria-valuemax="{{ gesamt }}" aria-valuenow="{{ erledigt }}">
+      <span style="width: {{ (100 * erledigt / gesamt) if gesamt else 0 }}%"></span>
+    </div>
+    <span class="klein zahl">{{ erledigt }} / {{ gesamt }}</span>
+  </div>
+
+  {% if sicher_geworden %}<p class="hinweis tusche" role="status">Sicher. Das sitzt.</p>{% endif %}
+
+  <header class="keiko-kopf">
+    {% if thema_pfad %}<p class="etikett">{{ thema_pfad|join(' › ') }}</p>{% endif %}
+    <div class="zeile zwischen">
+      <p class="klein">{{ k.kennung(t) }}{% if t.punkte %} · {{ k.punkte(t.punkte) }} Punkte{% endif %}</p>
+      <div class="zeile keiko-werkzeuge">
+        {{ m.status(t.status) }}
+        {% with t_id=t.id, markiert=t.markiert %}{% include "keiko/_markieren.html" %}{% endwith %}
+        <button type="button" class="btn" data-variant="ghost" data-size="sm" data-taste="ArrowRight"
+                hx-post="{{ url_for('keiko.ueberspringen', t_id=t.id) }}" hx-target="#karte" hx-swap="outerHTML">
+          Überspringen {{ m.taste('→') }}
+        </button>
+      </div>
+    </div>
+  </header>
+
+  {% if ist_variante %}<p class="hinweis klein">Ähnlich wie eben, aus einem anderen Jahrgang: dieselbe Idee noch einmal.</p>{% endif %}
+  {% if muster and muster.pruefungen > 1 %}
+  <p class="klein keiko-muster">Muster <strong>{{ muster.name }}</strong> · {{ muster.n }}× in {{ muster.pruefungen }} Prüfungen ·
+    <a href="{{ url_for('keiko.index', muster=muster.id) }}">alle üben</a></p>
+  {% endif %}
+  {% set ops = (t.inhalt or t.text)|operatoren %}
+  {% if ops %}
+  <details class="operatoren">
+    <summary>{% for o in ops %}<span class="operator-chip">{{ o.name }}</span>{% endfor %}<span class="klein gedaempft">IHK-Operator{{ 'en' if ops|length > 1 }}: was wird verlangt?</span></summary>
+    <dl class="operatoren-liste klein">{% for o in ops %}<dt>{{ o.name }}</dt><dd>{{ o.erklaerung }}</dd>{% endfor %}</dl>
+  </details>
+  {% endif %}
+  <div class="stapel">
+    {{ k.kontext(t) }}
+    {{ k.aufgabe(t, interaktiv=True) }}
+  </div>
+
+  {{ k.antwortfeld(t) }}
+
+  <div class="zeile zwischen keiko-aktionen">
+    <div id="loesung-knopf" class="zeile">
+      {% if pruefbar(t.antwort) %}
+      <button type="button" class="btn" data-taste="Enter" hx-post="{{ url_for('keiko.pruefen', t_id=t.id) }}"
+              hx-target="#loesung" hx-swap="innerHTML">Prüfen {{ m.taste('↵') }}</button>
+      <button type="button" class="btn" data-variant="ghost" data-taste=" " hx-get="{{ url_for('keiko.loesung', t_id=t.id) }}" hx-include="#antwortfeld [name=antwort], #antwortfeld [name=zeichnung_da]"
+              hx-target="#loesung" hx-swap="innerHTML">Nur Lösung zeigen {{ m.taste('␣') }}</button>
+      {% else %}
+      <button type="button" class="btn" data-taste=" " hx-get="{{ url_for('keiko.loesung', t_id=t.id) }}" hx-include="#antwortfeld [name=antwort], #antwortfeld [name=zeichnung_da]"
+              hx-target="#loesung" hx-swap="innerHTML">Lösung zeigen {{ m.taste('␣') }}</button>
+      {% endif %}
+    </div>
+    {% set teilaufgabe = t %}
+    {% include "sensei/_keiko.html" ignore missing %}
+  </div>
+
+  <div id="loesung" aria-live="polite"></div>
+
+  {% if aehnlich %}
+  <p class="klein gedaempft keiko-aehnlich">Kam so ähnlich auch dran:
+    {% for a in aehnlich %}<a href="{{ url_for('keiko.index', teilaufgabe=a.teilaufgabe_id) }}">{{ a.termin }} · {{ a.aufgabe_nr }} {{ a.kennung }}</a>{{ ' · ' if not loop.last }}{% endfor %}
+  </p>
+  {% endif %}
+</form>
+{% else %}
+{% include "keiko/_abschluss.html" %}
+{% endif %}

@@ -1,0 +1,224 @@
+{% extends "base.html" %}
+{% block titel %}Willkommen{% endblock %}
+{% block leiste %}{% endblock %}
+{% block main_klasse %} einfuehrung{% endblock %}
+{% block inhalt %}
+{# Eine Szene je Schritt; nur die aktuelle ist sichtbar, so greifen die data-taste-Tasten nur dort #}
+{% macro szene(n, bild, kanji, wort) %}
+<section class="szene" {{ 'hidden' if n }} aria-labelledby="szene-{{ n }}">
+  <img class="szene-bild" alt="" aria-hidden="true" decoding="async"
+       src="{{ url_for('static', filename='img/' ~ bild ~ '-1200.jpg') }}"
+       srcset="{{ url_for('static', filename='img/' ~ bild ~ '-1200.jpg') }} 1200w, {{ url_for('static', filename='img/' ~ bild ~ '-2400.jpg') }} 2400w"
+       sizes="100vw">
+  <div class="szene-inhalt">
+    <p class="etikett"><span lang="ja" aria-hidden="true">{{ kanji }}</span> {{ wort }}</p>
+    {{ caller() }}
+  </div>
+</section>
+{% endmacro %}
+
+{% call szene(0, 'willkommen', 'はじめまして', 'Willkommen') %}
+<p class="einfuehrung-kanji" lang="ja" aria-hidden="true">咲く</p>
+<h1 class="titel" id="szene-0" tabindex="-1">Willkommen bei Saku.</h1>
+<p class="einfuehrung-text">Saku hat deine IHK-Prüfungen eingelesen. Jede Teilaufgabe steht jetzt als Text da, mit Lösungshinweis und Themen. Hier siehst du in zwei Minuten, wie du damit lernst.</p>
+<dl class="einfuehrung-zahlen">
+  {% for wert, name in [(zahlen.termine, 'Prüfungstermine'), (zahlen.teilaufgaben, 'Teilaufgaben'), (zahlen.themen, 'Themen'), (zahlen.stationen, 'Stationen')] %}
+  <div><dt class="etikett">{{ name }}</dt><dd class="zahl-gross" data-zaehlen="{{ wert }}">{{ wert }}</dd></div>
+  {% endfor %}
+</dl>
+{% endcall %}
+
+{% call szene(1, 'bunseki', '頻出', 'Dauerbrenner') %}
+<h2 class="titel" id="szene-1" tabindex="-1">Das kam am häufigsten dran.</h2>
+<p class="einfuehrung-text">Diese Themen standen in fast jedem der {{ zahlen.termine }} Termine und bringen die meisten Punkte. Mit ihnen fängt dein Lernpfad an.</p>
+{% if themen %}
+<ol class="einfuehrung-themen">
+  {% for t in themen %}
+  <li style="--anteil: {{ (100 * t.punkte / themen[0].punkte)|round(1) }}%; --i: {{ loop.index0 }}">
+    <span>{{ t.name }} <span class="klein gedaempft">{{ t.eltern }}</span></span>
+    <span class="einfuehrung-balken" aria-hidden="true"><span></span></span>
+    <span class="klein zahl gedaempft">{{ t.punkte|round|int }} Punkte · {{ t.termine }} von {{ t.alle_termine }} Terminen</span>
+  </li>
+  {% endfor %}
+</ol>
+{% endif %}
+<p class="klein gedaempft">Alle Zahlen stehen unter <span lang="ja">析</span> Analyse.</p>
+{% endcall %}
+
+{% call szene(2, 'heute', '期日', 'Deine Prüfung') %}
+<h2 class="titel" id="szene-2" tabindex="-1">Was lernst du, und wann ist die Prüfung?</h2>
+<p class="einfuehrung-text">Wähl Beruf und Prüfungsteil. Aus dem Termin berechnet Saku, wie viele neue Teilaufgaben du pro Tag schaffen musst. Ändern kannst du beides später oben in der Seitenleiste.</p>
+<div class="einfuehrung-umfang" hx-post="{{ url_for('heute.willkommen_umfang') }}" hx-trigger="change" hx-include="this" hx-target="#termin-ergebnis">
+  {% for name, werte_ in [('beruf', BERUFE), ('teil', {'AP1': 'AP1 · Teil 1', 'AP2': 'AP2 · Teil 2'})] %}
+  <div class="segment" role="radiogroup" aria-label="{{ 'Ausbildungsberuf' if name == 'beruf' else 'Prüfungsteil' }}">
+    {% for wert, text in werte_.items() %}
+    <label><input type="radio" name="{{ name }}" value="{{ wert }}" {{ 'checked' if umfang[name] == wert }}><span>{{ text }}</span></label>
+    {% endfor %}
+  </div>
+  {% endfor %}
+</div>
+<form class="einfuehrung-termin" hx-post="{{ url_for('heute.willkommen_termin') }}" hx-trigger="change, submit" hx-target="#termin-ergebnis">
+  <label class="label" for="pruefungstermin">Prüfungstermin</label>
+  <input class="input" type="date" id="pruefungstermin" name="pruefungstermin" value="{{ termin }}">
+  {{ m.termin_vorschlaege(umfang.teil, 'pruefungstermin') }}
+</form>
+<div id="termin-ergebnis" aria-live="polite">{% include "heute/_termin.html" %}</div>
+{% endcall %}
+
+{% call szene(3, 'michi', '道', 'Lernpfad') %}
+<h2 class="titel" id="szene-3" tabindex="-1">Der Lernpfad: {{ zahlen.stationen }} Stationen.</h2>
+<p class="einfuehrung-text">Jede Station hat eine kurze Einführung, danach übst du ihre Teilaufgaben. Ein Mini-Test schaltet die nächste Station frei. Grundlagen kommen vor den Themen, die darauf aufbauen.</p>
+<ol class="einfuehrung-weg">
+  {% for s in stationen %}<li style="--i: {{ loop.index0 }}"><span class="stein" aria-hidden="true"></span><span class="zahl gedaempft">{{ s.position }}</span> {{ s.titel }}</li>{% endfor %}
+  <li class="gedaempft" style="--i: {{ stationen|length }}"><span class="stein" aria-hidden="true"></span>…</li>
+</ol>
+<div class="einfuehrung-status">
+  <p>Jede Teilaufgabe hat einen Stand:</p>
+  <ul class="zeile">{% for s in ['neu', 'rot', 'gelb', 'gruen'] %}<li>{{ m.status(s) }}</li>{% endfor %}</ul>
+  <p class="klein gedaempft">Sicher ist sie, wenn du sie zweimal hintereinander gewusst hast.</p>
+</div>
+{% endcall %}
+
+{% call szene(4, 'keiko', '稽', 'Üben') %}
+<h2 class="titel" id="szene-4" tabindex="-1">Üben geht am schnellsten mit der Tastatur.</h2>
+<p class="einfuehrung-text">Auswahlfragen klickst du an oder wählst sie mit den Zahlentasten, Saku prüft sofort. Bei Textaufgaben schreibst du deine Antwort, deckst mit der Leertaste die Lösung auf, und Sensei schlägt eine Bewertung vor. Mit ↵ übernimmst du sie, mit 1, 2 oder 3 entscheidest du selbst. Probier es aus:</p>
+<div class="flaeche einfuehrung-probe" id="probe">
+  <p class="etikett">Übungsaufgabe</p>
+  <p>Wandle die Binärzahl <code>1011</code> in eine Dezimalzahl um.</p>
+  <div class="einfuehrung-loesung tusche" hidden>
+    <p class="etikett">Lösung</p>
+    <p><code>1·8 + 0·4 + 1·2 + 1·1 = 11</code></p>
+  </div>
+  <div class="zeile">
+    <button type="button" class="btn" data-variant="outline" data-taste=" " data-probe="aufdecken" onclick="saku.einfuehrung.aufdecken()">{{ m.taste('␣') }} Lösung zeigen</button>
+    {% for wert, text in [(1, 'Nicht gewusst'), (2, 'Teilweise'), (3, 'Gewusst')] %}
+    <button type="button" class="btn" data-variant="outline" data-taste="{{ wert }}" data-probe="bewerten" hidden
+            onclick="saku.einfuehrung.bewerten({{ wert }})">{{ m.taste(wert) }} {{ text }}</button>
+    {% endfor %}
+  </div>
+  <div aria-live="polite">
+    {% for wert, s, text in [(1, 'rot', 'Kein Problem: Sie kommt bald wieder, bis sie sitzt.'), (2, 'gelb', 'Auf dem Weg. Saku fragt sie bald noch einmal.'), (3, 'gelb', 'Gut! Noch einmal gewusst, dann ist sie sicher.')] %}
+    <p class="einfuehrung-ergebnis tusche" data-ergebnis="{{ wert }}" hidden>{{ m.status(s) }} {{ text }}</p>
+    {% endfor %}
+  </div>
+</div>
+<p class="klein gedaempft">Außerdem: {{ m.taste('M') }} markieren, {{ m.taste('→') }} überspringen, {{ m.taste('?') }} alle Tastenkürzel.</p>
+{% endcall %}
+
+{% call szene(5, 'sensei', '先生', 'Sensei') %}
+<h2 class="titel" id="szene-5" tabindex="-1">Sensei hilft bei jeder Aufgabe.</h2>
+<p class="einfuehrung-text">Ein Tipp, ohne die Lösung zu verraten. Eine Erklärung. Eine Prüfung deiner Antwort. Eine neue Variante derselben Aufgabe. Im Chat sucht Sensei in allen Prüfungen und verlinkt die Aufgaben, auf die er sich bezieht.</p>
+<ul class="zeile einfuehrung-modi">
+  {% for taste, name in [('T', 'Tipp'), ('E', 'Erklären'), ('P', 'Prüfen'), ('V', 'Variante')] %}<li>{{ m.taste(taste) }} {{ name }}</li>{% endfor %}
+</ul>
+{% if sensei_bereit %}
+<p>Frag ihn gleich etwas:</p>
+<div class="zeile">
+  {% for frage in fragen %}<button type="button" class="btn" data-variant="outline" data-size="sm" onclick="saku.einfuehrung.frage(this.textContent)">{{ frage }}</button>{% endfor %}
+</div>
+{% else %}
+<p class="hinweis">Für Sensei fehlt noch der API-Schlüssel in <code>.env</code>. Alles andere funktioniert auch ohne.</p>
+{% endif %}
+<p class="klein gedaempft">
+  <button type="button" class="btn" data-variant="ghost" data-size="sm" data-taste="s" onclick="saku.sensei()">{{ m.taste('S') }} Sensei öffnen</button>
+  geht überall, {{ m.taste('⌘K') }} durchsucht alle Prüfungen.
+</p>
+{% endcall %}
+
+{% call szene(6, 'mankai', '満開', 'Mankai') %}
+<div class="einfuehrung-schluss">
+  <div class="stapel">
+    <h2 class="titel" id="szene-6" tabindex="-1">Dann kann es losgehen.</h2>
+    <p class="einfuehrung-text">Unter <span lang="ja">庭</span> Themen siehst du alle Themen, Lernfelder und Fachbegriffe als Wissensgraph. Unter <span lang="ja">試</span> Prüfung schreibst du Simulationen mit Timer und Note. Sitzen 80 % der Punkte und bestehst du zwei Simulationen in Folge, bist du prüfungsreif: <span lang="ja">満開</span>, volle Blüte.</p>
+    <form method="post" action="{{ url_for('heute.willkommen_fertig') }}" class="zeile">
+      <button class="btn" data-size="lg" name="ziel" value="station" data-taste="Enter">Erste Station beginnen {{ m.taste('↵') }}</button>
+      <button class="btn" data-variant="ghost" name="ziel" value="heute">Zu Heute</button>
+    </form>
+  </div>
+  {{ m.hanko(True) }}
+</div>
+{% endcall %}
+
+<nav class="einfuehrung-fuss" aria-label="Einführung">
+  <button type="button" class="btn" data-variant="ghost" data-size="sm" data-taste="ArrowLeft" data-zurueck onclick="saku.einfuehrung.zeige(-1)" hidden>{{ m.taste('←') }} Zurück</button>
+  <div class="mini-steine">
+    {% for i in range(7) %}<button type="button" class="stein mini-stein{{ ' mini-stein--aktuell' if not i }}" aria-label="Schritt {{ i + 1 }} von 7" onclick="saku.einfuehrung.zeige({{ i }}, true)"></button>{% endfor %}
+  </div>
+  <div class="zeile" data-weiter>
+    <form method="post" action="{{ url_for('heute.willkommen_fertig') }}"><button class="btn" data-variant="ghost" data-size="sm" name="ziel" value="heute">Überspringen</button></form>
+    <button type="button" class="btn" data-size="sm" data-taste="Enter" onclick="saku.einfuehrung.zeige(1)">Weiter {{ m.taste('↵') }}</button>
+  </div>
+</nav>
+
+<script>
+  // saku.js kommt per defer, also erst nach dem Parsen
+  document.addEventListener("DOMContentLoaded", () => saku.einfuehrung = (() => {
+    const szenen = [...document.querySelectorAll(".szene")];
+    const steine = [...document.querySelectorAll(".einfuehrung-fuss .mini-stein")];
+    const ruhig = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let jetzt = 0;
+
+    function zaehlen(szene) {
+      for (const el of szene.querySelectorAll("[data-zaehlen]")) {
+        const ziel = +el.dataset.zaehlen, start = performance.now();
+        if (ruhig) continue;
+        const schritt = (t) => {
+          const p = Math.min(1, (t - start) / 1400);
+          el.textContent = Math.round(ziel * (1 - (1 - p) ** 3)).toLocaleString("de-DE");
+          if (p < 1) requestAnimationFrame(schritt);
+        };
+        requestAnimationFrame(schritt);
+      }
+    }
+
+    // schritt: relativ (±1) oder mit absolut=true die Nummer der Szene
+    // Kein startViewTransition: das blendet die ganze Seite samt Fußleiste über und flackert in WebKit
+    let laeuft = false;
+    function zeige(schritt, absolut = false) {
+      const i = absolut ? schritt : jetzt + schritt;
+      if (laeuft || i < 0 || i >= szenen.length || i === jetzt) return;
+      const wechsel = () => {
+        szenen.forEach((s, n) => (s.hidden = n !== i));
+        steine.forEach((s, n) => {
+          s.classList.toggle("mini-stein--fertig", n < i);
+          s.classList.toggle("mini-stein--aktuell", n === i);
+          s.toggleAttribute("aria-current", n === i);
+        });
+        document.querySelector("[data-zurueck]").hidden = i === 0;
+        document.querySelector("[data-weiter]").hidden = i === szenen.length - 1;
+        jetzt = i;
+        szenen[i].querySelector("[tabindex='-1']").focus({ preventScroll: true });
+        window.scrollTo(0, 0);
+        zaehlen(szenen[i]);
+      };
+      if (ruhig) return wechsel();
+      // alte Szene ausblenden, dann umschalten; die neue blendet per CSS ein
+      laeuft = true;
+      const aus = szenen[jetzt].animate([{ opacity: 1 }, { opacity: 0 }], { duration: 180, easing: "ease-in", fill: "forwards" });
+      aus.finished.then(() => { wechsel(); aus.cancel(); laeuft = false; });
+    }
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowRight" && !e.target.closest("input, textarea") && !document.querySelector("dialog[open]")) zeige(1);
+    });
+    zaehlen(szenen[0]);
+
+    return {
+      zeige,
+      aufdecken() {
+        document.querySelector("#probe .einfuehrung-loesung").hidden = false;
+        document.querySelectorAll("#probe [data-probe]").forEach((b) => (b.hidden = b.dataset.probe === "aufdecken"));
+      },
+      bewerten(wert) {
+        document.querySelectorAll("#probe [data-ergebnis]").forEach((p) => (p.hidden = p.dataset.ergebnis !== String(wert)));
+      },
+      frage(text) {
+        if (!document.body.classList.contains("sensei-offen")) saku.sensei();
+        const feld = document.getElementById("sensei-eingabe");
+        feld.value = text;
+        feld.form.requestSubmit();
+      },
+    };
+  })());
+</script>
+{% endblock %}

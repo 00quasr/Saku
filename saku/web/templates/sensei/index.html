@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block titel %}Sensei{% endblock %}
+{% block inhalt %}
+{{ m.kopf('sensei', '先', 'Sensei', 'Dein Tutor für die Prüfung') }}
+<div class="seite eng">
+  <section class="abschnitt prosa">
+    <p>Sensei kennt jede Aufgabe samt Lösungshinweis. Er gibt Denkanstöße, erklärt Lösungswege, prüft deine Antworten und
+      erzeugt neue Übungen. Seine Bewertungen sind Vorschläge: Was zählt, entscheidest du.</p>
+    {% if not sensei_bereit %}
+    <p class="hinweis hinweis--fehler">Sensei ist aus: Es fehlt der API-Schlüssel. Trag ANTHROPIC_API_KEY in die Datei <code>.env</code> ein und starte Saku neu. <a href="{{ url_for('kern.einstellungen') }}">Einstellungen</a></p>
+    {% elif sensei_pausiert() %}
+    <p class="hinweis">Sensei ist während der Simulation pausiert.</p>
+    {% endif %}
+  </section>
+
+  <section class="abschnitt">
+    <h2 class="ueberschrift">So erreichst du Sensei</h2>
+    <table class="table sensei-modi">
+      <tbody>
+        <tr><td>{{ m.taste('T') }}</td><td>Tipp</td><td class="gedaempft">ein Denkanstoß, ohne die Lösung zu verraten</td></tr>
+        <tr><td>{{ m.taste('E') }}</td><td>Erklären</td><td class="gedaempft">der Lösungsweg Schritt für Schritt</td></tr>
+        <tr><td>{{ m.taste('P') }}</td><td>Antwort prüfen</td><td class="gedaempft">schätzt die Punkte und schlägt eine Bewertung vor</td></tr>
+        <tr><td>{{ m.taste('V') }}</td><td>Ähnliche Übung</td><td class="gedaempft">eine neue Aufgabe zum selben Können, als KI-Übung gekennzeichnet</td></tr>
+        <tr><td>–</td><td>Thema erklären</td><td class="gedaempft">im Garten über „Sensei erklärt“</td></tr>
+        <tr><td>{{ m.taste('S') }}</td><td>Frag Sensei</td><td class="gedaempft">freier Chat über alle Prüfungen, mit Quellen</td></tr>
+      </tbody>
+    </table>
+    <p class="klein gedaempft">T, E, P und V gelten beim Üben. Während einer Prüfungssimulation ist Sensei pausiert.</p>
+  </section>
+
+  <section class="abschnitt">
+    <button type="button" class="btn" onclick="saku.sensei()"><span lang="ja" aria-hidden="true">先生</span> Frag Sensei {{ m.taste('S') }}</button>
+  </section>
+</div>
+{% endblock %}

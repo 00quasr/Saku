@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block titel %}Üben{% endblock %}
+{% block main_klasse %}{{ ' fokus' if karte }}{% endblock %}
+{% block inhalt %}
+{% if katalog_leer %}
+{{ m.kopf('willkommen', '稽', 'Üben', 'Noch nichts zu üben') }}
+<div class="seite eng">
+  <p class="leer">Noch ist der Garten leer. Lege deine Prüfungen in <code>data/pdfs</code> und starte die Analyse.</p>
+</div>
+{% elif not karte and art == 'tagesziel' %}
+{{ m.kopf('mankai', '稽', 'Üben', 'Tagesziel geschafft') }}
+<div class="seite eng">{% include "keiko/_abschluss.html" %}</div>
+{% else %}
+{{ m.kopf('keiko', '稽', 'Üben', rundenname, schmal=True) }}
+<div class="seite eng keiko">{% include "keiko/_karte.html" %}</div>
+{% endif %}
+{% endblock %}

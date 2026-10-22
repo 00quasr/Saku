@@ -1,0 +1,165 @@
+/* keiko – Fokusmodus: eine Teilaufgabe, Lösung aufdecken, sich selbst bewerten */
+
+.seite.keiko { padding-top: 16px; }
+
+.karte { display: grid; gap: 24px; }
+.keiko-fortschritt {
+  position: sticky; top: 0; z-index: 30; display: flex; align-items: center; gap: 16px;
+  padding: 12px 0; background: var(--washi);
+}
+.keiko-fortschritt .linie-fortschritt { flex: 1; }
+
+.keiko-kopf { display: grid; gap: 4px; }
+.keiko-werkzeuge { gap: 4px; }
+.keiko-werkzeuge .btn { gap: 6px; }
+.keiko-markieren[aria-pressed="true"] .icon { fill: currentColor; }
+
+.keiko-antwort { display: grid; gap: 8px; }
+.keiko-antwort .textarea { resize: vertical; }
+.keiko-aktionen { align-items: flex-start; gap: 16px; }
+.keiko-aktionen .btn { gap: 10px; }
+
+#loesung:empty { display: none; }
+.keiko-loesung { display: grid; gap: 16px; padding-top: 24px; border-top: 1px solid var(--linie); }
+.keiko-bewertung { gap: 8px; margin-top: 8px; }
+.keiko-bewertung .ueberschrift { font-size: 1.125rem; margin-right: 16px; }
+.keiko-bewertung .btn { gap: 8px; }
+.keiko-aehnlich a { text-decoration-color: var(--linie); }
+.keiko-aehnlich a:hover { text-decoration-color: currentColor; }
+
+/* Abschluss einer Runde und お疲れ様 */
+.keiko-abschluss { display: grid; gap: 24px; justify-items: start; }
+.keiko-sicher { display: grid; gap: 8px; }
+.keiko-sicher-liste { display: grid; gap: 4px; }
+.keiko-sicher-liste li { display: flex; align-items: center; gap: 8px; }
+.keiko-serie .zahl { font-weight: 600; }
+.keiko-weiter { gap: 8px; }
+
+/* Bausteine für Teilaufgaben, auch in Michi und Shiken */
+.ausschnitte {
+  display: grid; gap: 8px; width: 100%; padding: 0; border: 0; background: none; text-align: left;
+  border-radius: var(--radius); cursor: zoom-in;
+}
+.ausschnitte[aria-pressed="true"] { cursor: zoom-out; }
+.aufgabe-text { white-space: pre-wrap; }
+.kontext { border: 1px solid var(--linie); border-radius: var(--radius); padding: 0 12px; }
+.kontext[open] { padding-bottom: 12px; }
+.kontext > summary {
+  margin: 0 -12px; padding: 8px 12px; cursor: pointer; font-size: 0.8125rem; color: var(--sumi-mittel);
+  transition: color var(--kurz) ease-out;
+}
+.kontext > summary:hover { color: var(--sumi); }
+.kontext[open] > summary { margin-bottom: 12px; border-bottom: 1px solid var(--linie); }
+
+/* Neu aufgebaute Aufgaben: echter Text statt Ausschnitt */
+.aufgabe-inhalt { max-width: none; font-size: 1.0625rem; line-height: 1.7; }
+.aufgabe-inhalt img { display: block; max-width: 100%; height: auto; margin: 12px 0; border-radius: 6px; mix-blend-mode: multiply; }
+.dark .aufgabe-inhalt img { filter: invert(1) hue-rotate(180deg); mix-blend-mode: screen; }
+.aufgabe-inhalt table { width: 100%; font-size: 0.9375rem; }
+.aufgabe-inhalt th { background: var(--flaeche); font-weight: 600; text-align: left; }
+.aufgabe-inhalt pre { font-size: 0.875rem; }
+.original > summary {
+  display: inline-flex; align-items: center; gap: 6px; cursor: pointer; list-style: none;
+  font-size: 0.8125rem; color: var(--sumi-mittel);
+}
+.original > summary::-webkit-details-marker { display: none; }
+.original > summary:hover { color: var(--sumi); }
+.original[open] > summary { margin-bottom: 8px; }
+.original .icon { width: 15px; height: 15px; }
+
+/* Auswahl, Reihenfolge, Zuordnung: große klickbare Zeilen */
+.wahl { display: grid; gap: 8px; }
+.wahl-option {
+  position: relative; display: flex; align-items: center; gap: 12px;
+  padding: 12px 14px; border: 1px solid var(--linie); border-radius: 10px; background: var(--washi-hell); cursor: pointer;
+  transition: border-color var(--kurz) ease-out, background var(--kurz) ease-out;
+}
+.wahl-option:hover { border-color: var(--sumi-mittel); }
+.wahl-option:has(input:checked) { border-color: var(--sumi); background: var(--flaeche); }
+.wahl-option:has(input:focus-visible) { outline: 2px solid var(--shu); outline-offset: 2px; }
+.wahl-option > input[type="radio"], .wahl-option > input[type="checkbox"] { position: absolute; opacity: 0; pointer-events: none; }
+.wahl-wert {
+  display: grid; place-items: center; min-width: 28px; height: 28px; padding: 0 6px; border-radius: 7px;
+  border: 1px solid var(--linie); font-size: 0.875rem; font-weight: 600; font-variant-numeric: tabular-nums;
+}
+.wahl-option:has(input:checked) .wahl-wert { background: var(--sumi); border-color: var(--sumi); color: var(--washi); }
+.wahl-platz { width: 64px; }
+.wahl-ziel { min-width: 180px; }
+.wahl-text { flex: 1; min-width: 0; }
+.wahl-marke { font-weight: 600; }
+.keiko-antwort--fertig .wahl-option { cursor: default; }
+.wahl-option--richtig { border-color: var(--matcha); background: color-mix(in oklab, var(--matcha) 10%, var(--washi-hell)); }
+.wahl-option--richtig .wahl-marke { color: var(--matcha); }
+.wahl-option--falsch { border-color: var(--beni); background: color-mix(in oklab, var(--beni) 10%, var(--washi-hell)); }
+.wahl-option--falsch .wahl-marke { color: var(--beni); }
+
+.zahl-eingabe { width: 200px; font-variant-numeric: tabular-nums; }
+.zahl-eingabe--richtig { border-color: var(--matcha); }
+.zahl-eingabe--falsch { border-color: var(--beni); }
+
+/* Tabelle ausfüllen */
+.tabelle-rahmen { overflow-x: auto; border: 1px solid var(--linie); border-radius: 10px; }
+.tabelle-eingabe { width: 100%; border-collapse: collapse; font-size: 0.9375rem; }
+.tabelle-eingabe :is(th, td) { padding: 8px 10px; border-bottom: 1px solid var(--linie); text-align: left; }
+.tabelle-eingabe th { background: var(--flaeche); font-weight: 600; }
+.tabelle-eingabe td + td, .tabelle-eingabe th + th { border-left: 1px solid var(--linie); }
+.tabelle-eingabe input {
+  width: 100%; min-width: 80px; padding: 4px 6px; border: 1px dashed var(--sumi-mittel); border-radius: 5px;
+  background: var(--washi); color: var(--sumi); font: inherit;
+}
+.tabelle-eingabe input:focus { outline: none; border-style: solid; border-color: var(--shu); }
+
+/* Code und SQL */
+.editor {
+  font-family: var(--schrift-code); font-size: 0.875rem; line-height: 1.5; tab-size: 4; white-space: pre;
+  background: var(--washi-hell); min-height: 180px; resize: vertical;
+}
+
+/* Urteil nach dem Prüfen */
+.keiko-urteil { font-family: var(--schrift-titel); font-weight: 600; font-size: 1.375rem; }
+.keiko-urteil--3 { color: var(--matcha); }
+.keiko-urteil--2 { color: var(--yamabuki); }
+.keiko-urteil--1 { color: var(--beni); }
+
+/* Punkte vergeben wie in der IHK-Korrektur */
+.keiko-bewertung { display: grid; gap: 10px; }
+.punkte-leiste { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+.punkt-knopf {
+  min-width: 34px; height: 34px; padding: 0 8px; border-radius: 8px; border: 1px solid var(--linie);
+  background: var(--washi-hell); font-variant-numeric: tabular-nums; cursor: pointer;
+  transition: border-color var(--kurz) ease-out, background var(--kurz) ease-out;
+}
+.punkt-knopf:hover { border-color: var(--shu); background: color-mix(in oklab, var(--shu) 12%, var(--washi-hell)); }
+
+/* Zeichnung hochladen */
+.zeichnung { display: grid; gap: 10px; margin-top: 4px; }
+.zeichnung-feld {
+  display: grid; gap: 4px; padding: 14px 16px; border: 1px dashed var(--sumi-mittel); border-radius: 10px; cursor: pointer;
+  transition: border-color var(--kurz) ease-out, background var(--kurz) ease-out;
+}
+.zeichnung-feld:hover, .zeichnung:focus-within .zeichnung-feld { border-color: var(--shu); background: var(--washi-hell); }
+.zeichnung-feld input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.zeichnung-titel { display: inline-flex; align-items: center; gap: 8px; font-weight: 500; }
+.zeichnung-vorschau { max-width: 100%; max-height: 360px; border-radius: 8px; border: 1px solid var(--linie); justify-self: start; }
+
+/* IHK-Operatoren */
+.operatoren > summary { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; cursor: pointer; list-style: none; }
+.operatoren > summary::-webkit-details-marker { display: none; }
+.operator-chip {
+  padding: 2px 10px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; letter-spacing: .02em;
+  color: var(--ai); border: 1px solid color-mix(in oklab, var(--ai) 45%, transparent); background: color-mix(in oklab, var(--ai) 10%, transparent);
+}
+.operatoren-liste { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; margin-top: 10px; padding: 10px 12px;
+  border-left: 2px solid var(--ai); background: var(--washi-hell); border-radius: 0 8px 8px 0; }
+.operatoren-liste dt { font-weight: 600; }
+
+.keiko-muster { color: var(--sumi-mittel); }
+.keiko-muster strong { color: var(--sumi); font-weight: 500; }
+.keiko-muster a { color: var(--shu); }
+
+/* Grundwissen: Begriffs-Karte */
+.begriff-karte { display: grid; gap: 16px; justify-items: start; }
+.begriff-karte > .zeile:first-of-type { justify-self: stretch; }
+.begriff-name { font-family: var(--schrift-titel); font-weight: 600; font-size: clamp(1.75rem, 3vw, 2.25rem); line-height: 1.2; }
+.begriff-rueckseite { display: grid; gap: 14px; justify-self: stretch; padding-top: 16px; border-top: 1px solid var(--linie); }
+.begriff-rueckseite[hidden] { display: none; }
