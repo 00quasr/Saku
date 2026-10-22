@@ -24,11 +24,12 @@ def _simulation_oder_404(con, sim_id: int):
 
 
 def _teilaufgaben(con, sim_id: int) -> list[dict]:
-    """Die Teilaufgaben der Simulation samt eigener Antwort und vergebener Punkte."""
+    """Die Teilaufgaben der Simulation samt eigener Antwort und vergebener Punkte.
+    „eigene“, nicht „antwort“: antwort ist das Antwortformat der Teilaufgabe (Optionen, Vorlage)."""
     zeilen = con.execute("SELECT teilaufgabe_id, antwort, punkte_erreicht FROM simulation_teilaufgabe "
                          "WHERE simulation_id = ? ORDER BY position", (sim_id,)).fetchall()
     eigenes = {z["teilaufgabe_id"]: dict(z) for z in zeilen}
-    return [t | {"antwort": eigenes[t["id"]]["antwort"], "erreicht": eigenes[t["id"]]["punkte_erreicht"]}
+    return [t | {"eigene": eigenes[t["id"]]["antwort"], "erreicht": eigenes[t["id"]]["punkte_erreicht"]}
             for t in karten.lade(con, list(eigenes))]
 
 

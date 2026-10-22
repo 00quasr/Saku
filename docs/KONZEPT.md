@@ -103,9 +103,11 @@ So berechnet sich das Tagesziel:
 
 ```text
 Lerntage  = Tage bis zur Prüfung − Puffer (Standard: 7 Tage für Simulationen), mindestens 1
-Neu heute = aufrunden(Anzahl neuer Teilaufgaben ÷ Lerntage)
+Neu heute = aufrunden(Anzahl neuer Teilaufgaben ÷ Lerntage), mindestens 10
 Heute     = Neu heute + fällige Wiederholungen
 ```
+
+Ist das Tagesziel geschafft, geht es mit „Weiter üben“ in eine Extra-Runde mit 10 weiteren neuen Teilaufgaben. Mit ← geht es eine Karte zurück; deren Bewertung wird dabei zurückgenommen.
 
 ## Prüfungsreife
 

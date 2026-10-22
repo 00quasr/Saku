@@ -35,13 +35,15 @@
     {% for gruppe in aufgaben %}
     {% set erste = gruppe[0] %}
     {% set summe = gruppe|map(attribute='punkte')|select|sum %}
-    <section class="heft-aufgabe" aria-labelledby="aufgabe-{{ loop.index }}">
+    {% set material %}{{ k.kontext(erste) }}{% endset %}
+    <section class="heft-aufgabe{{ ' heft-aufgabe--material' if material|trim }}" aria-labelledby="aufgabe-{{ loop.index }}">
       <header class="heft-kopf">
         <h2 id="aufgabe-{{ loop.index }}">{{ loop.index }}. Aufgabe ({{ k.punkte(summe) }} Punkte)</h2>
         <span class="heft-zeit klein">≈ {{ (summe * minuten_je_punkt)|round|int }} min</span>
       </header>
       <p class="klein gedaempft heft-herkunft">aus {{ erste.termin }}, Aufgabe {{ erste.aufgabe_nr }}</p>
-      <div class="stapel">{{ k.kontext(erste) }}</div>
+      {% if material|trim %}<div class="stapel heft-material">{{ material }}</div>{% endif %}
+      <div class="heft-teile">
       {% for t in gruppe %}
       <div class="heft-teil">
         <div class="heft-text">
@@ -50,9 +52,10 @@
         </div>
         <span class="heft-punkte zahl">{% if t.punkte %}{{ k.punkte(t.punkte) }} Punkte{% endif %}</span>
         <label class="bunseki-versteckt" for="antwort-{{ t.id }}">Antwort zu {{ t.kennung }})</label>
-        <textarea class="heft-linien" id="antwort-{{ t.id }}" name="antwort-{{ t.id }}" rows="6">{{ t.antwort or '' }}</textarea>
+        <textarea class="heft-linien" id="antwort-{{ t.id }}" name="antwort-{{ t.id }}" rows="6">{{ t.eigene or '' }}</textarea>
       </div>
       {% endfor %}
+      </div>
     </section>
     {% endfor %}
   </div>

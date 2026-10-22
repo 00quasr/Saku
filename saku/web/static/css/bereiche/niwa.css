@@ -53,7 +53,7 @@
 /* Lehrplan: Lernfelder als Kacheln */
 .lehrplan { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; margin-top: 16px; }
 .lehrplan-feld {
-  display: grid; gap: 4px; padding: 14px 16px; text-align: left; border-radius: 12px; border: 1px solid var(--linie);
+  display: grid; align-content: start; gap: 4px; padding: 14px 16px; text-align: left; border-radius: 12px; border: 1px solid var(--linie);
   background: var(--washi-hell); cursor: pointer; transition: border-color var(--kurz) ease-out;
 }
 .lehrplan-feld:hover { border-color: var(--sumi-mittel); }
@@ -77,8 +77,9 @@
 
 /* Alle Themen: die Liste ist zugleich die Tastatur-Alternative zum Graphen */
 .niwa-liste { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 8px; margin-top: 16px; }
+.niwa-liste > li { display: grid; }  /* Karten einer Zeile gleich hoch */
 .niwa-eintrag {
-  width: 100%; display: grid; grid-template-columns: 2rem 1fr; column-gap: 8px; text-align: left;
+  width: 100%; display: grid; grid-template-columns: 2rem 1fr; align-content: start; column-gap: 8px; text-align: left;
   padding: 10px 12px; border: 1px solid var(--linie); border-radius: var(--radius); background: var(--washi-hell);
   cursor: pointer; transition: border-color var(--kurz) ease-out;
 }

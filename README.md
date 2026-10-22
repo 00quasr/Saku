@@ -2,8 +2,6 @@
 
 # 咲く Saku
 
-**Lernen, bis es blüht.**
-
 Ein lokaler Trainer für die IHK-Abschlussprüfung der Fachinformatiker/-innen (AP1 und AP2):
 die Systematik einer Fahrschul-App, die Ruhe japanischer Gestaltung und ein KI-Tutor, der jede Aufgabe kennt.
 

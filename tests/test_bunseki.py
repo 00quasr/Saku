@@ -76,6 +76,10 @@ def test_lange_nicht_dran(con):
 def test_nie_geprueft(con):
     assert set(namen(bunseki.nie_geprueft(con))) == {"Lastenheft und Pflichtenheft", "Use-Case-Diagramm",
                                                      "Kündigung und Kündigungsschutz"}
+    # nur Themen der Prüfungsbereiche im Umfang: die Demo hat keine AP1-Themen
+    from saku.db import setze_einstellung
+    setze_einstellung(con, "teil", "AP1")
+    assert bunseki.nie_geprueft(con) == []
 
 
 def test_ohne_thema(con):

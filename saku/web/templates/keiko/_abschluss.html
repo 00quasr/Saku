@@ -25,7 +25,12 @@
   <p class="keiko-serie"><span class="zahl">{{ lernserie }}</span> {{ 'Tag' if lernserie == 1 else 'Tage' }} in Folge gelernt</p>
 
   <nav class="zeile keiko-weiter" aria-label="Weiter üben">
+    {% if art == 'tagesziel' and (neu or rot) %}
+    <a class="btn" href="{{ url_for('keiko.index', extra=1) }}" data-taste="Enter">Weiter üben {{ m.taste('↵') }}</a>
+    <a class="btn" data-variant="outline" href="{{ url_for('heute.index') }}">Zu Heute</a>
+    {% else %}
     <a class="btn" href="{{ url_for('heute.index') }}" data-taste="Enter">Zu Heute {{ m.taste('↵') }}</a>
+    {% endif %}
     {% if rot %}<a class="btn" data-variant="outline" href="{{ url_for('keiko.index', modus='fehler') }}">Fehlerkorb · {{ rot }}</a>{% endif %}
     {% if neu %}<a class="btn" data-variant="outline" href="{{ url_for('keiko.index', modus='neu') }}">Neue Teilaufgaben · {{ neu }}</a>{% endif %}
     {% if markiert %}<a class="btn" data-variant="outline" href="{{ url_for('keiko.index', modus='markiert') }}">Markiert · {{ markiert }}</a>{% endif %}

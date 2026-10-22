@@ -51,7 +51,8 @@
 }
 
 /* --- Grundlagen ---------------------------------------------------------- */
-html { background: var(--washi); color: var(--sumi); scroll-padding-top: 16px; }
+/* Wächst mit dem Fenster: bis 1440 px Breite 16 px wie gewohnt, im Vollbild bis 18 px; alles in rem wächst mit */
+html { background: var(--washi); color: var(--sumi); scroll-padding-top: 16px; font-size: clamp(100%, 0.625rem + 0.4167vw, 112.5%); }
 body {
   font-family: var(--schrift); font-size: 1rem; line-height: 1.625;
   background: var(--washi); color: var(--sumi); min-height: 100vh;
@@ -93,8 +94,8 @@ a:not(.btn) { color: inherit; text-underline-offset: 3px; }
 :root { --leiste-breite: 232px; --rand: 40px; }
 .app > main { min-width: 0; }
 .seite { padding: 32px var(--rand) 96px; }
-.weit { max-width: calc(1120px + 2 * var(--rand)); }
-.eng { max-width: calc(760px + 2 * var(--rand)); }
+.weit { max-width: calc(110rem + 2 * var(--rand)); }  /* so breit wie das Bildband */
+.eng { max-width: calc(47.5rem + 2 * var(--rand)); }  /* Lesebreite, wächst mit der Schrift */
 .abschnitt { margin-top: 56px; }
 .abschnitt:first-child { margin-top: 0; }
 .stapel > * + * { margin-top: 16px; }

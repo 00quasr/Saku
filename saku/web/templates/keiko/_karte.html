@@ -6,6 +6,7 @@
   <input type="hidden" name="modus" value="{{ zustand.modus or '' }}">
   {% for th in zustand.themen %}<input type="hidden" name="thema" value="{{ th }}">{% endfor %}
   {% if zustand.muster %}<input type="hidden" name="muster" value="{{ zustand.muster }}">{% endif %}
+  {% if zustand.extra %}<input type="hidden" name="extra" value="1">{% endif %}
   <input type="hidden" name="runde" value="{{ zustand.runde|join(',') }}">
   <input type="hidden" name="start" value="{{ start }}">
 
@@ -26,6 +27,12 @@
       <div class="zeile keiko-werkzeuge">
         {{ m.status(t.status) }}
         {% with t_id=t.id, markiert=t.markiert %}{% include "keiko/_markieren.html" %}{% endwith %}
+        {% if zustand.runde %}
+        <button type="button" class="btn" data-variant="ghost" data-size="sm" data-taste="ArrowLeft" title="Vorige Teilaufgabe, ihre Bewertung wird zurückgenommen"
+                hx-post="{{ url_for('keiko.zurueck') }}" hx-target="#karte" hx-swap="outerHTML">
+          {{ m.taste('←') }} Zurück
+        </button>
+        {% endif %}
         <button type="button" class="btn" data-variant="ghost" data-size="sm" data-taste="ArrowRight"
                 hx-post="{{ url_for('keiko.ueberspringen', t_id=t.id) }}" hx-target="#karte" hx-swap="outerHTML">
           Überspringen {{ m.taste('→') }}
@@ -46,36 +53,41 @@
     <dl class="operatoren-liste klein">{% for o in ops %}<dt>{{ o.name }}</dt><dd>{{ o.erklaerung }}</dd>{% endfor %}</dl>
   </details>
   {% endif %}
-  <div class="stapel">
-    {{ k.kontext(t) }}
-    {{ k.aufgabe(t, interaktiv=True) }}
-  </div>
+  {% set material %}{{ k.kontext(t) }}{% endset %}
+  <div class="keiko-spalten{{ ' keiko-spalten--material' if material|trim }}">
+    {% if material|trim %}<div class="keiko-material stapel">{{ material }}</div>{% endif %}
+    <div class="keiko-arbeit">
+      <div class="stapel">
+        {{ k.aufgabe(t, interaktiv=True) }}
+      </div>
 
-  {{ k.antwortfeld(t) }}
+      {{ k.antwortfeld(t) }}
 
-  <div class="zeile zwischen keiko-aktionen">
-    <div id="loesung-knopf" class="zeile">
-      {% if pruefbar(t.antwort) %}
-      <button type="button" class="btn" data-taste="Enter" hx-post="{{ url_for('keiko.pruefen', t_id=t.id) }}"
-              hx-target="#loesung" hx-swap="innerHTML">Prüfen {{ m.taste('↵') }}</button>
-      <button type="button" class="btn" data-variant="ghost" data-taste=" " hx-get="{{ url_for('keiko.loesung', t_id=t.id) }}" hx-include="#antwortfeld [name=antwort], #antwortfeld [name=zeichnung_da]"
-              hx-target="#loesung" hx-swap="innerHTML">Nur Lösung zeigen {{ m.taste('␣') }}</button>
-      {% else %}
-      <button type="button" class="btn" data-taste=" " hx-get="{{ url_for('keiko.loesung', t_id=t.id) }}" hx-include="#antwortfeld [name=antwort], #antwortfeld [name=zeichnung_da]"
-              hx-target="#loesung" hx-swap="innerHTML">Lösung zeigen {{ m.taste('␣') }}</button>
+      <div class="zeile zwischen keiko-aktionen">
+        <div id="loesung-knopf" class="zeile">
+          {% if pruefbar(t.antwort) %}
+          <button type="button" class="btn" data-taste="Enter" hx-post="{{ url_for('keiko.pruefen', t_id=t.id) }}"
+                  hx-target="#loesung" hx-swap="innerHTML">Prüfen {{ m.taste('↵') }}</button>
+          <button type="button" class="btn" data-variant="ghost" data-taste=" " hx-get="{{ url_for('keiko.loesung', t_id=t.id) }}" hx-include="#antwortfeld"
+                  hx-target="#loesung" hx-swap="innerHTML">Nur Lösung zeigen {{ m.taste('␣') }}</button>
+          {% else %}
+          <button type="button" class="btn" data-taste=" " hx-get="{{ url_for('keiko.loesung', t_id=t.id) }}" hx-include="#antwortfeld"
+                  hx-target="#loesung" hx-swap="innerHTML">Lösung zeigen {{ m.taste('␣') }}</button>
+          {% endif %}
+        </div>
+        {% set teilaufgabe = t %}
+        {% include "sensei/_keiko.html" ignore missing %}
+      </div>
+
+      <div id="loesung" aria-live="polite"></div>
+
+      {% if aehnlich %}
+      <p class="klein gedaempft keiko-aehnlich">Kam so ähnlich auch dran:
+        {% for a in aehnlich %}<a href="{{ url_for('keiko.index', teilaufgabe=a.teilaufgabe_id) }}">{{ a.termin }} · {{ a.aufgabe_nr }} {{ a.kennung }}</a>{{ ' · ' if not loop.last }}{% endfor %}
+      </p>
       {% endif %}
     </div>
-    {% set teilaufgabe = t %}
-    {% include "sensei/_keiko.html" ignore missing %}
   </div>
-
-  <div id="loesung" aria-live="polite"></div>
-
-  {% if aehnlich %}
-  <p class="klein gedaempft keiko-aehnlich">Kam so ähnlich auch dran:
-    {% for a in aehnlich %}<a href="{{ url_for('keiko.index', teilaufgabe=a.teilaufgabe_id) }}">{{ a.termin }} · {{ a.aufgabe_nr }} {{ a.kennung }}</a>{{ ' · ' if not loop.last }}{% endfor %}
-  </p>
-  {% endif %}
 </form>
 {% else %}
 {% include "keiko/_abschluss.html" %}

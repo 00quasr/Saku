@@ -104,6 +104,25 @@ def _speichern_karte(con: sqlite3.Connection, tabelle: str, spalte: str, schlues
     return status
 
 
+def zuruecknehmen(con: sqlite3.Connection, teilaufgabe_id: int) -> bool:
+    """„Zurück“ in Üben: War die letzte Bewertung überhaupt (heute) diese Teilaufgabe, fällt sie weg und die Karte
+    entsteht aus dem übrigen Verlauf neu. Sonst bleibt alles, z. B. nach Überspringen."""
+    letzte = con.execute("SELECT id, teilaufgabe_id, date(zeitpunkt, 'localtime') = date('now', 'localtime') AS heute "
+                         "FROM bewertung ORDER BY id DESC LIMIT 1").fetchone()
+    if not letzte or letzte["teilaufgabe_id"] != teilaufgabe_id or not letzte["heute"]:
+        return False
+    con.execute("DELETE FROM bewertung WHERE id = ?", (letzte["id"],))
+    con.execute("UPDATE karte SET status = 'neu', serie = 0, fsrs = NULL, faellig_am = NULL WHERE teilaufgabe_id = ?", (teilaufgabe_id,))
+    # shortcut: der Verlauf wird mit dem heutigen Prüfungstermin nachgespielt; bei geändertem Termin weicht FSRS minimal ab
+    for z in con.execute("SELECT ergebnis, zeitpunkt FROM bewertung WHERE teilaufgabe_id = ? ORDER BY zeitpunkt, id",
+                         (teilaufgabe_id,)).fetchall():
+        karte = con.execute("SELECT status, serie, fsrs FROM karte WHERE teilaufgabe_id = ?", (teilaufgabe_id,)).fetchone()
+        _speichern_karte(con, "karte", "teilaufgabe_id", teilaufgabe_id, karte, z["ergebnis"],
+                         datetime.fromisoformat(z["zeitpunkt"]).replace(tzinfo=timezone.utc))
+    con.commit()
+    return True
+
+
 # Grundwissen: Begriffe mit Definition aus dem aktuellen Umfang; fällige zuerst, dann neue nach Häufigkeit
 _BEGRIFFE_SQL = """
 SELECT b.id, b.name, b.erklaerung, COALESCE(k.status, 'neu') AS status, k.faellig_am, COUNT(DISTINCT tb.teilaufgabe_id) AS n

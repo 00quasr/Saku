@@ -22,11 +22,21 @@ def test_keiko_runde_mit_tastatur(client, con):
     assert 'data-taste=" "' in html and 'id="antwort"' in html
     loesung = client.get(f"/keiko/{t_id}/loesung", headers=HTMX).get_data(as_text=True)
     assert "tusche" in loesung and 'data-taste="3"' in loesung
-    # Demo: 60 Tage bis zur Prüfung, also eine neue Teilaufgabe am Tag; danach kommt お疲れ様
-    fertig = client.post(f"/keiko/{t_id}/bewerten", data={"ergebnis": 3, "runde": ""}, headers=HTMX)
-    assert fertig.headers["HX-Redirect"] == "/keiko/"
-    assert con.execute("SELECT status FROM karte WHERE teilaufgabe_id = ?", (t_id,)).fetchone()[0] == "gelb"
-    assert "Tagesziel geschafft. <span lang=\"ja\">お疲れ様</span>" in client.get("/keiko/").get_data(as_text=True)
+    # Demo: 14 neue, der Termin verlangt 1 am Tag, das Mindestziel sind 10; nach der zehnten kommt お疲れ様
+    runde = []
+    for _ in range(10):
+        antwort = client.post(f"/keiko/{t_id}/bewerten", data={"ergebnis": 3, "runde": ",".join(map(str, runde))}, headers=HTMX)
+        runde.append(t_id)
+        if "HX-Redirect" in antwort.headers:
+            break
+        t_id = int(re.search(r'data-sensei-teilaufgabe="(\d+)"', antwort.get_data(as_text=True)).group(1))
+    assert antwort.headers["HX-Redirect"] == "/keiko/" and len(runde) == 10
+    assert con.execute("SELECT status FROM karte WHERE teilaufgabe_id = ?", (runde[0],)).fetchone()[0] == "gelb"
+    abschluss = client.get("/keiko/").get_data(as_text=True)
+    assert "Tagesziel geschafft. <span lang=\"ja\">お疲れ様</span>" in abschluss and 'href="/keiko/?extra=1"' in abschluss
+    # danach geht es weiter: Extra-Runde mit den restlichen neuen
+    extra = client.get("/keiko/?extra=1").get_data(as_text=True)
+    assert "Extra-Runde" in extra and 'name="extra" value="1"' in extra and "0 / 4" in extra
 
     naechste = client.post("/keiko/2/ueberspringen", data={"modus": "neu", "runde": ""}, headers=HTMX).get_data(as_text=True)
     assert 'name="runde" value="2"' in naechste and 'data-taste="ArrowRight"' in naechste
@@ -65,11 +75,18 @@ def test_shiken_simulation_bis_zum_hanko(client, con):
     assert "shiken-laeuft" in laufend and 'role="timer"' in laufend
     ids = re.findall(r'name="antwort-(\d+)"', laufend)
     assert "Gespeichert" in client.post(url + "/speichern", data={f"antwort-{ids[0]}": "Meine Antwort"}, headers=HTMX).get_data(as_text=True)
+    # mit Antwortformat (Optionen): die eigene Antwort darf das Format nicht überschreiben
+    con.execute("UPDATE teilaufgabe SET inhalt = 'Welche Laufzeit?', antwort = ? WHERE id = ?",
+                (json.dumps({"art": "einfach", "optionen": [{"wert": "1", "text": "O(n²)"}], "ziele": [], "richtig": ["1"],
+                             "einheit": "", "vorlage": ""}), ids[0]))
+    con.commit()
+    wieder = client.get(url).get_data(as_text=True)
+    assert "O(n²)" in wieder and ">Meine Antwort</textarea>" in wieder
     assert client.post(url + "/abgeben", data={}).headers["Location"].endswith("/auswertung")
     assert client.get(url).headers["Location"].endswith("/auswertung")
 
     auswertung = client.get(url + "/auswertung").get_data(as_text=True)
-    assert "Meine Antwort" in auswertung and f'id="punkte-{ids[0]}"' in auswertung
+    assert "Meine Antwort" in auswertung and f'id="punkte-{ids[0]}"' in auswertung and "O(n²)" in auswertung
     punkte = dict(con.execute("SELECT id, punkte FROM teilaufgabe").fetchall())
     client.post(url + "/auswertung", data={f"punkte-{i}": punkte[int(i)] for i in ids})
     client.post(url + "/auswertung", data={f"punkte-{i}": 0 for i in ids})  # zweites Auswerten zählt nicht
@@ -195,3 +212,15 @@ def test_befehlspalette(client, con):
     assert "Zu AP1 wechseln" in html and 'hx-post="/einstellungen/teil"' in html and "hx-vals='{\"teil\": \"AP1\"}'" in html
     assert "Farbschema dunkel" in client.get("/suche/", query_string={"q": "dunkel"}).get_data(as_text=True)
     assert client.post("/einstellungen/teil", data={"teil": "AP1"}).headers["HX-Refresh"] == "true"
+
+
+def test_zurueck_nimmt_bewertung_zurueck(client, con):
+    t_id = int(re.search(r'data-sensei-teilaufgabe="(\d+)"', client.get("/keiko/").get_data(as_text=True)).group(1))
+    weiter = client.post(f"/keiko/{t_id}/bewerten", data={"ergebnis": 3, "runde": ""}, headers=HTMX).get_data(as_text=True)
+    assert 'data-taste="ArrowLeft"' in weiter
+    zurueck = client.post("/keiko/zurueck", data={"runde": str(t_id)}, headers=HTMX).get_data(as_text=True)
+    assert f'data-sensei-teilaufgabe="{t_id}"' in zurueck and 'name="runde" value=""' in zurueck
+    assert 'data-taste="ArrowLeft"' not in zurueck  # ganz am Anfang gibt es kein Zurück
+    assert con.execute("SELECT COUNT(*) FROM bewertung").fetchone()[0] == 0
+    assert con.execute("SELECT status FROM karte WHERE teilaufgabe_id = ?", (t_id,)).fetchone()[0] == "neu"
+    assert client.post("/keiko/zurueck", data={"runde": ""}).status_code == 400

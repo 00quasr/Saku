@@ -20,7 +20,7 @@
       {% else %}{{ ziel.neu_offen }} {{ 'neue Teilaufgabe' if ziel.neu_offen == 1 else 'neue Teilaufgaben' }}{% if ziel.wdh_offen %} und {{ ziel.wdh_offen }} {{ 'Wiederholung' if ziel.wdh_offen == 1 else 'Wiederholungen' }}{% endif %}, etwa {{ minuten }} Minuten.{% endif %}
     </p>
     <div class="zeile held-knoepfe">
-      <a class="btn" data-size="lg" data-taste="Enter" href="{{ url_for('keiko.index') }}">{{ 'Weiter üben' if ziel.erreicht else 'Los geht’s' }} {{ m.taste('↵') }}</a>
+      <a class="btn" data-size="lg" data-taste="Enter" href="{{ url_for('keiko.index', extra=1) if ziel.erreicht else url_for('keiko.index') }}">{{ 'Weiter üben' if ziel.erreicht else 'Los geht’s' }} {{ m.taste('↵') }}</a>
       {% if rot %}<a class="btn held-zweit" data-size="lg" href="{{ url_for('keiko.index', modus='fehler') }}">Fehlerkorb · {{ rot }}</a>{% endif %}
       {% if grundwissen.faellig %}<a class="btn held-zweit" data-size="lg" href="{{ url_for('keiko.grundwissen') }}">Grundwissen · {{ grundwissen.faellig }}</a>{% endif %}
     </div>

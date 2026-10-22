@@ -63,7 +63,7 @@
           <span class="klein gedaempft zahl">{{ b.geprueft }} von {{ b.gesamt }} schon geprüft · {{ b.sicher }} sitzen bei dir</span></header>
         <div class="katalog-themen">
           {% for t in b.themen %}
-          <details class="katalog-thema" {{ 'open' if loop.index <= 2 }}>
+          <details class="katalog-thema" open>
             <summary><span>{{ t.name }}</span><span class="klein gedaempft zahl">{{ t.termine }} Termine · {{ t.teilaufgaben }} Teilaufg.</span></summary>
             <ul>
               {% for u in t.unterthemen %}

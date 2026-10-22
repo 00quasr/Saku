@@ -129,3 +129,10 @@ def test_wissen_schreibt_nur_fehlendes(con, daten, monkeypatch):
     anzahl = len(aufrufe)
     wissen.ausfuehren(con, daten, False, "claude-code")
     assert len(aufrufe) == anzahl  # zweiter Lauf: nichts mehr offen
+
+
+def test_wissen_aufraeumen():
+    from saku.pipeline.wissen import aufraeumen
+    text = "## Netze – Überblick\n\n- Subnetting (T12, T13), Bereich T661–T663, schon [T5] und [T6, T7]; nicht ST1 oder T1a"
+    assert aufraeumen(text, uebersicht=True) == "- Subnetting ([T12], [T13]), Bereich [T661]–[T663], schon [T5] und [T6, T7]; nicht ST1 oder T1a"
+    assert aufraeumen("### Das musst du können\n- x").startswith("### Das musst du können")  # Notizen behalten ihre Abschnitte

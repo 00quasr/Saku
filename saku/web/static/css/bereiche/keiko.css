@@ -163,3 +163,11 @@
 .begriff-name { font-family: var(--schrift-titel); font-weight: 600; font-size: clamp(1.75rem, 3vw, 2.25rem); line-height: 1.2; }
 .begriff-rueckseite { display: grid; gap: 14px; justify-self: stretch; padding-top: 16px; border-top: 1px solid var(--linie); }
 .begriff-rueckseite[hidden] { display: none; }
+
+/* Vollbild: Material links (bleibt beim Scrollen stehen), Aufgabe und Antwort rechts */
+.keiko-arbeit { display: grid; gap: 24px; align-content: start; min-width: 0; }
+@media (min-width: 1500px) {
+  .seite.keiko:has(.keiko-spalten--material) { max-width: calc(110rem + 2 * var(--rand)); }
+  .keiko-spalten--material { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 40px; align-items: start; }
+  .keiko-material { position: sticky; top: 16px; max-height: calc(100dvh - 32px); overflow: auto; }
+}

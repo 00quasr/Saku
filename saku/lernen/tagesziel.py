@@ -24,8 +24,9 @@ def ihk_termine(teil: str, heute: date | None = None) -> list[dict]:
             for d, n in IHK_TERMINE.get(teil, []) if date.fromisoformat(d) >= heute]
 
 
-# shortcut: ohne Prüfungstermin gibt es keine Lerntage, dann so viele neue am Tag; bei Bedarf einstellbar machen
-NEU_OHNE_TERMIN = 10
+# Mindestens so viele neue Teilaufgaben am Tag (auch ohne Termin); mehr, wenn der Termin es verlangt.
+# shortcut: fest; bei Bedarf in den Einstellungen anbieten
+NEU_MINDESTENS = 10
 
 _HEUTE = "date(zeitpunkt, 'localtime') = date('now', 'localtime')"
 
@@ -49,7 +50,7 @@ def tage_bis_pruefung(con: sqlite3.Connection, heute: date | None = None) -> int
 
 
 def tagesziel(con: sqlite3.Connection, heute: date | None = None) -> dict:
-    """Lerntage = Tage bis Prüfung − Puffer (mind. 1), Neu heute = aufrunden(neue ÷ Lerntage),
+    """Lerntage = Tage bis Prüfung − Puffer (mind. 1), Neu heute = aufrunden(neue ÷ Lerntage), mindestens NEU_MINDESTENS,
     Heute = Neu heute + fällige Wiederholungen. Gerechnet ab Tagesbeginn, damit das Ziel beim Lernen stehen bleibt."""
     # heute bewertete Teilaufgaben; neu = die erste Bewertung überhaupt war heute
     bewertet = con.execute(
@@ -61,11 +62,11 @@ def tagesziel(con: sqlite3.Connection, heute: date | None = None) -> dict:
 
     neue = con.execute("SELECT COUNT(*) FROM v_teilaufgabe WHERE status = 'neu'").fetchone()[0]
     tage = tage_bis_pruefung(con, heute)
-    if tage is None:
-        neu_ziel = min(NEU_OHNE_TERMIN, neue + neu_erledigt)
-    else:
+    neu_ziel = NEU_MINDESTENS
+    if tage is not None:
         lerntage = max(1, tage - int(einstellung(con, "puffer_tage", "7") or 0))
-        neu_ziel = math.ceil((neue + neu_erledigt) / lerntage)
+        neu_ziel = max(neu_ziel, math.ceil((neue + neu_erledigt) / lerntage))
+    neu_ziel = min(neu_ziel, neue + neu_erledigt)
     neu_offen = min(neue, max(0, neu_ziel - neu_erledigt))
 
     wdh_offen = con.execute(
@@ -82,8 +83,10 @@ def tagesziel(con: sqlite3.Connection, heute: date | None = None) -> dict:
     }
 
 
-def runde(con: sqlite3.Connection, ohne: set[int] | frozenset[int] = frozenset(), ziel: dict | None = None) -> list[int]:
-    """Weiterlernen: zuerst fällige Wiederholungen, dann der Fehlerkorb, dann neue Teilaufgaben im Pfad."""
+def runde(con: sqlite3.Connection, ohne: set[int] | frozenset[int] = frozenset(), ziel: dict | None = None,
+          neu: int | None = None) -> list[int]:
+    """Weiterlernen: zuerst fällige Wiederholungen, dann der Fehlerkorb, dann neue Teilaufgaben im Pfad
+    (so viele, wie das Tagesziel noch offen hat, oder `neu` für eine Extra-Runde)."""
     ziel = ziel or tagesziel(con)
     wiederholen = [z[0] for z in con.execute(
         "SELECT teilaufgabe_id FROM karte WHERE teilaufgabe_id IN (SELECT teilaufgabe_id FROM v_teilaufgabe) AND status <> 'neu' AND (status = 'rot' OR ("
@@ -91,7 +94,7 @@ def runde(con: sqlite3.Connection, ohne: set[int] | frozenset[int] = frozenset()
         ")) ORDER BY status = 'rot', faellig_am"
     )]
     neue = [z[0] for z in con.execute(NEU_IM_PFAD_SQL) if z[0] not in ohne]
-    return [i for i in wiederholen if i not in ohne] + neue[:ziel["neu_offen"]]
+    return [i for i in wiederholen if i not in ohne] + neue[:ziel["neu_offen"] if neu is None else neu]
 
 
 def naechste_aktion(con: sqlite3.Connection, ziel: dict) -> tuple[str, int] | None:

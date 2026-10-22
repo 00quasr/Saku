@@ -31,6 +31,7 @@ def _zustand() -> dict:
         "themen": _zahlen(request.values.getlist("thema")),
         "muster": (_zahlen(request.values.getlist("muster")) or [None])[0],
         "runde": _zahlen(request.values.getlist("runde")),
+        "extra": request.values.get("extra") == "1",  # weiterüben nach geschafftem Tagesziel
     }
 
 
@@ -51,7 +52,12 @@ def schlange(con, zustand: dict, ziel: dict) -> list[int]:
     """Die noch offenen Teilaufgaben der Runde in Reihenfolge."""
     ohne = set(zustand["runde"])
     if not zustand["modus"] and not zustand["themen"] and not zustand["muster"]:
-        ids = [] if ziel["erreicht"] else tagesziel.runde(con, ohne, ziel)
+        if not ziel["erreicht"]:
+            ids = tagesziel.runde(con, ohne, ziel)
+        elif zustand["extra"]:  # Extra-Runde: noch einmal so viele neue wie das Mindestziel
+            ids = tagesziel.runde(con, ohne, ziel, neu=max(0, tagesziel.NEU_MINDESTENS - len(zustand["runde"])))
+        else:
+            ids = []
         # eine ähnliche Aufgabe zwei Karten später: dieselbe Idee aus einem anderen Jahrgang
         neu = [i for i in varianten(con, zustand["runde"]) if i not in ohne and i not in ids][:1]
         return ids[:2] + neu + ids[2:]
@@ -84,7 +90,7 @@ def _rundenname(con, zustand: dict) -> str:
         namen = con.execute(f"SELECT name FROM thema WHERE id IN ({','.join('?' * len(zustand['themen']))}) ORDER BY ebene, position",
                             zustand["themen"]).fetchall()
         return " · ".join(n[0] for n in namen) or "Thema"
-    return "Weiterlernen"
+    return "Extra-Runde" if zustand["extra"] else "Weiterlernen"
 
 
 def _kontext(con, zustand: dict, erste: int | None = None, sicher_geworden: bool = False) -> dict:
@@ -94,7 +100,7 @@ def _kontext(con, zustand: dict, erste: int | None = None, sicher_geworden: bool
     if erste:
         ids = [erste] + [i for i in ids if i != erste]
     tagesrunde = not zustand["modus"] and not zustand["themen"] and not zustand["muster"]
-    if tagesrunde:
+    if tagesrunde and not (zustand["extra"] and ziel["erreicht"]):
         erledigt, gesamt = ziel["erledigt"], max(ziel["ziel"], ziel["erledigt"])
     else:
         erledigt, gesamt = len(zustand["runde"]), len(zustand["runde"]) + len(ids)
@@ -212,6 +218,18 @@ def bewerten(t_id):
     zustand = _zustand()
     zustand["runde"].append(t_id)
     return _naechste_karte(con, zustand, sicher_geworden=neu == "gruen" and alt != "gruen")
+
+
+@bp.post("/zurueck")
+def zurueck():
+    """Die vorige Karte noch einmal; ihre Bewertung von eben wird zurückgenommen."""
+    con = db()
+    zustand = _zustand()
+    if not zustand["runde"]:
+        abort(400)
+    vorige = zustand["runde"].pop()
+    karten.zuruecknehmen(con, vorige)
+    return render_template("keiko/_karte.html", **_kontext(con, zustand, erste=vorige))
 
 
 @bp.post("/<int:t_id>/ueberspringen")

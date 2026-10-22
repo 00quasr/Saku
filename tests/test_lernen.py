@@ -56,18 +56,30 @@ def test_tagesziel(con):
     heute = date.today()
     db.setze_einstellung(con, "pruefungstermin", (heute + timedelta(days=17)).isoformat())  # 10 Lerntage
     ziel = tagesziel.tagesziel(con, heute)
-    assert (ziel["neu"], ziel["wiederholungen"], ziel["ziel"]) == (2, 0, 2)  # aufrunden(14 / 10)
+    assert (ziel["neu"], ziel["wiederholungen"], ziel["ziel"]) == (10, 0, 10)  # aufrunden(14 / 10) = 2, aber mindestens 10
 
     karten.bewerten(con, 1, 3)
     con.execute("INSERT INTO karte (teilaufgabe_id, status, faellig_am) VALUES (2, 'gelb', datetime('now', '-1 day'))")
     ziel = tagesziel.tagesziel(con, heute)
-    assert (ziel["neu"], ziel["wiederholungen"], ziel["erledigt"], ziel["neu_offen"]) == (2, 1, 1, 1)
+    assert (ziel["neu"], ziel["wiederholungen"], ziel["erledigt"], ziel["neu_offen"]) == (10, 1, 1, 9)
     assert tagesziel.naechste_aktion(con, ziel) == ("wiederholen", 1)
 
     db.setze_einstellung(con, "pruefungstermin", (heute + timedelta(days=3)).isoformat())  # mindestens 1 Lerntag
-    assert tagesziel.tagesziel(con, heute)["neu"] == 13
+    assert tagesziel.tagesziel(con, heute)["neu"] == 13  # der Termin verlangt mehr als das Mindestziel
     db.setze_einstellung(con, "pruefungstermin", "")
-    assert tagesziel.tagesziel(con, heute)["neu"] == tagesziel.NEU_OHNE_TERMIN
+    assert tagesziel.tagesziel(con, heute)["neu"] == tagesziel.NEU_MINDESTENS
+
+
+def test_zuruecknehmen_spielt_verlauf_nach(con):
+    karten.bewerten(con, 1, 3, jetzt=datetime.now(timezone.utc) - timedelta(days=2))
+    karten.bewerten(con, 1, 3)
+    assert _status(con, 1) == ("gruen", 2)
+    assert karten.zuruecknehmen(con, 1)
+    assert _status(con, 1) == ("gelb", 1)  # wie nach der ersten Bewertung allein
+    assert con.execute("SELECT faellig_am FROM karte WHERE teilaufgabe_id = 1").fetchone()[0]
+    assert not karten.zuruecknehmen(con, 1)  # die übrige Bewertung ist nicht von heute
+    karten.bewerten(con, 2, 1)
+    assert not karten.zuruecknehmen(con, 1) and _status(con, 2) == ("rot", 0)  # zuletzt bewertet wurde eine andere
 
 
 def test_naechste_aktion_reihenfolge(con):

@@ -2,6 +2,7 @@
 was man können muss, typische Prüfungsfragen mit [T123], Fallen. Wiederaufnehmbar: nur, was noch fehlt."""
 
 import os
+import re
 import sqlite3
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -52,6 +53,12 @@ SCHEMA_THEMEN = {
 }
 
 
+def aufraeumen(text: str, uebersicht: bool = False) -> str:
+    """T123 ohne Klammern (im Fließtext häufig) → [T123], damit die Notiz verlinkt; die Übersicht ohne eigene Überschrift."""
+    text = re.sub(r"(?<![\[\w])T(\d+)(?![\]\w])", r"[T\1]", text.strip())
+    return re.sub(r"\A#+ [^\n]*\n+", "", text) if uebersicht else text
+
+
 def begriffe_auftrag(begriffe: list[sqlite3.Row]) -> str:
     return "\n".join(f"{b['id']}: {b['name']}" + (f" ({b['thema']})" if b["thema"] else "") for b in begriffe)
 
@@ -98,8 +105,9 @@ def ausfuehren(con: sqlite3.Connection, daten: Path, ohne_ki: bool, ki: str) -> 
                 antwort = client.strukturiert(eigene, "wissen", "stark", SYSTEM_THEMEN, themen_auftrag(eigene, inhalt),
                                               SCHEMA_THEMEN, ki=ki, max_tokens=16000)
                 erlaubt = {z[0] for z in eigene.execute("SELECT id FROM thema WHERE eltern_id = ?", (inhalt["id"],))}
-                zeilen = [(u["notiz"].strip(), u["id"]) for u in antwort["unterthemen"] if u["id"] in erlaubt and u["notiz"].strip()]
-                eigene.executemany("UPDATE thema SET beschreibung = ? WHERE id = ?", zeilen + [(antwort["thema"].strip(), inhalt["id"])])
+                zeilen = [(aufraeumen(u["notiz"]), u["id"]) for u in antwort["unterthemen"] if u["id"] in erlaubt and u["notiz"].strip()]
+                eigene.executemany("UPDATE thema SET beschreibung = ? WHERE id = ?",
+                                   zeilen + [(aufraeumen(antwort["thema"], uebersicht=True), inhalt["id"])])
             eigene.commit()
             return len(zeilen)
         except (client.KiFehler, sqlite3.Error, KeyError, TypeError) as fehler:

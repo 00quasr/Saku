@@ -33,7 +33,7 @@
 
 /* Raster: Tagesplan breit, Reife daneben, darunter drei Kacheln */
 .heute-raster { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
-.heute .flaeche { border-radius: 14px; padding: 22px 24px; display: grid; gap: 14px; align-content: start; }
+.heute .flaeche { border-radius: 14px; padding: 22px 24px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; align-content: start; }  /* minmax: lange Namen dürfen die Karte nicht sprengen */
 .heute-plan { grid-column: span 2; }
 .karte-kopf { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
 .karte-kopf .etikett [lang="ja"] { color: var(--shu); }
@@ -68,11 +68,12 @@ a.flaeche:hover { border-color: var(--sumi-mittel); }
 .heute-woche li.gelernt { background: var(--shu); border-color: var(--shu); color: #FBFAF7; }
 .heute-woche li.heute-tag:not(.gelernt) { border-style: dashed; border-color: var(--shu); color: var(--shu); }
 
-.heute-themen { display: grid; gap: 4px; margin-inline: -8px; }
-.heute-themen a { display: grid; gap: 6px; padding: 6px 8px; border-radius: 8px; text-decoration: none; }
+.heute-themen { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; margin-inline: -8px; }
+.heute-themen a { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; padding: 6px 8px; border-radius: 8px; text-decoration: none; }
 .heute-themen a:hover { background: var(--flaeche); }
 .heute-thema-zeile { display: flex; justify-content: space-between; gap: 12px; font-size: 0.9375rem; }
 .heute-thema-zeile > :first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.heute-thema-zeile > :last-child { flex: none; white-space: nowrap; }
 .heute-thema-balken { display: flex; height: 4px; border-radius: 2px; overflow: hidden; background: transparent; }
 .heute-thema-balken > span { display: block; height: 100%; }
 .b-gruen { background: var(--matcha); }
@@ -83,7 +84,7 @@ a.flaeche:hover { border-color: var(--sumi-mittel); }
 /* Lücken aus Sensei-Bewertungen: volle Breite, bis vier nebeneinander */
 .heute-luecken { grid-column: 1 / -1; }
 .luecken-liste { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 4px 16px; margin-inline: -8px; }
-.luecken-liste a { display: grid; gap: 4px; padding: 6px 8px; border-radius: 8px; text-decoration: none; }
+.luecken-liste a { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; padding: 6px 8px; border-radius: 8px; text-decoration: none; }
 .luecken-liste a:hover { background: var(--flaeche); }
 .luecken-liste strong { font-weight: 500; color: var(--shu); }
 .luecke-beispiel { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }

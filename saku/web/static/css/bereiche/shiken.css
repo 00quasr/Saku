@@ -87,6 +87,14 @@
   font: inherit; line-height: 28px; color: var(--sumi);
   background: repeating-linear-gradient(transparent 0 27px, var(--linie) 27px 28px); background-attachment: local;
 }
+.heft-teile { display: grid; gap: 12px; min-width: 0; }
+@media (min-width: 1500px) {
+  .seite.shiken-simulation { max-width: calc(110rem + 2 * var(--rand)); }
+  .heft-aufgabe--material { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 40px; }
+  .heft-aufgabe--material > .heft-kopf, .heft-aufgabe--material > .heft-herkunft { grid-column: 1 / -1; }
+  /* unter der Restzeit-Leiste (64 px, ebenfalls sticky) */
+  .heft-material { position: sticky; top: 80px; align-self: start; max-height: calc(100dvh - 96px); overflow: auto; }
+}
 .heft-linien:focus { background-color: color-mix(in oklab, var(--shu) 4%, transparent); }
 
 /* Fachgespräch */

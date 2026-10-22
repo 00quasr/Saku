@@ -67,6 +67,8 @@ def heatmap(con: sqlite3.Connection) -> dict:
 
 
 def _statistik(con: sqlite3.Connection, bedingung: str, ordnung: str, *parameter) -> list[sqlite3.Row]:
+    """Unterthemen der Prüfungsbereiche im Umfang (sonst zählt bei AP1 jedes AE-, SI- und WiSo-Thema als nie geprüft)."""
+    bereiche = BEREICHE_JE_PFAD.get(con.execute("SELECT pfad FROM v_umfang").fetchone()[0], [])
     # die Termine einmal ausrechnen statt je Thema (MATERIALIZED), sonst läuft v_teilaufgabe hunderte Male
     return con.execute(f"""
         WITH termine AS MATERIALIZED (SELECT DISTINCT termin_index FROM v_teilaufgabe)
@@ -75,9 +77,10 @@ def _statistik(con: sqlite3.Connection, bedingung: str, ordnung: str, *parameter
                    (SELECT COUNT(*) FROM termine t WHERE t.termin_index > s.letzter_termin) AS seitdem,
                    (SELECT COUNT(*) FROM termine) AS alle_termine
             FROM v_themen_statistik s LEFT JOIN thema e ON e.id = s.eltern_id
-            WHERE {_BLATT}
+            WHERE {_BLATT} AND s.thema_id IN (SELECT v.thema_id FROM v_thema_vorfahr v JOIN thema b ON b.id = v.vorfahr_id
+                                              AND b.ebene = 1 AND b.name IN ({','.join('?' * len(bereiche))}))
         ) WHERE {bedingung} ORDER BY {ordnung}
-    """, parameter).fetchall()
+    """, (*bereiche, *parameter)).fetchall()
 
 
 def dauerbrenner(con):

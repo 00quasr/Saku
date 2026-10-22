@@ -69,9 +69,11 @@ tbody:first-of-type .bunseki-bereich { padding-top: 4px; }
 /* Katalog-Abdeckung */
 .katalog-bereich + .katalog-bereich { margin-top: 28px; }
 .katalog-bereich header { margin-bottom: 10px; }
-.katalog-themen { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 10px; align-items: start; }
-.katalog-thema { border: 1px solid var(--linie); border-radius: 10px; background: var(--washi-hell); padding: 10px 14px; }
-.katalog-thema > summary { display: flex; justify-content: space-between; gap: 12px; cursor: pointer; font-weight: 500; }
+/* Spalten statt Raster: Karten unterschiedlicher Länge stapeln sich lückenlos */
+.katalog-themen { column-width: 340px; column-gap: 10px; }
+.katalog-thema { break-inside: avoid; margin-bottom: 10px; border: 1px solid var(--linie); border-radius: 10px; background: var(--washi-hell); padding: 10px 14px; }
+.katalog-thema > summary { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; cursor: pointer; font-weight: 500; }
+.katalog-thema > summary > :last-child { flex: none; white-space: nowrap; font-weight: 400; }
 .katalog-thema ul { display: grid; gap: 4px; margin-top: 10px; }
 .katalog-thema li { display: grid; grid-template-columns: 1rem 1fr auto; gap: 8px; align-items: baseline; font-size: 0.875rem; }
 .katalog-thema li a { text-decoration: none; }
