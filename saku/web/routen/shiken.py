@@ -146,10 +146,8 @@ def auswertung(sim_id):
 
     punkte_100 = simulation.umrechnen(sim["punkte_erreicht"] or 0, sim["punkte_moeglich"] or 0)
     teilaufgaben = _teilaufgaben(con, sim_id)
-    for t in teilaufgaben:  # anklickbare Teilaufgaben prüft Saku selbst; die Punkte stehen dann schon im Feld
-        if t["eingabe"] is not None:
-            ergebnis, werte = antwort.auswerten(t["antwort"], t["eingabe"])
-            t["auto"] = {"werte": werte, "punkte": antwort.punkte(ergebnis, t["punkte"] or 0)}
+    for t in teilaufgaben:  # anklickbare Teilaufgaben und SQL mit Sandbox prüft Saku selbst; die Punkte stehen dann schon im Feld
+        t["auto"] = antwort.vorschlag(con, t, t["eingabe"], t["eigene"])
     return render_template(
         "shiken/auswertung.html", sim=sim, teilaufgaben=teilaufgaben, punkte_100=punkte_100,
         noten=simulation.NOTEN, kosten=simulation.kosten(con, sim_id) if sim["note"] is not None else [])

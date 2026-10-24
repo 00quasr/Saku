@@ -77,6 +77,11 @@
 {% else %}<p class="hinweis hinweis--fehler">Zu dieser Teilaufgabe fehlt der Lösungshinweis. Bewerte dich nach bestem Wissen oder frag Sensei.</p>{% endif %}
 {% endmacro %}
 
+{# Automatische Bewertung (antwort.vorschlag) neben den Punkten: Kurzhinweis zu SQL oder die Meldung, wenn die Anweisung nicht läuft #}
+{% macro auto_hinweis(v, id) %}
+<span class="klein gedaempft shiken-auto{{ ' shiken-auto--fehler' if v.fehler }}" id="{{ id }}">{{ m.icon('circle-x' if v.fehler else 'circle-check') }} {{ '0 Punkte vorbelegt' if v.fehler else 'automatisch bewertet' }}{% if v.hinweise %}: {{ v.hinweise|join(' ') }}{% endif %}</span>
+{% endmacro %}
+
 {# Tabelle aus der SQL-Sandbox (Ergebnis, Beispieldaten, Vergleich): t aus lernen/sql._tabelle #}
 {% macro sql_tabelle(t) %}
 <figure class="sql-tabelle">
