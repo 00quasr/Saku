@@ -29,6 +29,12 @@ MIGRATIONEN = {
         "fsrs TEXT, faellig_am TEXT, geaendert_am TEXT)",
         "ALTER TABLE teilaufgabe ADD COLUMN muster_id INTEGER REFERENCES muster(id) ON DELETE SET NULL",
     ],
+    5: [
+        "CREATE TABLE rechenuebung (id INTEGER PRIMARY KEY, art TEXT NOT NULL, seed INTEGER NOT NULL, "
+        "richtig INTEGER NOT NULL CHECK (richtig IN (0, 1)), felder_richtig INTEGER NOT NULL, felder_gesamt INTEGER NOT NULL, "
+        "dauer_s INTEGER, zeitpunkt TEXT NOT NULL DEFAULT (datetime('now')))",
+        "CREATE INDEX idx_rechenuebung_art ON rechenuebung(art, id)",
+    ],
 }
 
 

@@ -256,6 +256,18 @@ CREATE TABLE bewertung (
     punkte          REAL                                -- erreichte Punkte, wenn bekannt (Sensei, Auswahl, Selbsteinschätzung)
 );
 
+-- Rechentrainer (算 Rechnen): jede generierte Aufgabe, die geprüft wurde; „Rechenweg zeigen“ zählt als falsch
+CREATE TABLE rechenuebung (
+    id              INTEGER PRIMARY KEY,
+    art             TEXT    NOT NULL,                   -- subnetz, datenmenge … (saku/lernen/rechnen)
+    seed            INTEGER NOT NULL,                   -- erzeugt dieselbe Aufgabe wieder
+    richtig         INTEGER NOT NULL CHECK (richtig IN (0, 1)),
+    felder_richtig  INTEGER NOT NULL,
+    felder_gesamt   INTEGER NOT NULL,
+    dauer_s         INTEGER,
+    zeitpunkt       TEXT    NOT NULL DEFAULT (datetime('now'))
+);
+
 -- ---------------------------------------------------------------------
 -- Prüfungssimulation (Shiken 試験)
 -- ---------------------------------------------------------------------
@@ -361,6 +373,7 @@ CREATE INDEX idx_karte_faellig         ON karte(faellig_am);
 CREATE INDEX idx_bewertung_teilaufgabe ON bewertung(teilaufgabe_id, zeitpunkt);
 CREATE INDEX idx_sensei_gespraech      ON sensei_nachricht(gespraech, zeitpunkt);
 CREATE INDEX idx_aehnlichkeit_wert     ON aehnlichkeit(teilaufgabe_id, wert DESC);
+CREATE INDEX idx_rechenuebung_art      ON rechenuebung(art, id);
 
 -- ---------------------------------------------------------------------
 -- Sichten
@@ -555,4 +568,4 @@ SELECT
 FROM ki_aufruf
 GROUP BY zweck, modell;
 
-PRAGMA user_version = 4;
+PRAGMA user_version = 5;
