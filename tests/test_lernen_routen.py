@@ -136,6 +136,12 @@ def test_einfuehrung_beim_ersten_start(client, con):
     html = client.get("/willkommen").get_data(as_text=True)
     assert html.count('class="szene"') == 7 and 'data-zaehlen=' in html and 'class="leiste"' not in html
     assert "Noch kam kein Thema in fast jedem der 3 Termine dran." in html and "Diese Themen" not in html  # Demo: keine Dauerbrenner
+    con.execute("INSERT OR REPLACE INTO einstellung (schluessel, wert) VALUES ('teil', 'AP1')")  # Demo hat keine AP1
+    con.commit()
+    html = client.get("/willkommen").get_data(as_text=True)
+    assert "der 0 Termine" not in html and "Zu deinem Prüfungsteil gibt es noch keine Prüfungen." in html
+    con.execute("DELETE FROM einstellung WHERE schluessel = 'teil'")
+    con.commit()
 
     assert client.post("/willkommen/termin", data={"pruefungstermin": "kein Datum"}).status_code == 400
     rechnung = client.post("/willkommen/termin", data={"pruefungstermin": "2099-01-01"}).get_data(as_text=True)
