@@ -205,8 +205,9 @@ def test_zustandsdiagramm_selbst_nachgespielt():
                 assert not rechnen.pruefen(a, {"zaehler": str(n + 1)})["zaehler"]
         else:
             ziel = re.search(r"in den Zustand \*\*„(.+?)“\*\*", a.frage)[1]
-            treffer = [o for o in felder["folge"].optionen if _simulieren(start, uebergaenge, o.split(", "))[0] == ziel]
-            assert treffer == [a.loesung["folge"]] and len(felder["folge"].optionen) >= 3, seed
+            folgen = dict(re.findall(r"^- ([A-D]): `(.*)`$", a.frage, re.M))
+            treffer = [b for b, f in folgen.items() if _simulieren(start, uebergaenge, f.split(", "))[0] == ziel]
+            assert treffer == [a.loesung["folge"]] and felder["folge"].optionen == sorted(folgen) and len(folgen) >= 3, seed
     assert titel == {"Ereignisfolge nachspielen", "Ereignisfolge finden"}
 
 
@@ -281,7 +282,8 @@ def test_klassendiagramm_selbst_ausgewertet():
             _, k1, m1, k2, m2 = next(v for v in verbindungen if {v[1], v[3]} == {x, y})
             am = {k1: _grenzen(m1), k2: _grenzen(m2)}  # die Multiplizität am Ende der gezählten Klasse
             erwartet = {"ab_min": am[y][0], "ab_max": am[y][1], "ba_min": am[x][0], "ba_max": am[x][1]}
-            assert {k: (None if v == "beliebig viele" else v) for k, v in l.items()} == erwartet, seed
+            assert {k: (None if v == "beliebig viele" else int(v)) for k, v in l.items()} == erwartet, seed
+            assert felder["ab_max"].typ == felder["ba_max"].typ == "text"  # beide gleich: die Feldart verrät nichts
             if am[x] != am[y]:  # das nahe Ende abgelesen: falsch
                 nah = {"ab_min": am[x][0], "ab_max": am[x][1], "ba_min": am[y][0], "ba_max": am[y][1]}
                 eingaben = {k: "beliebig viele" if v is None else str(v) for k, v in nah.items()}
@@ -340,7 +342,15 @@ def _darf(akteure: dict, nutzt: dict, akteur: str) -> set[str]:
     return nutzt.get(akteur, set()) | (_darf(akteure, nutzt, akteure[akteur]) if akteure[akteur] else set())
 
 
+def _system(a) -> dict:
+    """Das System der Aufgabe, am Namen in der Textfassung erkannt (für das vollständige Bild)."""
+    from saku.lernen.rechnen import uml
+    name = re.search(r"System (\w+)\.", ET.fromstring(str(a.struktogramm)).get("aria-label", ""))[1]
+    return next(s for s in uml.SYSTEME if s["system"] == name)
+
+
 def test_usecase_selbst_ausgewertet():
+    from saku.lernen.rechnen import uml
     titel = set()
     for seed, a in _alle("usecase"):
         svg = svg_pruefen(a.struktogramm)
@@ -350,16 +360,17 @@ def test_usecase_selbst_ausgewertet():
         titel.add(a.titel)
         felder = {f.name: f for f in a.felder}
         if a.titel == "include oder extend":
-            # die gefragten Beziehungen fehlen im Bild; je Anforderung: «include» bei „jedes Mal“/„immer“, sonst «extend»
-            for f in a.felder:
-                satz = re.search(rf"^{f.name[1]}\. (.*)$", a.frage, re.M)[1]
-                pflicht = bool(re.search(r"jede[mnrs]?\b|immer|sofort", satz))
-                art, von, nach = re.fullmatch(r"«(\w+)»: Pfeil von „(.+?)“ zu „(.+?)“", f.loesung).groups()
-                assert (art == "include") == pflicht and (von, art, nach) not in [(v, x, n) for v, x, n in pfeile], (seed, satz)
-                assert len(set(f.optionen)) == 4 and f.loesung in f.optionen
-                # typischer Fehler: der «extend»-Pfeil in die falsche Richtung
-                falsch = f"«{art}»: Pfeil von „{nach}“ zu „{von}“"
-                assert not rechnen.pruefen(a, {f.name: falsch})[f.name]
+            # die gefragten Beziehungen fehlen im Bild; je Anforderung: «include» bei „jedes Mal“/„immer“, sonst «extend»; der
+            # «include»-Pfeil zeigt auf den eingebundenen Fall, der «extend»-Pfeil auf den erweiterten
+            for i in (1, 2):
+                satz = re.search(rf"^{i}\. (.*)$", a.frage, re.M)[1]
+                art, ziel = a.loesung[f"b{i}"], a.loesung[f"z{i}"]
+                von = next(o for o in felder[f"z{i}"].optionen if o != ziel)
+                assert (art == "«include»") == bool(re.search(r"jede[mnrs]?\b|immer|sofort", satz)), (seed, satz)
+                assert (von, art.strip("«»"), ziel) in _usecase_modell(svg_pruefen(uml.usecasediagramm(_system(a))))[2], (seed, satz)
+                assert (von, art.strip("«»"), ziel) not in pfeile  # fehlt im Bild der Aufgabe
+                # typischer Fehler: der Pfeil in die falsche Richtung
+                assert not rechnen.pruefen(a, {f"z{i}": von})[f"z{i}"]
         elif a.titel == "Akteure und Generalisierung":
             kind = re.search(r"Akteur \*\*(\w+)\*\*", a.frage)[1]
             assert a.loesung["anzahl"] == len(_darf(akteure, nutzt, kind)), seed

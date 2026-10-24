@@ -253,11 +253,15 @@ def nachspielen(a: dict, folge: list[str], zustand: str | None = None) -> list[t
 
 
 def _folge(rng, a: dict, laenge: int) -> list[str]:
-    """Zufällige Ereignisfolge ab dem Start: meist ein Ereignis, das gerade schaltet, manchmal eines, das verfällt."""
+    """Zufällige Ereignisfolge ab dem Start: meist ein Ereignis, das gerade schaltet, manchmal eines, das verfällt. In einen
+    Zustand ohne Ausgang (Storniert, Abgebrochen …) führt sie erst am Ende, sonst verfiele der Rest."""
     alle, folge = sorted({u[1] for u in a["uebergaenge"]}), []
-    for _ in range(laenge):
+    ende = {z for z in a["zustaende"] if not any(u[0] == z for u in a["uebergaenge"])}
+    for i in range(laenge):
         zustand, zaehler = nachspielen(a, folge)[-1][3:] if folge else (next(iter(a["zustaende"])), 0)
         moeglich = sorted({u[1] for u in a["uebergaenge"] if u[0] == zustand and (not u[2] or OPS[u[2][0]](zaehler, u[2][1]))})
+        if i < laenge - 2:
+            moeglich = [e for e in moeglich if nachspielen(a, [*folge, e])[-1][3] not in ende] or moeglich
         folge.append(rng.choice(moeglich) if moeglich and rng.random() < 0.8 else rng.choice(alle))
     return folge
 
@@ -319,12 +323,13 @@ def zustand(rng):
             break
     folgen = [richtig, *falsche]
     rng.shuffle(folgen)
-    optionen = [", ".join(f) for f in folgen]
-    frage = (einleitung + f"Welche Ereignisfolge führt vom Startzustand „{start}“ in den Zustand **„{ziel}“**?")
-    weg = "\n\n".join(f"`{o}` endet in **{nachspielen(a, f)[-1][3]}**" + (" ✓" if f == richtig else "") for o, f in zip(optionen, folgen))
+    buchstaben = "ABCD"[:len(folgen)]
+    frage = (einleitung + f"Welche Ereignisfolge führt vom Startzustand „{start}“ in den Zustand **„{ziel}“**?\n\n"
+             + "\n".join(f"- {b}: `{', '.join(f)}`" for b, f in zip(buchstaben, folgen)))
+    weg = "\n".join(f"- {b}: endet in **{nachspielen(a, f)[-1][3]}**" + (" ✓" if f == richtig else "") for b, f in zip(buchstaben, folgen))
     weg += f"\n\nDie richtige Folge nachgespielt:\n\n{_spur(a, richtig)}"
-    return Aufgabe(frage, [Feld("folge", "Ereignisfolge", ", ".join(richtig), typ="text", optionen=optionen)], weg,
-                   titel="Ereignisfolge finden", struktogramm=zustandsdiagramm(a))
+    return Aufgabe(frage, [Feld("folge", "Ereignisfolge", buchstaben[folgen.index(richtig)], typ="text", optionen=list(buchstaben))],
+                   weg, titel="Ereignisfolge finden", struktogramm=zustandsdiagramm(a))
 
 
 # --- Klassendiagramm -------------------------------------------------------------------------------
@@ -481,7 +486,7 @@ def klassendiagramm(m: dict) -> Markup:
             enden = [(ma, ra, art_ in ("aggregation", "komposition")), (mb, rb, False)]
             if a == n:
                 enden.reverse()
-            x += sum(max(breite(mu), breite(r)) + (26 if raute else 0) for mu, r, raute in enden) + 40
+            x += sum(max(breite(mu), breite(r)) + (26 if raute else 0) for mu, r, raute in enden) + 30
         links[n] = x
         x += mass[n][0]
     hoehe0 = max(mass[n][1] for n in m["kette"])
@@ -505,8 +510,9 @@ def klassendiagramm(m: dict) -> Markup:
     ober, unter = m["ober"], m["unter"]
     real = klassen[ober][0] == "interface"
     breiten = [mass[u][0] for u in unter]
-    mitte = links[ober] + mass[ober][0] / 2
-    x, oben, bus = mitte - (sum(breiten) + 40 * (len(unter) - 1)) / 2, hoehe0 + 70, hoehe0 + 35
+    mitte, gesamt = links[ober] + mass[ober][0] / 2, sum(breiten) + 40 * (len(unter) - 1)
+    # mittig unter der Oberklasse, aber nicht rechts über die Kette hinaus: sonst wird das ganze Bild breiter und kleiner
+    x, oben, bus = max(min(mitte - gesamt / 2, links[m["kette"][-1]] + mass[m["kette"][-1]][0] - gesamt), 0), hoehe0 + 70, hoehe0 + 35
     xs = []
     for u, b in zip(unter, breiten):
         _klassenkasten(bild, x, oben, u, klassen[u], b)
@@ -544,9 +550,10 @@ def _anzahl_text(n: int | None) -> str:
 
 
 def _vielheit_feld(name: str, label: str, n: int | None) -> Feld:
+    """Obergrenze immer als Textfeld: eine Zahl oder „beliebig viele“ (auch *, n …); verschiedene Feldarten verrieten die Antwort."""
     if n is None:
         return Feld(name, label, "beliebig viele", typ="text", auch=("*", "n", "beliebig", "unbegrenzt", "unendlich", "∞", "viele"))
-    return Feld(name, label, n, stellen=0)
+    return Feld(name, label, str(n), typ="text")
 
 
 @art("klassen", "Klassendiagramm", "UML", "Klassendiagramme lesen: Multiplizitäten, Beziehungen, Vererbung, Sichtbarkeit",
@@ -592,7 +599,8 @@ def klassen(rng):
         doppelt = sorted({_methode(t) for t, _ in k[u][2]} & {_methode(t) for t, _ in k[ober][2]})
         frage = einleitung + (f"a) Wie viele Attribute hat ein Objekt der Klasse **{u}**, geerbte mitgezählt?\n\n"
                               f"b) Wie viele verschiedene Methoden lassen sich auf einem Objekt von {u} aufrufen? Eine überschriebene "
-                              "Methode zählt einmal.\n\nc) Von welcher Klasse lassen sich keine Objekte erzeugen?")
+                              "oder implementierte Methode zählt einmal.\n\nc) Von welcher Klasse (oder welchem Interface) lassen "
+                              "sich keine Objekte erzeugen?")
         felder = [Feld("attribute", f"Attribute eines {u}-Objekts", attr, stellen=0),
                   Feld("methoden", f"Methoden eines {u}-Objekts", len(methoden), stellen=0),
                   Feld("abstrakt", "Keine Objekte von", ober, typ="text", optionen=sorted(k))]
@@ -602,7 +610,8 @@ def klassen(rng):
                                      f"{len(k[u][1])} + {len(k[ober][1])} = **{attr}**" if abstrakt else
                                      f"; ein Interface hat keine Attribute, es bleiben die eigenen: **{attr}**"),
             f"Methoden: {', '.join(f'`{x}()`' for x in methoden)} = **{len(methoden)}**"
-            + (f"; {', '.join(f'`{x}()`' for x in doppelt)} überschreibt {u} und zählt nur einmal" if doppelt else ""),
+            + (f"; {', '.join(f'`{x}()`' for x in doppelt)} {'überschreibt' if abstrakt else 'implementiert'} {u}, "
+               "das zählt nur einmal" if doppelt else ""),
             f"{ober} ist " + ("abstrakt (Name kursiv, `{abstract}`)" if abstrakt else "ein Interface (`«interface»`)")
             + f": davon gibt es keine Objekte, nur von den Unterklassen → **{ober}**")
         return Aufgabe(frage, felder, weg, titel="Vererbung", **bild)
@@ -764,10 +773,6 @@ def usecasediagramm(s: dict, ohne: tuple = ()) -> Markup:
                                    f"{', '.join(f'„{f}“' for f in cx)}. Verbindungen: {'; '.join(verbindungen)}.")
 
 
-def _richtung(von: str, nach: str, text: str) -> str:
-    return f"{text}: Pfeil von „{von}“ zu „{nach}“"
-
-
 @art("usecase", "Use-Case-Diagramm", "UML", "Anwendungsfälle lesen und modellieren: «include» oder «extend», Akteure mit Generalisierung",
      ("Use-Case", "Use Case", "Anwendungsfall", "Anwendungsfälle"), formeln=FORMELN["usecase"])
 def usecase(rng):
@@ -784,9 +789,9 @@ def usecase(rng):
             f"{i}. {p[3]}" for i, p in enumerate(paare, start=1)) + "\n\nWie werden sie im Diagramm ergänzt?"
         felder, weg = [], []
         for i, (basis, anderer, text, satz) in enumerate(paare, start=1):
-            optionen = [_richtung(v, n, t) for t in ("«include»", "«extend»") for v, n in ((basis, anderer), (anderer, basis))]
-            loesung = _richtung(basis, anderer, text) if text == "«include»" else _richtung(anderer, basis, text)
-            felder.append(Feld(f"a{i}", f"Anforderung {i}", loesung, typ="text", optionen=optionen))
+            felder += [Feld(f"b{i}", f"{i}. Beziehung", text, typ="text", optionen=["«include»", "«extend»"]),
+                       Feld(f"z{i}", f"{i}. Pfeil zeigt auf", anderer if text == "«include»" else basis, typ="text",
+                            optionen=sorted([basis, anderer]))]
             weg.append(f"„{satz}“ – " + (f"„{anderer}“ gehört **jedes Mal** zu „{basis}“: **«include»**, der Pfeil zeigt vom Basisfall "
                                          f"auf den eingebundenen Fall „{anderer}“." if text == "«include»" else
                                          f"„{anderer}“ kommt nur **unter einer Bedingung** dazu: **«extend»**, der Pfeil zeigt von der "
