@@ -1,6 +1,8 @@
 """Keiko 稽古: der Fokusmodus. Aufgabe lesen, Lösung aufdecken, sich selbst bewerten."""
 
+import math
 import time
+from datetime import date, datetime, timezone
 
 from flask import Blueprint, abort, make_response, render_template, request, url_for
 
@@ -17,6 +19,32 @@ LEER = {
     "thema": "Zu diesem Thema gibt es keine Teilaufgaben.",
     None: "Für heute steht nichts an.",
 }
+
+
+def _ortszeit(zeitpunkt: str) -> datetime:
+    """Zeitpunkt aus der Datenbank (UTC) in Ortszeit."""
+    return datetime.fromisoformat(zeitpunkt).replace(tzinfo=timezone.utc).astimezone()
+
+
+def tag(zeitpunkt: str, heute: date | None = None) -> str:
+    """„heute“, „gestern“ oder „22.10.“"""
+    d = _ortszeit(zeitpunkt).date()
+    return {0: "heute", 1: "gestern"}.get(((heute or date.today()) - d).days, f"{d.day}.{d.month}.")
+
+
+def wann(faellig_am: str, jetzt: datetime | None = None) -> str:
+    """Wann eine Karte wieder dran ist: „in 10 min“, „heute um 18:30“, „morgen“, „am 3.11.“"""
+    jetzt = jetzt or datetime.now().astimezone()
+    termin = _ortszeit(faellig_am)
+    minuten = math.ceil((termin - jetzt).total_seconds() / 60)
+    if minuten < 60:
+        return f"in {max(1, minuten)} min"
+    tage = (termin.date() - jetzt.date()).days
+    if tage == 0:
+        return f"heute um {termin:%H:%M}"
+    if tage == 1:
+        return "morgen"
+    return f"am {termin.day}.{termin.month}." + (str(termin.year) if termin.year != jetzt.year else "")
 
 
 def _zahlen(werte) -> list[int]:
@@ -93,10 +121,44 @@ def _rundenname(con, zustand: dict) -> str:
     return "Extra-Runde" if zustand["extra"] else "Weiterlernen"
 
 
-def _kontext(con, zustand: dict, erste: int | None = None, sicher_geworden: bool = False) -> dict:
+def _stand(con, t: dict, zustand: dict, tagesrunde: bool, rundenname: str, geplant: bool) -> dict:
+    """Was Saku über die Karte weiß: die letzten Bewertungen, der Weg bis „sicher“ und warum sie jetzt dran ist."""
+    karte = con.execute("SELECT serie, faellig_am, faellig_am <= datetime('now') AS faellig FROM karte WHERE teilaufgabe_id = ?",
+                        (t["id"],)).fetchone()
+    letzte = con.execute("SELECT ergebnis, zeitpunkt FROM bewertung WHERE teilaufgabe_id = ? ORDER BY zeitpunkt DESC, id DESC LIMIT 3",
+                         (t["id"],)).fetchall()
+    warum = []
+    if not geplant:
+        warum.append("direkt geöffnet")
+    elif t["status"] != "neu" and karte and karte["faellig"]:
+        warum.append(f"fällig seit {tag(karte['faellig_am'])} {_ortszeit(karte['faellig_am']):%H:%M}")
+    elif t["status"] == "neu" and tagesrunde:
+        warum.append("neu in der Extra-Runde" if zustand["extra"] else "neu aus dem Tagesziel")
+    if geplant and not tagesrunde:
+        warum.append(f"Runde „{rundenname}“")
+    if t["markiert"]:
+        warum.append("markiert")
+    return {
+        "art": {"neu": "Neu", "rot": "Fehlerkorb"}.get(t["status"], "Wiederholung"),
+        "letzte": [{"ergebnis": z["ergebnis"], "tag": tag(z["zeitpunkt"])} for z in reversed(letzte)],
+        "noch": 2 - karte["serie"] if karte and t["status"] in ("rot", "gelb") else 0,
+        "warum": warum,
+    }
+
+
+def _eben(con, t_id: int | None) -> dict | None:
+    """Rückmeldung zur eben bewerteten Teilaufgabe: wann sie wiederkommt."""
+    z = con.execute("SELECT v.termin, v.aufgabe_nr, v.kennung, k.status, k.faellig_am FROM v_teilaufgabe_alle v "
+                    "JOIN karte k ON k.teilaufgabe_id = v.teilaufgabe_id WHERE v.teilaufgabe_id = ? AND k.faellig_am IS NOT NULL",
+                    (t_id,)).fetchone() if t_id else None
+    return dict(z) | {"wann": wann(z["faellig_am"])} if z else None
+
+
+def _kontext(con, zustand: dict, erste: int | None = None, sicher_geworden: bool = False, eben: int | None = None) -> dict:
     """Alles für die nächste Karte, oder für den Abschluss, wenn die Runde fertig ist."""
     ziel = tagesziel.tagesziel(con)
     ids = schlange(con, zustand, ziel)
+    geplant = erste is None or erste in ids  # sonst direkt geöffnet, z. B. aus Suche oder Verlauf
     if erste:
         ids = [erste] + [i for i in ids if i != erste]
     tagesrunde = not zustand["modus"] and not zustand["themen"] and not zustand["muster"]
@@ -106,7 +168,7 @@ def _kontext(con, zustand: dict, erste: int | None = None, sicher_geworden: bool
         erledigt, gesamt = len(zustand["runde"]), len(zustand["runde"]) + len(ids)
     kontext = {
         "zustand": zustand, "ziel": ziel, "erledigt": erledigt, "gesamt": gesamt, "tagesrunde": tagesrunde,
-        "rundenname": _rundenname(con, zustand), "sicher_geworden": sicher_geworden,
+        "rundenname": _rundenname(con, zustand), "sicher_geworden": sicher_geworden, "eben": _eben(con, eben),
         "katalog_leer": not con.execute("SELECT 1 FROM teilaufgabe LIMIT 1").fetchone(),
     }
     karte = karten.lade(con, ids[:1])
@@ -125,10 +187,13 @@ def _kontext(con, zustand: dict, erste: int | None = None, sicher_geworden: bool
         "SELECT m.id, m.name, COUNT(*) AS n, COUNT(DISTINCT v.pruefung_id) AS pruefungen, MAX(v.termin_index) AS zuletzt "
         "FROM teilaufgabe t JOIN muster m ON m.id = t.muster_id JOIN teilaufgabe x ON x.muster_id = m.id "
         "JOIN v_teilaufgabe v ON v.teilaufgabe_id = x.id WHERE t.id = ? GROUP BY m.id", (t["id"],)).fetchone()
+    ist_variante = tagesrunde and t["id"] in varianten(con, zustand["runde"])
+    stand = _stand(con, t, zustand, tagesrunde, kontext["rundenname"], geplant)
+    if ist_variante:  # das sagt schon der Hinweis „Ähnlich wie eben“
+        stand["warum"] = []
     return kontext | {
-        "karte": t, "start": int(time.time()), "aehnlich": aehnlich, "muster": muster,
-        "ist_variante": tagesrunde and t["id"] in varianten(con, zustand["runde"]),
-        "thema_pfad": [n for n in (thema["eltern"], thema["name"]) if n] if thema else [],
+        "karte": t, "start": int(time.time()), "aehnlich": aehnlich, "muster": muster, "ist_variante": ist_variante,
+        "thema_pfad": [n for n in (thema["eltern"], thema["name"]) if n] if thema else [], "stand": stand,
     }
 
 
@@ -150,12 +215,12 @@ def _abschluss(con, zustand: dict, ziel: dict, tagesrunde: bool) -> dict:
     }
 
 
-def _naechste_karte(con, zustand: dict, sicher_geworden: bool = False):
-    kontext = _kontext(con, zustand, sicher_geworden=sicher_geworden)
+def _naechste_karte(con, zustand: dict, sicher_geworden: bool = False, eben: int | None = None):
+    kontext = _kontext(con, zustand, sicher_geworden=sicher_geworden, eben=eben)
     if kontext["karte"] is None and kontext["art"] == "tagesziel":
-        # Die Tagesrunde ist fertig: die ganze Abschlussseite laden (お疲れ様)
+        # Die Tagesrunde ist fertig: die ganze Abschlussseite laden (お疲れ様), mit der Rückmeldung zur letzten Karte
         antwort = make_response("")
-        antwort.headers["HX-Redirect"] = url_for("keiko.index")
+        antwort.headers["HX-Redirect"] = url_for("keiko.index", eben=eben)
         return antwort
     return render_template("keiko/_karte.html", **kontext)
 
@@ -173,7 +238,7 @@ def index():
     erste = request.args.get("teilaufgabe", type=int)
     if erste and not karten.lade(con, [erste]):
         abort(404)
-    return render_template("keiko/index.html", **_kontext(con, _zustand(), erste))
+    return render_template("keiko/index.html", **_kontext(con, _zustand(), erste, eben=request.args.get("eben", type=int)))
 
 
 @bp.get("/<int:t_id>/loesung")
@@ -217,7 +282,7 @@ def bewerten(t_id):
                                punkte=punkte, quelle="sensei" if request.form.get("quelle") == "sensei" else "selbst")
     zustand = _zustand()
     zustand["runde"].append(t_id)
-    return _naechste_karte(con, zustand, sicher_geworden=neu == "gruen" and alt != "gruen")
+    return _naechste_karte(con, zustand, sicher_geworden=neu == "gruen" and alt != "gruen", eben=t_id)
 
 
 @bp.post("/zurueck")

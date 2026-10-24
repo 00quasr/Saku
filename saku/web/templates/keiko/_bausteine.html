@@ -5,6 +5,19 @@
 
 {% macro kennung(t) %}{{ t.termin }} · Aufgabe {{ t.aufgabe_nr }} {{ t.kennung }}{% endmacro %}
 
+{# Ergebnis einer Bewertung (1–3) als Zeichen, für Screenreader ausgeschrieben #}
+{% macro ergebnis(e) %}<span class="ergebnis ergebnis--{{ e }}" aria-hidden="true">{{ {1: '✗', 2: '~', 3: '✓'}[e] }}</span><span class="bunseki-versteckt">{{ {1: 'nicht gewusst', 2: 'teilweise', 3: 'gewusst'}[e] }}</span>{% endmacro %}
+
+{# Nach dem Bewerten: sicher geworden? Und wann kommt die Teilaufgabe wieder (eben aus keiko._eben) #}
+{% macro rueckmeldung(eben, sicher_geworden) %}
+{% if eben or sicher_geworden %}
+<p class="hinweis tusche keiko-eben" role="status">
+  {% if sicher_geworden %}Sicher. Das sitzt.{% endif %}
+  {% if eben %}{{ kennung(eben) }}: wieder dran {{ eben.wann }}{{ ' · liegt im Fehlerkorb' if eben.status == 'rot' }}{% endif %}
+</p>
+{% endif %}
+{% endmacro %}
+
 {# Alternativtext: Termin, Kennung und Anfang des Aufgabentexts #}
 {% macro alt(t) %}{{ kennung(t) }}{% if t.text %}: {{ t.text|klartext|truncate(90) }}{% endif %}{% endmacro %}
 

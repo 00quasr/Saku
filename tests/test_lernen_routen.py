@@ -30,7 +30,7 @@ def test_keiko_runde_mit_tastatur(client, con):
         if "HX-Redirect" in antwort.headers:
             break
         t_id = int(re.search(r'data-sensei-teilaufgabe="(\d+)"', antwort.get_data(as_text=True)).group(1))
-    assert antwort.headers["HX-Redirect"] == "/keiko/" and len(runde) == 10
+    assert antwort.headers["HX-Redirect"] == f"/keiko/?eben={runde[-1]}" and len(runde) == 10
     assert con.execute("SELECT status FROM karte WHERE teilaufgabe_id = ?", (runde[0],)).fetchone()[0] == "gelb"
     abschluss = client.get("/keiko/").get_data(as_text=True)
     assert "Tagesziel geschafft. <span lang=\"ja\">お疲れ様</span>" in abschluss and 'href="/keiko/?extra=1"' in abschluss
@@ -224,3 +224,41 @@ def test_zurueck_nimmt_bewertung_zurueck(client, con):
     assert con.execute("SELECT COUNT(*) FROM bewertung").fetchone()[0] == 0
     assert con.execute("SELECT status FROM karte WHERE teilaufgabe_id = ?", (t_id,)).fetchone()[0] == "neu"
     assert client.post("/keiko/zurueck", data={"runde": ""}).status_code == 400
+
+
+def test_karte_zeigt_verlauf_und_wann_sie_wiederkommt(client, con):
+    html = client.get("/keiko/").get_data(as_text=True)
+    t_id = int(re.search(r'data-sensei-teilaufgabe="(\d+)"', html).group(1))
+    assert "Neu" in html and "neu aus dem Tagesziel" in html
+    weiter = client.post(f"/keiko/{t_id}/bewerten", data={"ergebnis": 1, "runde": ""}, headers=HTMX).get_data(as_text=True)
+    assert re.search(r"Aufgabe \d+ \w+: wieder dran in \d+ min · liegt im Fehlerkorb", weiter)
+
+    karte = client.get(f"/keiko/?teilaufgabe={t_id}").get_data(as_text=True)
+    assert "Fehlerkorb · zuletzt" in karte and "nicht gewusst</span> heute" in karte and "noch 2× „Gewusst“ bis sicher" in karte
+    client.post(f"/keiko/{t_id}/bewerten", data={"ergebnis": 3, "runde": ""}, headers=HTMX)
+    karte = client.get(f"/keiko/?teilaufgabe={t_id}").get_data(as_text=True)
+    assert "Wiederholung · zuletzt" in karte and "gewusst</span> heute" in karte and "noch 1× „Gewusst“ bis sicher" in karte
+    assert "direkt geöffnet" in karte  # gelb und noch nicht fällig: steht heute nicht an
+
+    con.execute("UPDATE karte SET faellig_am = datetime('now', '-1 hour') WHERE teilaufgabe_id = ?", (t_id,))
+    con.execute("DELETE FROM bewertung")  # sonst gilt sie als heute schon wiederholt
+    con.commit()
+    assert "fällig seit heute" in client.get(f"/keiko/?teilaufgabe={t_id}").get_data(as_text=True)
+
+
+def test_wann_und_tag():
+    from datetime import datetime, timedelta, timezone
+
+    from saku.lernen.karten import sqlite_zeit
+    from saku.web.routen.keiko import tag, wann
+
+    jetzt = datetime(2026, 10, 24, 10, 0, tzinfo=timezone.utc).astimezone()
+    assert wann(sqlite_zeit(jetzt + timedelta(minutes=9, seconds=30)), jetzt) == "in 10 min"
+    assert wann(sqlite_zeit(jetzt - timedelta(minutes=5)), jetzt) == "in 1 min"
+    assert wann(sqlite_zeit(jetzt + timedelta(hours=2)), jetzt).startswith("heute um ")
+    assert wann(sqlite_zeit(jetzt + timedelta(days=1)), jetzt) == "morgen"
+    assert wann(sqlite_zeit(jetzt + timedelta(days=10)), jetzt) == "am 3.11."
+    assert wann(sqlite_zeit(jetzt + timedelta(days=100)), jetzt) == "am 1.2.2027"
+    assert tag(sqlite_zeit(jetzt), jetzt.date()) == "heute"
+    assert tag(sqlite_zeit(jetzt - timedelta(days=1)), jetzt.date()) == "gestern"
+    assert tag(sqlite_zeit(jetzt - timedelta(days=2)), jetzt.date()) == "22.10."

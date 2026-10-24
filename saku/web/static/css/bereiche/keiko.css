@@ -10,6 +10,13 @@
 .keiko-fortschritt .linie-fortschritt { flex: 1; }
 
 .keiko-kopf { display: grid; gap: 4px; }
+.keiko-stand { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; }
+.keiko-warum { display: inline-flex; align-items: center; gap: 6px; }
+.keiko-warum .icon { width: 14px; height: 14px; }
+.ergebnis { font-weight: 600; }
+.ergebnis--1 { color: var(--beni); }
+.ergebnis--2 { color: var(--yamabuki); }
+.ergebnis--3 { color: var(--matcha); }
 .keiko-werkzeuge { gap: 4px; }
 .keiko-werkzeuge .btn { gap: 6px; }
 .keiko-markieren[aria-pressed="true"] .icon { fill: currentColor; }
