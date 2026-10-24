@@ -11,7 +11,8 @@
   --washi: #F6F4EF;  --washi-hell: #FBFAF7;  --flaeche: #EDE9E1;
   --sumi: #1F1D1A;   --sumi-mittel: #6B665D; --linie: #E4DFD5;
   --shu: #B8422B;    --ai: #2F4A63;          --beni: #A63A3A;
-  --yamabuki: #88621B; --matcha: #547147;
+  --yamabuki: #A97A22; --matcha: #547147;
+  --yamabuki-text: #88621B;  /* Gelb als Schrift: 4,5 : 1 auf jeder Fläche; als Füllung (Punkte, Balken) bleibt es heller */
 
   --schrift: "Inter", ui-sans-serif, system-ui, sans-serif;
   --schrift-titel: "Shippori Mincho", "Hiragino Mincho ProN", "Yu Mincho", serif;
@@ -39,6 +40,7 @@
   --sumi: #ECE8DF;   --sumi-mittel: #A39E92; --linie: #2E2B27;
   --shu: #E06241;    --ai: #8FA9C4;          --beni: #D46A5E;
   --yamabuki: #D9AE4F; --matcha: #8DAA7A;
+  --yamabuki-text: #D9AE4F;
 }
 
 /* Tuschestufen für die Heatmap */

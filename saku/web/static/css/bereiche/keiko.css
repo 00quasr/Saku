@@ -15,7 +15,7 @@
 .keiko-warum .icon { width: 14px; height: 14px; }
 .ergebnis { font-weight: 600; }
 .ergebnis--1 { color: var(--beni); }
-.ergebnis--2 { color: var(--yamabuki); }
+.ergebnis--2 { color: var(--yamabuki-text); }
 .ergebnis--3 { color: var(--matcha); }
 .keiko-werkzeuge { gap: 4px; }
 .keiko-werkzeuge .btn { gap: 6px; }
@@ -142,7 +142,7 @@
 /* Urteil nach dem Prüfen */
 .keiko-urteil { font-family: var(--schrift-titel); font-weight: 600; font-size: 1.375rem; }
 .keiko-urteil--3 { color: var(--matcha); }
-.keiko-urteil--2 { color: var(--yamabuki); }
+.keiko-urteil--2 { color: var(--yamabuki-text); }
 .keiko-urteil--1 { color: var(--beni); }
 
 /* Punkte vergeben wie in der IHK-Korrektur */

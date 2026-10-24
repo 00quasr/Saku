@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 CSS = (Path(__file__).parents[1] / "saku" / "web" / "static" / "css" / "saku.css").read_text(encoding="utf-8")
-TEXT = ("sumi", "sumi-mittel", "shu", "ai", "beni", "yamabuki", "matcha")
+TEXT = ("sumi", "sumi-mittel", "shu", "ai", "beni", "yamabuki-text", "matcha")  # --yamabuki ist nur Füllfarbe
 FLAECHEN = ("washi", "washi-hell", "flaeche")
 
 

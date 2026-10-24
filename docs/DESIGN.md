@@ -27,7 +27,8 @@ Die Palette stammt aus traditionellen japanischen Farben: Papier, Tusche und ein
 | `--shu` | `#B8422B` | 朱 Zinnoberrot | **die** Akzentfarbe: Fokus, Stempel, aktuelle Station, Logo |
 | `--ai` | `#2F4A63` | 藍 Indigo | alles von Sensei |
 | `--beni` | `#A63A3A` | 紅 Karmin | Status „wackelig“, Fehler |
-| `--yamabuki` | `#88621B` | 山吹 Goldgelb | Status „im Aufbau“ |
+| `--yamabuki` | `#A97A22` | 山吹 Goldgelb | Status „im Aufbau“ (Füllung: Punkte, Balken) |
+| `--yamabuki-text` | `#88621B` | | dasselbe Gelb als Schrift (4,5 : 1) |
 | `--matcha` | `#547147` | 抹茶 Matcha | Status „sicher“ |
 
 ### Dunkel: Sumi (Tusche)
