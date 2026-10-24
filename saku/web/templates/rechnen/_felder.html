@@ -1,7 +1,7 @@
 {# Eingabefelder einer Rechenaufgabe, für die Karte und den Sprint.
    a: Aufgabe · eingaben: {Feld: Text} · werte: {Feld: richtig?} oder None (noch nicht geprüft)
    praefix: Formularname vor jedem Feld (Sprint: a1-, a2-, …) · fokus: erstes Feld bekommt autofocus
-   seed: nur auf der Karte, dann bekommt ein SQL-Feld „Ausführen“ und „Tabellen ansehen“, ein Pseudocode-Feld „Ausführen“ #}
+   seed: auf der Karte und in der Probeprüfung, dann bekommt ein SQL-Feld „Ausführen“ und „Tabellen ansehen“, ein Pseudocode-Feld „Ausführen“ #}
 {% import "_makros.html" as m %}
 {% macro felder(a, eingaben, werte, praefix="feld-", fokus=True, seed=None) %}
 {% set fertig = werte is not none %}
@@ -41,16 +41,16 @@
   {% if code %}</div>{% endif %}
   {% if werkzeuge %}
   <div class="zeile sql-werkzeuge">
-    <button type="button" class="btn" data-variant="outline" data-size="sm" data-sql-ausfuehren
-            hx-post="{{ url_for('rechnen.code_ausfuehren' if code else 'rechnen.sql_ausfuehren', art=a.art) }}" hx-target="#sql-ergebnis">
+    <button type="button" class="btn" data-variant="outline" data-size="sm" data-sql-ausfuehren hx-vals='{"seed": "{{ seed }}", "praefix": "{{ praefix }}"}'
+            hx-post="{{ url_for('rechnen.code_ausfuehren' if code else 'rechnen.sql_ausfuehren', art=a.art) }}" hx-target="#{{ praefix }}sql-ergebnis">
       {{ m.icon('play') }} Ausführen {{ m.taste('⌘↵') }}
     </button>
     {% if not code %}
     <button type="button" class="btn" data-variant="ghost" data-size="sm"
-            hx-get="{{ url_for('rechnen.sql_tabellen', art=a.art, seed=seed) }}" hx-target="#sql-ergebnis">{{ m.icon('table') }} Tabellen ansehen</button>
+            hx-get="{{ url_for('rechnen.sql_tabellen', art=a.art, seed=seed) }}" hx-target="#{{ praefix }}sql-ergebnis">{{ m.icon('table') }} Tabellen ansehen</button>
     {% endif %}
   </div>
-  <div id="sql-ergebnis" class="sql-ergebnis" aria-live="polite"></div>
+  <div id="{{ praefix }}sql-ergebnis" class="sql-ergebnis" aria-live="polite"></div>
   {% endif %}
   {% if fertig %}<p class="rechnen-marke">{% if ok %}<span aria-label="richtig">✓</span>{% else %}<span aria-label="falsch">✕</span>{% endif %}</p>{% endif %}
 </div>

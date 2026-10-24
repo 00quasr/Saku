@@ -9,6 +9,7 @@
   <div class="zeile rechnen-start">
     <a class="btn" href="{{ url_for('rechnen.gemischt') }}" data-taste="Enter">Gemischt üben{% if faellige_arten %} · {{ faellige_arten|length }} fällig{% endif %} {{ m.taste('↵') }}</a>
     <a class="btn" data-variant="outline" href="{{ url_for('rechnen.sprint') }}">{{ m.icon('timer') }} Sprint: 5 Aufgaben, 15 Minuten</a>
+    <a class="btn" data-variant="outline" href="{{ url_for('rechnen.probe') }}">{{ m.icon('clipboard-check') }} Probeprüfung: 90 Minuten</a>
     <a class="btn" data-variant="outline" href="{{ url_for('rechnen.formeln') }}">{{ m.icon('sigma') }} Formelsammlung</a>
     {% if ziel %}
     <span class="klein rechnen-ziel" title="Rechenaufgaben am Tag, einstellbar unter Einstellungen › Lernen">

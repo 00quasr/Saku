@@ -12,7 +12,7 @@ import pymupdf
 from flask import Blueprint, abort, current_app, redirect, render_template, request, url_for
 from werkzeug.datastructures import MultiDict
 
-from saku.lernen import antwort, hochrechnung, karten, simulation, stichpunkte
+from saku.lernen import antwort, hochrechnung, karten, probepruefung, simulation, stichpunkte
 from saku.web import db, ganzzahl
 
 bp = Blueprint("shiken", __name__, url_prefix="/shiken")
@@ -93,8 +93,11 @@ def index():
     schnelltest = {"bereich": simulation.SCHNELLTEST, "anzahl": gewaehlt, "termine": len({k["termin_index"] for k in kandidaten}),
                    "minuten": max(1, round(gewaehlt * sum(k["punkte"] for k in kandidaten) / len(kandidaten)  # im Schnitt der Punkte
                                            * simulation.minuten_je_punkt(con, simulation.WISO)))} if kandidaten else None
+    probe = {"anzahl": probepruefung.ANZAHL, "minuten": probepruefung.MINUTEN, "laufend": probepruefung.laufende(con),
+             "letzte": con.execute("SELECT punkte, note FROM probepruefung WHERE note IS NOT NULL "
+                                   "ORDER BY gestartet_am DESC, id DESC LIMIT 1").fetchone()}
     return render_template("shiken/index.html", bereiche=bereiche, verlauf=verlauf, laufend=laufend, schnelltest=schnelltest,
-                           noten=simulation.NOTEN, hochrechnung=hochrechnung.stand(con))
+                           probe=probe, noten=simulation.NOTEN, hochrechnung=hochrechnung.stand(con))
 
 
 @bp.post("/neu")

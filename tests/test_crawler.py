@@ -153,6 +153,13 @@ def test_post_rundgang_und_alle_links_mit_daten(client, con):
     post(url + "/abgeben", kopf=SEITE)
     post(url + "/auswertung", {f"punkte-{i}": "2" for i in ids}, SEITE)
 
+    # Probeprüfung aus den Generatoren: anlegen, zwischenspeichern, abgeben
+    url = post("/rechnen/probe/neu", kopf=SEITE).headers["Location"]
+    felder = re.findall(r'name="(a\d+-[^"]+)"', client.get(url).get_data(as_text=True))
+    assert felder
+    post(url + "/speichern", {f: "1" for f in felder})
+    post(url + "/abgeben", {f: "1" for f in felder}, SEITE)
+
     # Lernpfad: Mini-Test der ersten Station
     test = client.get("/michi/1/test").get_data(as_text=True)
     ids = re.findall(r'name="teilaufgabe" value="(\d+)"', test)
@@ -172,6 +179,6 @@ def test_post_rundgang_und_alle_links_mit_daten(client, con):
     post("/bunseki/zuordnung/1", {"thema": unterthema})
 
     status = crawlen(client, links)
-    for pfad in ("/niwa/begriff/", "/niwa/lernfeld/", "/keiko/verlauf", "/shiken/1/auswertung", "/rechnen/"):
+    for pfad in ("/niwa/begriff/", "/niwa/lernfeld/", "/keiko/verlauf", "/shiken/1/auswertung", "/rechnen/", "/rechnen/probe/1"):
         assert any(pfad in anfrage for anfrage in status), pfad  # mit Daten kommt der Crawler wirklich dorthin
     assert _kaputt(status) == []

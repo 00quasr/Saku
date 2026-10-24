@@ -1,10 +1,25 @@
 {% extends "base.html" %}
 {% block titel %}Prüfung{% endblock %}
 {% block inhalt %}
+{# Die Probeprüfung braucht keine Prüfungen im Katalog: sie steht auch auf der leeren Seite #}
+{% set probe_karte %}
+      <li class="flaeche shiken-bereich" id="probepruefung">
+        <p class="etikett">Probeprüfung</p>
+        <p class="shiken-bereich-name">Probeprüfung aus Generatoren</p>
+        <p class="klein gedaempft zahl">{{ probe.anzahl }} Aufgaben · {{ probe.minuten }} Minuten · 100 Punkte · {{ umfang.teil }}</p>
+        <p class="klein gedaempft">Unbegrenzt neu aus den Rechenaufgaben deiner Prüfung, mit SQL und Pseudocode. Saku wertet sofort aus.
+          {%- if probe.letzte %} Zuletzt {{ ('%g' % probe.letzte.punkte)|replace('.', ',') }} Punkte, Note {{ probe.letzte.note }}.{% endif %}</p>
+        <form class="zeile" method="post" action="{{ url_for('rechnen.probe_neu') }}">
+          <button type="submit" class="btn">{{ 'Weiter' if probe.laufend else 'Starten' }}</button>
+          <a class="btn" data-variant="ghost" href="{{ url_for('rechnen.probe') }}">Verlauf</a>
+        </form>
+      </li>
+{% endset %}
 {% if not bereiche %}
 {{ m.kopf('willkommen', '試', 'Prüfung', 'Prüfungssimulation') }}
 <div class="seite weit">
   <p class="leer">Noch ist der Garten leer. Lege deine Prüfungen in <code>data/pdfs</code> und starte die Analyse.</p>
+  <ul class="shiken-bereiche">{{ probe_karte }}</ul>
 </div>
 {% else %}
 {% call m.kopf('shiken', '試', 'Prüfung', 'Prüfungssimulation') %}
@@ -51,6 +66,7 @@
         </form>
       </li>
       {% endif %}
+      {{ probe_karte }}
     </ul>
   </section>
 

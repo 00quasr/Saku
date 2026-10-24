@@ -14,7 +14,7 @@ den Ausschlag geben kann; schriftlich und mündlich zählen 2 : 1.
 import sqlite3
 
 from saku.db import einstellung
-from saku.lernen import simulation
+from saku.lernen import probepruefung, simulation
 from saku.pipeline import inventar
 
 GEWICHTE = {"ap1": 0.2, "projekt": 0.5, "pb2": 0.1, "pb3": 0.1, "wiso": 0.1}
@@ -78,7 +78,8 @@ def _simulation(con: sqlite3.Connection, bereich: str) -> float | None:
 
 
 def stand(con: sqlite3.Connection) -> dict:
-    """Werte je Bereich mit Herkunft: eigene Eingabe, letzte Simulation oder Lernstand."""
+    """Werte je Bereich mit Herkunft: eigene Eingabe, letzte Simulation oder Lernstand; die AP1 ohne eigene Note geschätzt aus
+    dem Schnitt der letzten drei Probeprüfungen."""
     beruf = einstellung(con, "beruf", "1201")
     pb2, pb3 = BEREICHE.get(beruf, BEREICHE["1201"])
     zeilen = []
@@ -91,6 +92,8 @@ def stand(con: sqlite3.Connection) -> dict:
                              ("projekt", "Betriebliche Projektarbeit mit Präsentation und Fachgespräch", None),
                              ("pb2", pb2, pb2), ("pb3", pb3, pb3), ("wiso", inventar.WISO, inventar.WISO)]:
         wert, quelle = eingabe(k), "eingabe"
+        if wert is None and k == "ap1":
+            wert, quelle = probepruefung.schnitt(con), "probepruefung"
         if wert is None and bereich:
             wert, quelle = _simulation(con, bereich), "simulation"
             if wert is None:

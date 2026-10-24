@@ -277,6 +277,20 @@ CREATE TABLE rechenuebung (
     zeitpunkt       TEXT    NOT NULL DEFAULT (datetime('now'))
 );
 
+-- Probeprüfung aus den Rechen-Generatoren: dieselben Aufgaben entstehen aus Art und Seed neu; jede Aufgabe kommt bei der
+-- Abgabe auch in rechenuebung
+CREATE TABLE probepruefung (
+    id              INTEGER PRIMARY KEY,
+    pfad            TEXT    NOT NULL,                   -- Lernpfad beim Anlegen (v_umfang.pfad: AP1, AP2-1201 …)
+    aufgaben        TEXT    NOT NULL,                   -- JSON [[art, seed, punkte], …], Punkte zusammen 100
+    eingaben        TEXT,                               -- JSON {Formularfeld: Text}, zwischengespeichert
+    gestartet_am    TEXT    NOT NULL DEFAULT (datetime('now')),
+    dauer_min       INTEGER NOT NULL,
+    beendet_am      TEXT,
+    punkte          REAL,                               -- erreicht von 100, nach der Abgabe
+    note            INTEGER CHECK (note BETWEEN 1 AND 6)
+);
+
 -- ---------------------------------------------------------------------
 -- Prüfungssimulation (Shiken 試験)
 -- ---------------------------------------------------------------------
@@ -579,4 +593,4 @@ SELECT
 FROM ki_aufruf
 GROUP BY zweck, modell;
 
-PRAGMA user_version = 9;
+PRAGMA user_version = 17;

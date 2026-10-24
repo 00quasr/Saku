@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+{% import "rechnen/_felder.html" as r %}
+{# Probeprüfung aus den Generatoren: Startseite mit Verlauf (aufgaben None), laufendes Heft, nach der Abgabe die Auswertung #}
+{% macro umfang_name(pfad) %}{{ 'AP1 · Einrichten eines IT-gestützten Arbeitsplatzes' if pfad == 'AP1' else 'AP2 · ' ~ BERUFE.get(pfad[4:], pfad) }}{% endmacro %}
+{% macro zahl(x) %}{{ ('%g' % x)|replace('.', ',') }}{% endmacro %}
+{% block titel %}Probeprüfung · Rechnen{% endblock %}
+{% block main_klasse %}{{ ' shiken-laeuft' if aufgaben and not fertig }}{% endblock %}
+{% block inhalt %}
+{{ m.kopf('shiken', '試', 'Prüfung · Probeprüfung', 'Probeprüfung aus Generatoren', schmal=True) }}
+
+{% if not aufgaben %}
+<div class="seite eng rechnen probe">
+  <section class="stapel">
+    <p class="ueberschrift">{{ anzahl }} Aufgaben, {{ minuten }} Minuten, 100 Punkte.</p>
+    <p>Saku stellt aus den Rechenaufgaben deiner Prüfung ({{ umfang_name(pfad) }}) eine Prüfung zusammen, die es so nie gab: jede
+      Gruppe kommt vor, was zuletzt oft falsch war, etwas häufiger. Die Punkte richten sich nach dem Aufwand, eigener Pseudocode
+      bringt am meisten, SQL und große Tabellen doppelt so viel wie ein Steckbrief. SQL und Pseudocode darfst du ausführen.</p>
+    <p>Nach der Abgabe stehen Punkte je Aufgabe (anteilig nach richtigen Feldern), Note nach dem IHK-Schlüssel und jeder
+      Lösungsweg da. Jede Aufgabe zählt auch im Rechentrainer, für fällige Arten und das Tagesziel.</p>
+    {% if laufend %}<p class="hinweis">Eine Probeprüfung läuft noch. <a href="{{ url_for('rechnen.probe_heft', pp_id=laufend.id) }}">Weiter zur Probeprüfung</a></p>{% endif %}
+    <form class="zeile" method="post" action="{{ url_for('rechnen.probe_neu') }}">
+      <button type="submit" class="btn" data-taste="Enter">{{ 'Weiter zur Probeprüfung' if laufend else 'Probeprüfung starten' }} {{ m.taste('↵') }}</button>
+      <a class="btn" data-variant="outline" href="{{ url_for('shiken.index') }}">Zur Prüfungsseite</a>
+    </form>
+  </section>
+
+  <section class="abschnitt" aria-labelledby="verlauf-titel">
+    <h2 class="ueberschrift" id="verlauf-titel">Verlauf</h2>
+    {% if verlauf %}
+    <table class="table shiken-verlauf probe-verlauf">
+      <thead><tr><th>Datum</th><th>Umfang</th><th class="rechts">Punkte</th><th>Note</th><th>Ergebnis</th></tr></thead>
+      <tbody>
+        {% for p in verlauf %}
+        <tr>
+          <td class="zahl"><a href="{{ url_for('rechnen.probe_heft', pp_id=p.id) }}">{{ p.datum }}</a></td>
+          <td>{{ p.pfad }}</td>
+          {% if p.note %}
+          <td class="zahl rechts"><span class="probe-punkte">{{ zahl(p.punkte) }}
+            <span class="linie-fortschritt" aria-hidden="true"><span style="width: {{ p.punkte }}%"></span></span></span></td>
+          <td>{{ p.note }} · {{ noten[p.note] }}</td>
+          <td class="{{ 'shiken-gokaku' if p.punkte >= 50 }}">{{ m.wort('合格', 'Bestanden') if p.punkte >= 50 else m.wort('再', 'Noch nicht') }}</td>
+          {% elif laufend and laufend.id == p.id %}
+          <td colspan="3">Läuft</td>
+          {% else %}
+          <td colspan="3" class="gedaempft">Nicht abgegeben, öffnen wertet die gespeicherten Antworten aus</td>
+          {% endif %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="gedaempft">Noch keine Probeprüfung. Sie ist unbegrenzt wiederholbar, jede ist neu.</p>
+    {% endif %}
+  </section>
+</div>
+
+{% else %}
+{% set dauer = zeile.dauer_min %}
+{% if fertig %}
+<div class="seite eng rechnen probe">
+  <section class="tusche sprint-ergebnis" aria-label="Ergebnis">
+    <div class="zeile zwischen">
+      <div class="stapel">
+        <p class="etikett">Ergebnis</p>
+        <p class="sprint-punkte"><span class="zahl">{{ zahl(zeile.punkte) }}</span> von 100 Punkten</p>
+        <p class="ueberschrift">Note {{ zeile.note }} · {{ note_text }}</p>
+        <p class="klein gedaempft">IHK-Notenschlüssel, bestanden ab 50 Punkten · {{ gebraucht // 60 }}:{{ '%02d' % (gebraucht % 60) }} min
+          von {{ dauer }} gebraucht</p>
+      </div>
+      {{ m.hanko(bestanden) }}
+    </div>
+    <ol class="sprint-liste klein">
+      {% for x in aufgaben %}
+      <li><a href="#aufgabe-{{ loop.index }}">{{ loop.index }}. {{ x.art.titel }}</a> <span class="zahl">{{ zahl(x.erreicht) }} / {{ x.punkte }}</span></li>
+      {% endfor %}
+    </ol>
+    <nav class="zeile" aria-label="Weiter">
+      <form method="post" action="{{ url_for('rechnen.probe_neu') }}"><button type="submit" class="btn">Neue Probeprüfung</button></form>
+      <a class="btn" data-variant="outline" href="{{ url_for('rechnen.probe') }}">Verlauf</a>
+      <a class="btn" data-variant="outline" href="{{ url_for('rechnen.index') }}">Zur Übersicht</a>
+    </nav>
+  </section>
+{% else %}
+{# ↵ in einem Feld springt weiter statt abzugeben; Antworten werden laufend gespeichert #}
+<form id="probe" class="seite eng rechnen shiken-simulation probe" method="post" action="{{ url_for('rechnen.probe_abgeben', pp_id=zeile.id) }}"
+      hx-post="{{ url_for('rechnen.probe_speichern', pp_id=zeile.id) }}" hx-trigger="input delay:1s" hx-target="#gespeichert" hx-swap="innerHTML"
+      onkeydown="if (event.key === 'Enter' && event.target.matches('input')) { event.preventDefault(); const f = [...this.querySelectorAll('input:not([type=hidden]):not([disabled]), select')]; f[f.indexOf(event.target) + 1]?.focus() }">
+  <div class="shiken-leiste">
+    <p class="shiken-zeit"><span class="etikett">Restzeit</span>
+      <time id="uhr" class="zahl" role="timer" data-rest="{{ rest }}">{{ rest // 60 }}:{{ '%02d' % (rest % 60) }}</time></p>
+    <span id="gespeichert" class="klein gedaempft" aria-live="polite"></span>
+    <div class="zeile">
+      <button type="button" class="btn" data-variant="outline" data-size="sm"
+              hx-post="{{ url_for('rechnen.probe_speichern', pp_id=zeile.id) }}" hx-target="#gespeichert">Zwischenspeichern</button>
+      <button type="submit" class="btn" data-size="sm" onclick="return saku_abgeben(this)">Abgeben</button>
+    </div>
+  </div>
+{% endif %}
+
+  {# Wie das IHK-Aufgabenheft: Deckblatt, Aufgaben mit Punkten am Korrekturrand und Zeitplan je Aufgabe #}
+  <div class="heft">
+    <header class="heft-deckblatt">
+      <p class="etikett">Probeprüfung aus Generatoren</p>
+      <h2 class="heft-bereich">{{ umfang_name(zeile.pfad) }}</h2>
+      <p class="heft-daten zahl">{{ aufgaben|length }} Aufgaben · {{ dauer }} Minuten Prüfungszeit · {{ aufgaben|sum(attribute='punkte') }} Punkte</p>
+      <ul class="heft-hinweise klein">
+        <li>Lies jede Aufgabe ganz, bevor du anfängst. Plane etwa {{ '%.1f'|format(dauer / 100)|replace('.', ',') }} Minuten je Punkt.</li>
+        <li>Zahlen mit Komma oder Punkt, die Einheit darf dahinter stehen; {{ m.taste('↵') }} springt zum nächsten Feld.</li>
+        <li>SQL und Pseudocode darfst du ausführen ({{ m.taste('⌘↵') }}); gewertet wird, ob das Ergebnis wie bei der Musterlösung ist.</li>
+        <li>Deine Antworten werden laufend gespeichert. Saku wertet bei der Abgabe alles selbst aus; läuft die Zeit ab, gibt Saku selbst ab.</li>
+      </ul>
+    </header>
+    {% for x in aufgaben %}
+    {% set i, a = loop.index, x.aufgabe %}
+    <section class="heft-aufgabe" id="aufgabe-{{ i }}" aria-labelledby="aufgabe-{{ i }}-titel">
+      <header class="heft-kopf">
+        <h2 id="aufgabe-{{ i }}-titel">{{ i }}. Aufgabe ({{ x.punkte }} Punkte)</h2>
+        <span class="heft-zeit klein">≈ {{ (x.punkte * dauer / 100)|round|int }} min</span>
+      </header>
+      <p class="klein gedaempft heft-herkunft">{{ x.art.gruppe }} › {{ a.titel }}</p>
+      <div class="heft-teile"><div class="heft-teil">
+        <span class="heft-punkte zahl">{% if fertig %}{{ zahl(x.erreicht) }} / {{ x.punkte }}{% else %}{{ x.punkte }} Punkte{% endif %}</span>
+        <div class="prosa aufgabe-inhalt rechnen-frage">{{ a.frage|markdown }}</div>
+        {{ a.struktogramm }}
+        {{ r.felder(a, x.eingaben, x.werte, praefix='a' ~ i ~ '-', fokus=False, seed=none if fertig else x.seed) }}
+      </div></div>
+      {% if fertig %}
+      <details class="kontext" {{ 'open' if x.erreicht < x.punkte }}>
+        <summary>Lösungsweg</summary>
+        <div class="prosa aufgabe-inhalt rechnen-weg">{{ a.rechenweg|markdown }}</div>
+        {{ a.weg_struktogramm }}
+      </details>
+      <p><a class="btn" data-variant="ghost" data-size="sm" href="{{ url_for('rechnen.aufgabe', art=x.art.slug) }}">{{ m.icon('shuffle') }} Ähnliches rechnen</a></p>
+      {% endif %}
+    </section>
+    {% endfor %}
+  </div>
+
+{% if fertig %}
+</div>
+{% else %}
+  <div class="abschnitt">
+    <button type="submit" class="btn" data-size="lg" onclick="return saku_abgeben(this)">Abgeben</button>
+  </div>
+</form>
+
+<script>
+  // Abgeben in zwei Schritten statt eines Browser-Dialogs: erster Klick fragt, zweiter gibt ab
+  function saku_abgeben(knopf) {
+    if (knopf.dataset.sicher) return true;
+    knopf.dataset.sicher = "1";
+    knopf.textContent = "Wirklich abgeben? Noch einmal klicken";
+    setTimeout(() => { delete knopf.dataset.sicher; knopf.textContent = "Abgeben"; }, 4000);
+    return false;
+  }
+
+  // Restzeit kommt vom Server; läuft sie ab (auch wenn die Seite erst danach geöffnet wird), gibt Saku ab
+  (() => {
+    const uhr = document.getElementById("uhr");
+    const ende = Date.now() + Number(uhr.dataset.rest) * 1000;
+    const takt = setInterval(() => {
+      if (!uhr.isConnected) return clearInterval(takt);
+      const rest = Math.max(0, Math.round((ende - Date.now()) / 1000));
+      uhr.textContent = `${Math.floor(rest / 60)}:${String(rest % 60).padStart(2, "0")}`;
+      if (!rest) {
+        clearInterval(takt);
+        document.getElementById("probe").submit();
+      }
+    }, 1000);
+  })();
+</script>
+{% endif %}
+{% endif %}
+{% endblock %}
