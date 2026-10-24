@@ -1,6 +1,6 @@
 # Sensei 先生 – der KI-Tutor
 
-Sensei ist der KI-Tutor von Saku. Er läuft über die Claude-API und kennt in jedem Moment den Kontext: die Teilaufgabe, die Einleitung ihrer Aufgabe, den Lösungshinweis, das Thema und den eigenen Lernstand. Außerdem hilft dieselbe Anbindung der Pipeline beim Analysieren.
+Sensei ist der KI-Tutor von Saku. Er läuft über die Claude-API und kennt in jedem Moment den Kontext: die Teilaufgabe, die Einleitung ihrer Aufgabe, den Lösungshinweis, das Thema und den eigenen Lernstand. Außerdem hilft dieselbe Anbindung der Pipeline beim Analysieren; deren Erstlauf geht auch über das lokale Claude Code (`claude -p`, siehe [Architektur](ARCHITEKTUR.md#pipeline)).
 
 ## Modi
 
@@ -12,6 +12,7 @@ Sensei ist der KI-Tutor von Saku. Er läuft über die Claude-API und kennt in je
 | Ähnliche Übung | `V` | erzeugt eine neue Übung zum selben Können, z. B. mit anderen Zahlen, samt Lösung |
 | Thema erklären | – | Einführung für eine Station im Lernpfad oder ein Thema im Garten |
 | Frag Sensei | `S` | freier Chat über alle Prüfungen, mit Quellenangaben |
+| Fachgespräch | – | fragt wie ein Prüfer zur eigenen Projektdokumentation (Prüfung → Fachgespräch üben) |
 
 Während einer Prüfungssimulation ist Sensei pausiert.
 
@@ -71,27 +72,24 @@ Erkläre den Lösungsweg Schritt für Schritt: zuerst das Grundprinzip in einem 
 dann die Schritte, zum Schluss typische Fehler bei dieser Art von Aufgabe.
 ```
 
-**Antwort prüfen** – Sensei muss über das Werkzeug `bewertung_abgeben` antworten (`tool_choice` auf dieses Werkzeug gesetzt). So kommt immer gültiges JSON zurück:
+**Antwort prüfen** – Sensei bewertet wie ein IHK-Prüfer und achtet auf den Operator (bei „nennen“ genügen Stichworte). Die Antwort kommt als strukturierte Ausgabe nach dem JSON-Schema `prompts.BEWERTUNG` (über die API als `output_config.format`, über Claude Code mit `--json-schema`). So kommt immer gültiges JSON zurück:
 
 ```json
 {
-  "name": "bewertung_abgeben",
-  "description": "Bewertet eine Antwort im Vergleich zum Lösungshinweis.",
-  "input_schema": {
-    "type": "object",
-    "properties": {
-      "punkte":     { "type": "number", "description": "geschätzte Punkte" },
-      "max_punkte": { "type": "number" },
-      "richtig":    { "type": "array", "items": { "type": "string" } },
-      "fehlt":      { "type": "array", "items": { "type": "string" } },
-      "hinweis":    { "type": "string", "description": "ein Satz, wie die Antwort vollständig wird" }
-    },
-    "required": ["punkte", "max_punkte", "richtig", "fehlt", "hinweis"]
-  }
+  "type": "object",
+  "properties": {
+    "punkte":     { "type": "number", "description": "geschätzte Punkte" },
+    "max_punkte": { "type": "number" },
+    "richtig":    { "type": "array", "items": { "type": "string" } },
+    "fehlt":      { "type": "array", "items": { "type": "string" } },
+    "hinweis":    { "type": "string", "description": "ein Satz, wie die Antwort vollständig wird" }
+  },
+  "required": ["punkte", "max_punkte", "richtig", "fehlt", "hinweis"],
+  "additionalProperties": false
 }
 ```
 
-Die App schlägt daraus eine Bewertung vor: ab 80 % der Punkte **3** Gewusst, ab 40 % **2** Teilweise, darunter **1** Nicht gewusst. Bestätigt wird mit der jeweiligen Taste, übernommen wird nie automatisch.
+Die App schlägt daraus eine Bewertung vor: ab 80 % der Punkte **3** Gewusst, ab 40 % **2** Teilweise, darunter **1** Nicht gewusst. Bestätigt wird mit der jeweiligen Taste, übernommen wird nie automatisch. In der Auswertung der Simulation schlägt Sensei auf dieselbe Weise Punkte vor (`POST /sensei/punkte`). Was sich exakt prüfen lässt (anklickbare Antworten, SQL mit Sandbox), bewertet Saku dagegen ohne KI.
 
 **Ähnliche Übung**
 ```text
@@ -112,7 +110,7 @@ Nenne danach die typischen Aufgabentypen dazu, gestützt auf die Beispiele im Ko
 Der freie Chat nutzt Retrieval-Augmented Generation (RAG). Sensei bekommt nicht alle Prüfungen, sondern nur die passenden Teilaufgaben:
 
 1. **Suchbegriffe:** Das schnelle Modell macht aus der Frage drei bis fünf Suchbegriffe.
-2. **Suche:** Die FTS5-Tabelle `suche` liefert die besten acht Teilaufgaben samt Lösungshinweis (sortiert nach `bm25`).
+2. **Suche:** Die FTS5-Tabelle `suche` liefert Treffer nach Wort (sortiert nach `bm25`), die lokalen Vektoren Treffer nach Bedeutung; Reciprocal Rank Fusion verbindet beide zu den besten acht Teilaufgaben im Umfang, samt Lösungshinweis.
 3. **Antwort:** Das starke Modell antwortet mit diesen Kontextblöcken und nennt Quellen als `[T123]`.
 4. **Anzeige:** Die App macht aus jeder Kennung einen Link, der die Teilaufgabe in Keiko öffnet.
 
@@ -120,44 +118,40 @@ Beispiel: „Was wurde zu RAID schon gefragt?“ ergibt eine Übersicht über al
 
 ## Sensei in der Pipeline
 
-**Deckblatt lesen** (schnell, nur wenn die Muster nicht greifen): Werkzeug `deckblatt` mit `jahr`, `saison`, `bereich`, `beruf`, `dauer_min`, `art`, `format`.
+Alle Schritte rufen `client.strukturiert()` mit einem JSON-Schema auf; Antworten landen im Cache (`ki_cache`), egal ob sie über die API oder über Claude Code entstanden sind.
 
-**Klassifikation** (schnell): Werkzeug `themen_zuordnen`
+**Deckblatt lesen** (schnell, nur wenn die Muster nicht greifen): `jahr`, `saison`, `bereich`, `beruf`, `dauer_min`, `art`, `format` (Schema in `pipeline/inventar.py`).
+
+**Aufbereiten** (stark, mit den Ausschnitten als Bildern): Aufgabe und Lösungshinweis als Markdown, Antwortart mit Optionen und richtiger Lösung, Fachbegriffe (`pipeline/aufbereiten.py`).
+
+**SQL-Sandbox** (stark): Tabellen, erfundene Beispieldaten und die Musterlösungen in SQLite; Saku führt alles einmal aus und speichert nur, was läuft (`pipeline/sandbox.py`).
+
+**Klassifikation** (schnell): je Paket von Teilaufgaben
 
 ```json
 {
-  "name": "themen_zuordnen",
-  "input_schema": {
-    "type": "object",
-    "properties": {
-      "themen": {
-        "type": "array",
-        "items": {
-          "type": "object",
-          "properties": {
-            "thema_id": { "type": "integer" },
-            "gewicht":  { "type": "number", "description": "Anteil, alle zusammen 1" }
-          },
-          "required": ["thema_id", "gewicht"]
-        }
-      },
-      "typ": { "type": "string", "enum": ["erklaeren", "berechnen", "zeichnen", "code", "sql", "tabelle", "auswahl", "sonstiges"] },
-      "sicherheit": { "type": "number", "description": "0 bis 1" }
-    },
-    "required": ["themen", "typ", "sicherheit"]
-  }
+  "teilaufgaben": [
+    {
+      "kennung": "T123",
+      "themen": [{ "thema_id": 42, "gewicht": 0.7 }, { "thema_id": 43, "gewicht": 0.3 }],
+      "typ": "berechnen",
+      "sicherheit": 0.9
+    }
+  ]
 }
 ```
 
-Teilaufgaben mit einer Sicherheit unter 0,6 markiert Bunseki zur Kontrolle.
+`typ` ist einer von `erklaeren`, `berechnen`, `zeichnen`, `code`, `sql`, `tabelle`, `auswahl`, `sonstiges`. Teilaufgaben mit einer Sicherheit unter 0,6 zeigt die Analyse zur Kontrolle.
 
-**Lernpfad** (stark): Werkzeug `voraussetzungen_vorschlagen` mit einer Liste aus `thema_id`, `voraussetzung_id` und `begruendung`.
+**Wissen** (stark und schnell): Wissensseiten je Thema und Kurzdefinitionen der Fachbegriffe (`pipeline/wissen.py`).
+
+**Lernpfad** (stark): eine Liste aus `thema_id`, `voraussetzung_id`, `begruendung` und `sicherheit`, danach je Station eine Einführung (`pipeline/lernpfad.py`).
 
 ## Kosten im Griff
 
 - **Cache:** Anfragen mit identischem Inhalt werden aus `ki_cache` beantwortet. Ein zweiter Pipeline-Lauf kostet so fast nichts. Für den Chat gilt das nicht.
 - **Prompt-Caching:** Gleichbleibende Teile wie Systemprompt und Themenliste werden bei der API als cachebar markiert.
-- **Batch-API:** Die einmalige Klassifikation aller Teilaufgaben kann über die Batch-API laufen. Das ist günstiger, die Ergebnisse kommen aber zeitversetzt.
+- **Erstlauf über Claude Code:** Die einmaligen Pipeline-Schritte laufen über `claude -p` mit eigenem Login statt über die API.
 - **Protokoll:** Jeder Aufruf landet mit Tokens in `ki_aufruf`. Bunseki zeigt die Summen.
 
 ## Fehler und Grenzen
@@ -169,9 +163,6 @@ Teilaufgaben mit einer Sicherheit unter 0,6 markiert Bunseki zur Kontrolle.
 
 ## Ausbaustufe: Werkzeuge für exakte Rechnungen
 
-Sprachmodelle können sich verrechnen. Für Rechenaufgaben bekommt Sensei deshalb Werkzeuge, die Python ausführt, zum Beispiel:
+Sprachmodelle können sich verrechnen. Bei Rechenaufgaben (Typ `berechnen`) bekommt Sensei deshalb das Werkzeug `zahlensystem_umrechnen` (binär, dezimal, hexadezimal), das Python ausführt (`sensei/werkzeuge.py`, eigene Tool-Use-Schleife statt `client.stream`). Sensei ruft das Werkzeug auf, Saku rechnet in Python und gibt das exakte Ergebnis zurück.
 
-- `subnetz_berechnen`: Netzadresse, Broadcast, Hostbereich und Anzahl der Hosts mit Pythons `ipaddress`-Modul
-- `zahlensystem_umrechnen`: Binär, Dezimal, Hexadezimal
-
-Sensei ruft das Werkzeug auf, Saku rechnet in Python und gibt das exakte Ergebnis zurück. In der Kurspräsentation zeigt das gut, wie Python und KI zusammenarbeiten.
+Für das Rechnen selbst braucht Saku keine KI: Der Rechentrainer (算 Rechnen) erzeugt Aufgaben wie Subnetting, Kalkulation oder Netzplan samt exakter Lösung und Rechenweg in Python.

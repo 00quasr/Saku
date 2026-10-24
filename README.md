@@ -21,14 +21,14 @@ Der Name kommt von 咲く (*saku*), „erblühen“. Wissen wächst in Saku wie 
 
 | | | |
 |---|---|---|
-| 今 | **Heute** | Cockpit: Tagesplan, Countdown, Prüfungsreife als Ensō, Lernkalender |
-| 道 | **Lernpfad** | Stationen, jede mit Einführung, Übungen und Mini-Test |
-| 稽 | **Üben** | Fokusmodus: Aufgabe als echter Text, anklickbare Antworten, SQL in einer Sandbox ausführen und automatisch prüfen, Lösung per Leertaste, Bewertung mit 1, 2, 3; nach einem Fehler kommt eine ähnliche Aufgabe aus einem anderen Jahrgang; Grundwissen als Begriffs-Karten, auch umgekehrt (Definition → Begriff) |
-| 算 | **Rechnen** | Rechentrainer ohne KI: unbegrenzt neue Aufgaben wie in der Prüfung (Subnetting, VLSM, Routing-Tabellen, IPv6 mit EUI-64, Datenmengen, Übertragungszeit, Speichereinheiten, Zahlensysteme, Energie und USV, RAID, Verfügbarkeit, Datensicherung, Monitor und Druck, Bus- und Speicherbandbreite, Kalkulation und Angebotsvergleich, Kauf/Leasing/Miete, Nutzwertanalyse, Netzplan, IPv6, Schreibtischtest und Fehlersuche in Pseudocode, Sortieren, binäre Suche, Hashing, Suchbaum, Stack und Queue); ↵ prüft sofort, danach steht der Rechenweg da; Formelsammlung als Spickzettel zum Drucken |
-| 試 | **Prüfung** | Simulation mit Timer, Note und Hanko-Stempel |
+| 今 | **Heute** | Tagesplan, Countdown, Prüfungsreife als Ensō, Lernserie und Lernkalender, Wochenrückblick; dazu der **Fahrplan**: Wiederholungen der nächsten Tage, Tempo bis zur Prüfung, Abdeckung nach Prüfungsgewicht, was jetzt am meisten bringt |
+| 道 | **Lernpfad** | Stationen, jede mit Einführung, Übungen, passendem Rechentraining und Mini-Test |
+| 稽 | **Üben** | Fokusmodus: Aufgabe als echter Text, anklickbare Antworten, SQL in einer Sandbox ausführen und prüfen, Stichpunkt-Abgleich bei freien Antworten, Lösung per Leertaste, Bewertung mit 1, 2, 3; nach einem Fehler eine ähnliche Aufgabe aus einem anderen Jahrgang; **Verlauf** aller Bewertungen; **Grundwissen** als Begriffs-Karten, auch umgekehrt (Definition → Begriff) |
+| 算 | **Rechnen** | Rechentrainer ohne KI, 27 Aufgabenarten in acht Gruppen: Netzwerk (Subnetting, VLSM, Routing-Tabelle, IPv6, EUI-64, Übertragungszeit), Daten & Medien (Datenmenge, Speichereinheiten, Zahlensysteme, Datensicherung), Strom & Hardware (Energie und USV, RAID, Verfügbarkeit, Monitor und Druck, Bus- und Speicherbandbreite), Wirtschaft (Kalkulation, Kauf/Leasing/Miete, Nutzwertanalyse), WiSo (Kündigungsfristen, Urlaub), Projekt (Netzplan), Programmieren (Schreibtischtest), Algorithmen (Sortieren, binäre Suche, Hashing, Suchbaum, Stack und Queue). ↵ prüft, danach steht der Rechenweg da; fällige Arten, Tagesziel, Sprint mit Note, Formelsammlung zum Drucken |
+| 試 | **Prüfung** | Simulation mit Timer, Note und Hanko-Stempel; Anklickbares und SQL wertet Saku selbst aus; Hochrechnung der Gesamtnote; Fachgespräch üben |
 | 庭 | **Themen** | Wissensgraph aus Themen, Lernfeldern und Fachbegriffen; je Thema eine Wissensseite (was du können musst, so wird gefragt, Fallen) |
 | 先 | **Sensei** | KI-Tutor: Tipps, Erklärungen, Antworten prüfen, Übungsvarianten, Chat mit Quellen |
-| 析 | **Analyse** | alle Prüfungen: Heatmap, Dauerbrenner, Lücken |
+| 析 | **Analyse** | alle Prüfungen: Inventar, Heatmap, Dauerbrenner, lange nicht dran, Katalog als Checkliste, Zuordnung korrigieren |
 | ⌘K | **Suche** | Befehlspalette und Suche nach Wort und Bedeutung über alle Prüfungen |
 
 ## So sieht Saku aus
@@ -47,6 +47,14 @@ Alle Bilder zeigen die erfundenen Demo-Daten, keine echten Prüfungsaufgaben.
   <tr>
     <td><img src="docs/bilder/suche.png" alt="Befehlspalette mit Befehl, Thema und Teilaufgaben"><br><b>⌘K.</b> Befehle (Simulation, Termin, AP1/AP2, AE/SI, Farbschema) und Suche nach Wort und Bedeutung.</td>
     <td><img src="docs/bilder/grundwissen.png" alt="Grundwissen: Begriffs-Karte mit aufgedeckter Definition"><br><b>Grundwissen.</b> Fachbegriffe als Lernkarten mit eigener Wiederholungsplanung.</td>
+  </tr>
+  <tr>
+    <td><img src="docs/bilder/rechnen.png" alt="Rechnen: geprüfte Rechenaufgabe mit Rechenweg"><br><b>算 Rechnen.</b> Unbegrenzt neue Rechenaufgaben, ↵ prüft sofort, danach steht der Rechenweg da.</td>
+    <td><img src="docs/bilder/fahrplan.png" alt="Fahrplan: Säulen der nächsten Wiederholungen, Tempo und Abdeckung"><br><b>Fahrplan.</b> Was auf dich zukommt, ob dein Tempo bis zur Prüfung reicht und wo die Punkte liegen.</td>
+  </tr>
+  <tr>
+    <td><img src="docs/bilder/verlauf.png" alt="Verlauf: Wochenrückblick und Bewertungen nach Tagen"><br><b>Verlauf.</b> Jede Bewertung nach Tagen, oben der Rückblick auf die Woche.</td>
+    <td><img src="docs/bilder/sql.png" alt="Üben: SQL-Anweisung in der Sandbox ausgeführt und mit der Musterlösung verglichen"><br><b>SQL in Üben.</b> Anweisungen auf erfundenen Beispieldaten ausführen und mit der Musterlösung vergleichen.</td>
   </tr>
 </table>
 
@@ -74,13 +82,14 @@ flowchart TD
     A["1 Inventar<br>Deckblatt, Prüfungsteil, Text oder Scan"] --> B["2 Segmente<br>Aufgaben und Teilaufgaben, Ausschnitte"]
     B --> C["3 Lösungen<br>Lösungshinweise zuordnen"]
     C --> D["4 Aufbereiten ✦<br>Aufgabe als Markdown, Antwortart, Fachbegriffe"]
-    D --> E["5 Themen<br>themen.md und Lernfelder"]
-    E --> F["6 Klassifikation ✦<br>Teilaufgabe → Unterthemen"]
-    F --> G["7 Statistik<br>Suchindex, Häufigkeiten"]
-    G --> H["8 Wissen ✦<br>Wissensseiten, Begriffs-Definitionen"]
-    H --> I["9 Vektoren<br>lokal: Ähnlichkeit, Aufgabenmuster"]
-    I --> J["10 Lernpfad ✦<br>Voraussetzungen, Stationen, Einführungen"]
-    J --> K["11 Bericht"]
+    D --> S["5 Sandbox ✦<br>SQL: Tabellen, Beispieldaten, Lösungen in SQLite"]
+    S --> E["6 Themen<br>themen.md und Lernfelder"]
+    E --> F["7 Klassifikation ✦<br>Teilaufgabe → Unterthemen"]
+    F --> G["8 Statistik<br>Suchindex, Häufigkeiten"]
+    G --> H["9 Wissen ✦<br>Wissensseiten, Begriffs-Definitionen"]
+    H --> I["10 Vektoren<br>lokal: Ähnlichkeit, Aufgabenmuster"]
+    I --> J["11 Lernpfad ✦<br>Voraussetzungen, Stationen, Einführungen"]
+    J --> K["12 Bericht"]
 ```
 
 ✦ = Claude. Der Erstlauf geht über Claude Code (`--ki claude-code`), Vektoren rechnet [fastembed](https://github.com/qdrant/fastembed) lokal und kostenlos.
@@ -124,7 +133,7 @@ sequenceDiagram
 
 ## Stand
 
-Alle Phasen der [Roadmap](docs/ROADMAP.md) sind umgesetzt, 131 Tests laufen grün. Saku deckt **Fachinformatiker/-in Anwendungsentwicklung (1201) und Systemintegration (1202)** ab, jeweils **AP1 und AP2** samt WiSo; umgeschaltet wird oben in der Seitenleiste. Die Aufgaben baut Claude einmalig aus den PDF-Ausschnitten als echten Text neu auf (Tabellen, Code, anklickbare Antworten). Standard ist das dunkle Farbschema.
+Alle Phasen der [Roadmap](docs/ROADMAP.md) sind umgesetzt, dazu Rechnen, Fahrplan, Verlauf, SQL-Sandbox und automatische Auswertung; 290 Tests laufen grün. Saku deckt **Fachinformatiker/-in Anwendungsentwicklung (1201) und Systemintegration (1202)** ab, jeweils **AP1 und AP2** samt WiSo; umgeschaltet wird oben in der Seitenleiste. Die Aufgaben baut Claude einmalig aus den PDF-Ausschnitten als echten Text neu auf (Tabellen, Code, anklickbare Antworten). Standard ist das dunkle Farbschema.
 
 ## Schnellstart
 
@@ -140,19 +149,10 @@ python -m saku.pipeline.sammeln       # AE, SI, AP1 und WiSo nach data/pdfs/ kop
 python -m saku init                    # Datenbank anlegen
 python -m saku assets                  # Oberflächen-Dateien und Schriften laden (einmalig)
 python -m saku analyse --ki claude-code  # Erstlauf: KI-Schritte über das lokale Claude Code
-python -m saku start                   # App im eigenen Fenster öffnen (--browser: im Browser)
-```
-
-Saku sichert die Datenbank beim Start und vor jeder Analyse einmal am Tag nach `data/backups/` (die letzten sieben bleiben). Der Lernstand lässt sich zusätzlich als Datei mitnehmen, die nicht an internen IDs hängt und auch einen Neuaufbau der Datenbank übersteht:
-
-```bash
-python -m saku lernstand export lernstand.json   # auch in den Einstellungen unter Daten
-python -m saku lernstand import lernstand.json   # mehrfach importieren ändert nichts
+python -m saku start                   # App im eigenen Fenster öffnen
 ```
 
 Beim ersten Start führt eine kurze Tour durch Saku: was die Analyse gefunden hat, Prüfungstermin, Lernweg, Tastatur und Sensei. Später erreichbar über die Einstellungen oder die Tastaturhilfe (`?`).
-
-Die einmaligen KI-Schritte der Analyse (Deckblätter, Aufgaben neu aufbauen, Klassifikation, Wissensseiten und Begriffe, Lernpfad, Einführungen) laufen beim Erstlauf über das lokal installierte [Claude Code](https://code.claude.com) (`claude -p`, eigenes Login, kein API-Schlüssel nötig). Spätere Läufe und Sensei nutzen die Claude-API. Beide Wege teilen sich denselben Cache, eine schon beantwortete Anfrage kostet also nichts mehr. `python -m saku analyse --ohne-ki` läuft komplett lokal.
 
 Ohne Prüfungs-PDFs lässt sich Saku mit erfundenen Demo-Daten ausprobieren:
 
@@ -160,6 +160,28 @@ Ohne Prüfungs-PDFs lässt sich Saku mit erfundenen Demo-Daten ausprobieren:
 python -m tests.demo_daten /tmp/saku-demo
 SAKU_DATENORDNER=/tmp/saku-demo python -m saku start --browser
 ```
+
+## Befehle
+
+| Befehl | Was er tut |
+|---|---|
+| `python -m saku start` | App im eigenen Fenster öffnen; `--browser` öffnet sie im Standardbrowser |
+| `python -m saku init` | Datenbank anlegen oder auf den neuesten Stand bringen |
+| `python -m saku assets` | Basecoat, htmx, force-graph, Lucide und Schriften einmalig laden |
+| `python -m saku analyse` | alle Schritte der Pipeline; `--schritt NAME` nur einen, `--ohne-ki` nur die lokalen, `--ki claude-code` KI über Claude Code statt API |
+| `python -m saku analyse --schritt sandbox --ki claude-code` | nur die SQL-Sandboxen bauen; bearbeitet nur Aufgaben, die noch keine haben |
+| `python -m saku lernstand export DATEI` | Lernstand als JSON-Datei mitnehmen (auch in den Einstellungen unter Daten) |
+| `python -m saku lernstand import DATEI` | Lernstand übernehmen; mehrfach importieren ändert nichts |
+| `python -m saku.pipeline.sammeln` | Prüfungen aus `data/quellen/` (auch ZIPs) nach `data/pdfs/` kopieren |
+
+Die KI-Schritte der Analyse (Deckblätter, Aufgaben neu aufbauen, SQL-Sandboxen, Klassifikation, Wissensseiten und Begriffe, Lernpfad, Einführungen) laufen beim Erstlauf über das lokal installierte [Claude Code](https://code.claude.com) (`claude -p`, eigenes Login, kein API-Schlüssel nötig). Spätere Läufe und Sensei nutzen die Claude-API. Beide Wege teilen sich denselben Cache, eine schon beantwortete Anfrage kostet also nichts mehr. `python -m saku analyse --ohne-ki` läuft komplett lokal.
+
+## Datensicherheit
+
+- **Tägliche Sicherung:** Vor `start`, `init`, `analyse` und `lernstand import` sichert Saku die Datenbank einmal am Tag nach `data/backups/saku-JJJJ-MM-TT.db`; die letzten sieben bleiben. In den Einstellungen unter Daten gibt es außerdem „Jetzt sichern“.
+- **Lernstand als Datei:** Der Export hängt nicht an internen IDs und übersteht einen Neuaufbau der Datenbank. Der Import übernimmt alles oder nichts; Zeilen und Einstellungen, die Saku nicht versteht, überspringt er.
+- **Migrationen:** Ein neues Schema bringt `python -m saku init` (oder der nächste Start) auf die vorhandene Datenbank, nach der Sicherung und jede Migration in einer eigenen Transaktion.
+- **Nur lokal:** Die App lauscht nur auf `127.0.0.1`, und schreibende Anfragen nimmt sie nur von sich selbst an (Schutz gegen fremde Webseiten im Browser).
 
 ## Dokumentation
 
