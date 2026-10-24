@@ -347,7 +347,7 @@ return Response(stream_with_context(ereignisse()), mimetype="text/event-stream")
 ### Wissensgraph (Themen)
 
 - **Umfang:** Die Sicht `v_umfang` liest Beruf und Prüfungsteil aus den Einstellungen; `v_teilaufgabe` und alles, was darauf aufbaut, zeigt nur diesen Umfang. AP1 gilt für alle IT-Berufe, in der AP2 gelten WiSo und GA2 für alle.
-- **Python bereitet die Daten vor** (`saku/niwa.py`): Bereiche, Themen und Unterthemen der Themenliste (auch nie geprüfte), Lernfelder und die häufigsten Fachbegriffe als Knoten; Gliederung, Lernfeld, Begriff ↔ Thema, gemeinsam gefragte Begriffe und Voraussetzungen als Kanten.
+- **Python bereitet die Daten vor** (`saku/niwa.py`): Bereiche, Themen und Unterthemen der Themenliste (auch nie geprüfte), Lernfelder und die häufigsten Fachbegriffe als Knoten; Gliederung, Lernfeld, Voraussetzungen und je Begriff das Thema, bei dem er am häufigsten vorkommt, als Kanten.
 - **Der Browser zeichnet** mit force-graph: kleine Punkte, Beschriftung je nach Zoom, Hover hebt die Nachbarschaft hervor, ein Klick öffnet rechts die Notiz zum Knoten (`/niwa/thema|begriff|lernfeld/<id>`). Notizen verweisen über `data-knoten` zurück in den Graphen.
 
 ### Rechnen (算)
