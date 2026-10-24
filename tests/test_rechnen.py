@@ -673,6 +673,8 @@ def test_sprint_nur_im_umfang(client, con):
             adresse = client.get("/rechnen/sprint/neu").headers["Location"]
             arten = [w.split(":")[0] for w in parse_qs(urlparse(adresse).query)["a"]]
             assert len(set(arten)) == 5 and set(arten) <= erlaubt, (pfad, arten)
+    start = client.get("/rechnen/sprint").get_data(as_text=True)  # die Startseite sagt dasselbe
+    assert "aus allen Arten" not in start and "Arten deiner Prüfung" in start
 
 
 def test_gemischt_ohne_doppelte():
