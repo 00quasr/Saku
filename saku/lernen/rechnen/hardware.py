@@ -12,6 +12,7 @@ FORMELN = {
 - Amortisationszeit = Anschaffung (oder Mehrpreis) : Einsparung pro Jahr
 - USV: Wirkleistung P = Scheinleistung S (VA) · Leistungsfaktor cos φ
 - Überbrückungszeit = Akkuenergie (V · Ah = Wh) · Wirkungsgrad : Last in W (· 60 für Minuten)
+- *Typische Fehler:* Wh nicht in kWh umgerechnet, 365 Tage statt der Arbeitstage, VA als Watt genommen, durch den Wirkungsgrad geteilt statt mit ihm multipliziert, Einsparung durch Anschaffung geteilt
 
 *Beispiel:* 10 PCs à 80 W, 8 h an 220 Tagen: 10 · 80 · 8 · 220 = 1.408 kWh; bei 0,32 €/kWh 450,56 €""",
     "raid": """| RAID | Nutzkapazität (n Platten, je c) | verkraftbare Ausfälle |
@@ -24,6 +25,7 @@ FORMELN = {
 
 - Verschieden große Platten: jede zählt nur so viel wie die kleinste
 - Effizienz = Nutzkapazität : Gesamtkapazität
+- *Typische Fehler:* Parität oder Spiegel als Nutzkapazität gezählt, RAID 5 und 6 verwechselt, bei RAID 10 den günstigsten statt den ungünstigsten Fall angegeben, verschieden große Platten voll gezählt
 
 *Beispiel:* RAID 5 aus 4 × 8 TB: 3 · 8 = 24 TB nutzbar, Effizienz 75 %, 1 Ausfall""",
     "verfuegbarkeit": """- Verfügbarkeit V = Betriebszeit : Gesamtzeit; Ausfallzeit = (1 − V) · Gesamtzeit
@@ -31,18 +33,21 @@ FORMELN = {
 - Seriell (alle Komponenten nötig): V = V₁ · V₂ · …
 - Parallel (redundant, eine reicht): V = 1 − (1 − V₁) · (1 − V₂) · …
 - Aus MTBF (mittlere Zeit zwischen Ausfällen) und MTTR (mittlere Reparaturzeit): V = MTBF : (MTBF + MTTR)
+- *Typische Fehler:* Betriebszeit statt Ausfallzeit angegeben, mit Prozent statt Dezimalzahl gerechnet (0,1 % = 0,001), Stunden statt Minuten, redundante Server in Reihe gerechnet
 
 *Beispiel:* 99,9 % im Jahr: 0,001 · 8.760 h = 8,76 h Ausfall; zwei Server mit je 99 % redundant: 1 − 0,01 · 0,01 = 99,99 %""",
     "backup": """- Vollsicherung: alle Daten; inkrementell: was sich seit der **letzten Sicherung** geändert hat; differenziell: was sich seit der **letzten Vollsicherung** geändert hat
 - Ändern sich täglich andere Dateien mit d GB: inkrementell jeden Tag d, differenziell am k-ten Tag nach der Vollsicherung k · d
 - Wiederherstellen: inkrementell braucht die Vollsicherung und **alle** inkrementellen danach, differenziell die Vollsicherung und nur die **letzte** differenzielle
 - Großvater-Vater-Sohn: Medien = Söhne (Tagessicherungen, die eine Woche lang überschrieben werden) + Väter (Wochensicherungen) + Großväter (Monatssicherungen), jeweils so viele, wie aufbewahrt werden
+- *Typische Fehler:* inkrementell und differenziell verwechselt, die Vollsicherung beim Zählen oder Einspielen vergessen
 
 *Beispiel:* 500 GB, täglich 20 GB neu, Vollsicherung Montag: Donnerstag inkrementell 20 GB, differenziell 60 GB""",
 }
 
 
 PREISE = [0.28, 0.30, 0.32, 0.34, 0.35, 0.38, 0.40]  # €/kWh
+WH = "Du hast vermutlich in Wh gerechnet; durch 1.000 sind es kWh."
 
 
 @art("energie", "Energie und Strom", "Strom & Hardware", "Stromkosten, Einsparung und Amortisation, P = U · I, USV",
@@ -76,7 +81,14 @@ def _kosten(rng):
                 f"Standby: {anzahl} · {de(standby)} W · {de(8760 - stunden * tage)} h = {de(ruhe)} kWh",
                 f"Zusammen: {de(betrieb)} + {de(ruhe)} = **{de(kwh)} kWh**"]
     weg.append(f"Kosten: {de(kwh)} kWh · {de(preis)} €/kWh = **{euro(kwh * preis)}**")
-    felder = [Feld("kwh", "Energiebedarf", kwh, "kWh/Jahr"), Feld("kosten", "Stromkosten", kwh * preis, "€/Jahr")]
+    falsch = [(kwh * 1000, WH), (kwh / anzahl, f"Du hast vermutlich nur ein Gerät gerechnet; es sind {anzahl}.")]
+    if tage != 365:
+        falsch.append((anzahl * (watt * stunden * 365 + standby * (8760 - stunden * 365)) / 1000,
+                       "Du hast mit 365 Tagen gerechnet; die Geräte laufen nur an den Arbeitstagen."))
+    if standby:
+        falsch.append((betrieb, "Du hast den Standby in der übrigen Zeit vergessen."))
+    felder = [Feld("kwh", "Energiebedarf", kwh, "kWh/Jahr", typisch=tuple(falsch)),
+              Feld("kosten", "Stromkosten", kwh * preis, "€/Jahr", typisch=tuple((k * preis, h) for k, h in falsch))]
     return Aufgabe(frage, felder, schritte(*weg), toleranz=0.002, titel="Stromkosten")
 
 
@@ -111,7 +123,12 @@ def _einsparung(rng):
         f"{kosten}: {anzahl} · {euro(preis_neu)} = {euro(anzahl * preis_neu)}",
         f"Amortisation = {kosten} : Einsparung = {euro(anzahl * preis_neu)} : {euro(ersparnis)} = **{de(jahre)} Jahre**",
     )
-    felder = [Feld("ersparnis", "Einsparung", ersparnis, "€/Jahr"), Feld("jahre", "Amortisationszeit", jahre, "Jahre")]
+    felder = [Feld("ersparnis", "Einsparung", ersparnis, "€/Jahr", typisch=(
+                  (anzahl * neu * stunden * tage / 1000 * preis, "Das sind die Stromkosten der neuen Geräte; gespart wird die Differenz."),
+                  (ersparnis * 1000, WH))),
+              Feld("jahre", "Amortisationszeit", jahre, "Jahre", typisch=(
+                  (1 / jahre, f"Du hast Einsparung durch {kosten} geteilt; Amortisation = {kosten} : Einsparung."),
+                  (jahre / anzahl, f"Du hast nur ein Gerät gerechnet; es sind {anzahl}.")))]
     return Aufgabe(frage, felder, weg, toleranz=0.005, titel="Einsparung und Amortisation")
 
 
@@ -124,7 +141,8 @@ def _elektrisch(rng):
                  f"wenn der Rechner **{stunden} Stunden** läuft.")
         weg = schritte(f"P = U · I = 230 V · {de(strom)} A = **{de(leistung)} W**",
                        f"W = P · t = {de(leistung)} W · {stunden} h = {de(leistung * stunden)} Wh = **{de(leistung * stunden / 1000)} kWh**")
-        felder = [Feld("leistung", "Leistung", leistung, "W"), Feld("arbeit", "Elektrische Arbeit", leistung * stunden / 1000, "kWh")]
+        felder = [Feld("leistung", "Leistung", leistung, "W", typisch=((230 / strom, "P = U · I: Spannung mal Strom, nicht geteilt."),)),
+                  Feld("arbeit", "Elektrische Arbeit", leistung * stunden / 1000, "kWh", typisch=((leistung * stunden, WH),))]
         return Aufgabe(frage, felder, weg, toleranz=0.002, titel="Leistung und Arbeit")
     while True:
         leistung, anzahl = rng.choice([460, 575, 690, 805, 920, 1035]), rng.randint(2, 6)
@@ -139,7 +157,8 @@ def _elektrisch(rng):
                    f"Zusammen: {anzahl} · {de(leistung / 230)} A = **{de(gesamt)} A**",
                    f"{de(gesamt)} A {'<' if gesamt < 16 else '>'} 16 A → **{reicht}**, die Absicherung "
                    f"{'reicht' if reicht == 'Ja' else 'reicht nicht'}")
-    felder = [Feld("strom", "Strom je Server", leistung / 230, "A"), Feld("gesamt", "Strom zusammen", gesamt, "A"),
+    felder = [Feld("strom", "Strom je Server", leistung / 230, "A", typisch=((leistung * 230, "I = P : U: Leistung durch Spannung."),)),
+              Feld("gesamt", "Strom zusammen", gesamt, "A", typisch=((leistung / 230, f"Das ist der Strom eines Servers; es sind {anzahl}."),)),
               Feld("reicht", "Reicht die Absicherung?", reicht, typ="text", optionen=["Ja", "Nein"])]
     return Aufgabe(frage, felder, weg, toleranz=0.002, titel="Strom und Absicherung")
 
@@ -168,9 +187,16 @@ def _usv(rng):
         f"Akkuenergie: {akkus} · 12 V · {ah} Ah = {de(wh)} Wh, nutzbar · {de(wirkung)} = {de(wh * wirkung)} Wh",
         f"Zeit: {de(wh * wirkung)} Wh : {last} W = {de(wh * wirkung / last, 3)} h · 60 = **{de(minuten, 1)} min**",
     )
-    felder = [Feld("wirk", "Wirkleistung der USV", va * cos_phi, "W", stellen=0),
-              Feld("auslastung", "Auslastung", last / (va * cos_phi) * 100, "%", stellen=1),
-              Feld("minuten", "Überbrückungszeit", minuten, "min", stellen=1)]
+    felder = [Feld("wirk", "Wirkleistung der USV", va * cos_phi, "W", stellen=0, typisch=(
+                  (va, "Die VA-Angabe ist die Scheinleistung; die Wirkleistung ist Scheinleistung · Leistungsfaktor."),
+                  (va / cos_phi, "Du hast durch den Leistungsfaktor geteilt; die Wirkleistung ist kleiner als die Scheinleistung."))),
+              Feld("auslastung", "Auslastung", last / (va * cos_phi) * 100, "%", stellen=1, typisch=(
+                  (last / va * 100, "Du hast die Last auf die Scheinleistung (VA) bezogen; bezogen wird auf die Wirkleistung."),)),
+              Feld("minuten", "Überbrückungszeit", minuten, "min", stellen=1, typisch=(
+                  (minuten / wirkung ** 2, "Du hast durch den Wirkungsgrad geteilt; er verringert die nutzbare Akkuenergie."),
+                  (minuten / wirkung, "Du hast den Wirkungsgrad vergessen; nutzbar ist nur ein Teil der Akkuenergie."),
+                  (minuten / akkus, f"Du hast nur einen Akku gerechnet; es sind {akkus}."),
+                  (minuten / 60, "Das sind Stunden; mal 60 ergibt Minuten.")))]
     return Aufgabe(frage, felder, weg, toleranz=0.005, titel="USV")
 
 
@@ -186,6 +212,16 @@ RAID = {
          "nur ein Ausfall, denn fallen beide Platten eines Paares aus, sind die Daten weg"),
 }
 PLATTEN = {0: range(2, 7), 1: [2], 5: range(3, 9), 6: range(4, 9), 10: [4, 6, 8]}
+# typische Fehler je Level (Feld.typisch): Nutzplatten aus n, mit denen gerechnet wurde, und der Hinweis
+RAID_TYPISCH = {
+    0: [(lambda n: 1, "Das wäre RAID 1; RAID 0 spiegelt nicht, es verteilt die Daten nur auf alle Platten.")],
+    1: [(lambda n: n, "Du hast beide Platten gezählt; beim Spiegeln tragen sie dieselben Daten.")],
+    5: [(lambda n: n, "Du hast die Parität vergessen; sie belegt eine Platte Kapazität."),
+        (lambda n: n - 2, "Das wäre RAID 6; RAID 5 braucht nur eine Platte für die Parität.")],
+    6: [(lambda n: n, "Du hast die Parität vergessen; RAID 6 belegt zwei Platten Kapazität dafür."),
+        (lambda n: n - 1, "Das wäre RAID 5; RAID 6 hat doppelte Parität.")],
+    10: [(lambda n: n, "Du hast die Spiegelung vergessen; die Hälfte der Platten sind Spiegel.")],
+}
 GROESSEN = [1, 2, 4, 6, 8, 10, 12, 16, 18, 20]
 
 
@@ -208,8 +244,12 @@ def _kapazitaet(rng):
         f"Effizienz: {de(nutz(n) * tb)} TB : {de(n * tb)} TB = **{de(nutz(n) / n * 100, 1)} %**",
         f"Verkraftbare Ausfälle: **{ausfall(n)}**",
     )
-    felder = [Feld("nutz", "Nutzkapazität", nutz(n) * tb, "TB"), Feld("effizienz", "Speichereffizienz", nutz(n) / n * 100, "%", stellen=1),
-              Feld("ausfall", "Verkraftbare Plattenausfälle", ausfall(n), stellen=0)]
+    falsch = RAID_TYPISCH[level]
+    ausfall_falsch = {0: [(1, "RAID 0 hat keine Redundanz; schon ein Ausfall zerstört die Daten.")],
+                      10: [(n // 2, "Das ist der günstigste Fall; im ungünstigsten fallen beide Platten eines Spiegelpaares aus.")]}
+    felder = [Feld("nutz", "Nutzkapazität", nutz(n) * tb, "TB", typisch=tuple((k(n) * tb, h) for k, h in falsch)),
+              Feld("effizienz", "Speichereffizienz", nutz(n) / n * 100, "%", stellen=1, typisch=tuple((k(n) / n * 100, h) for k, h in falsch)),
+              Feld("ausfall", "Verkraftbare Plattenausfälle", ausfall(n), stellen=0, typisch=tuple(ausfall_falsch.get(level, ())))]
     return Aufgabe(frage, felder, weg, titel=f"RAID {level}")
 
 
@@ -227,8 +267,12 @@ def _plattenzahl(rng):
         f"RAID 6: zwei Platten für die Parität dazu → {daten} + 2 = **{daten + 2}**",
         f"RAID 10: jede Datenplatte wird gespiegelt → {daten} · 2 = **{daten * 2}**",
     )
-    felder = [Feld("raid5", "RAID 5", daten + 1, "Platten", stellen=0), Feld("raid6", "RAID 6", daten + 2, "Platten", stellen=0),
-              Feld("raid10", "RAID 10", daten * 2, "Platten", stellen=0)]
+    felder = [Feld("raid5", "RAID 5", daten + 1, "Platten", stellen=0, typisch=((daten, "Du hast die Platte für die Parität vergessen."),)),
+              Feld("raid6", "RAID 6", daten + 2, "Platten", stellen=0,
+                   typisch=((daten + 1, "Das wäre RAID 5; RAID 6 braucht zwei Platten für die Parität."),)),
+              Feld("raid10", "RAID 10", daten * 2, "Platten", stellen=0, typisch=(
+                  (daten + 1, "Bei RAID 10 wird jede Datenplatte gespiegelt, nicht nur eine dazugenommen."),
+                  (bedarf // tb * 2, "Du hast abgerundet; reicht die Kapazität nicht ganz, braucht es eine Platte mehr (und ihren Spiegel).")))]
     return Aufgabe(frage, felder, weg, titel="Wie viele Platten?")
 
 
@@ -248,7 +292,12 @@ def _gemischt(rng):
         f"RAID {level}: {erklaerung} → {nutz(n)} · {kleinste} TB = **{de(nutz(n) * kleinste)} TB**",
         f"Ungenutzt: {brutto} TB gesamt − {n} · {kleinste} TB = **{de(brutto - n * kleinste)} TB**",
     )
-    felder = [Feld("nutz", "Nutzkapazität", nutz(n) * kleinste, "TB"), Feld("frei", "Ungenutzt", brutto - n * kleinste, "TB")]
+    kleinste_zaehlt = "Im RAID zählt jede Platte nur so viel wie die kleinste."
+    falsch = [(nutz(n) * platten[0], kleinste_zaehlt)] + [(brutto, kleinste_zaehlt)] * (level == 0)  # RAID 0: alles addiert
+    felder = [Feld("nutz", "Nutzkapazität", nutz(n) * kleinste, "TB", typisch=tuple(falsch)),
+              Feld("frei", "Ungenutzt", brutto - n * kleinste, "TB", typisch=(
+                  (brutto - nutz(n) * kleinste, "Du hast die Redundanz als ungenutzt gezählt; ungenutzt ist nur, was über die "
+                                                "kleinste Platte hinausgeht."),))]
     return Aufgabe(frage, felder, weg, titel="Platten verschiedener Größe")
 
 
@@ -272,7 +321,13 @@ def _ausfallzeit(rng):
     weg = schritte(f"Erlaubter Ausfall: 100 % − {_prozent(v, 2)} = {_prozent(1 - v, 2)} = {de(1 - v, 4)}",
                    f"Jahr: {de(1 - v, 4)} · 8.760 h = **{de(jahr)} h**",
                    f"Monat: {de(1 - v, 4)} · 43.200 min = **{de(monat, 1)} min**")
-    felder = [Feld("jahr", "Ausfall pro Jahr", jahr, "h"), Feld("monat", "Ausfall pro Monat", monat, "min", stellen=1)]
+    betrieb = "Das ist die Betriebszeit; gefragt ist die Ausfallzeit (100 % − Verfügbarkeit)."
+    prozent = "Du hast mit Prozent statt Dezimalzahl gerechnet: 0,1 % sind 0,001."
+    felder = [Feld("jahr", "Ausfall pro Jahr", jahr, "h", typisch=(
+                  (v * 8760, betrieb), (jahr * 100, prozent), ((1 - v) * 365, "Du hast mit 365 Tagen statt 8.760 Stunden gerechnet."))),
+              Feld("monat", "Ausfall pro Monat", monat, "min", stellen=1, typisch=(
+                  (v * 43200, betrieb), (monat * 100, prozent), ((1 - v) * 720, "Das sind Stunden; mal 60 ergibt Minuten."),
+                  (jahr * 60 / 12, "Du hast ein Zwölftel des Jahres genommen; hier hat der Monat 30 Tage.")))]
     return Aufgabe(frage, felder, weg, toleranz=0.002, titel="Ausfallzeit aus Prozent")
 
 
@@ -289,7 +344,8 @@ def _sla(rng):
              "Verfügbarkeit an.\n\nWelche Verfügbarkeit ist mindestens nötig (drei Nachkommastellen), und reicht das Angebot?")
     weg = schritte(f"Nötig: 1 − {stunden} h : 8.760 h = {de(noetig, 6)} = **{_prozent(noetig)}**",
                    f"Angebot {_prozent(angebot, 2)} {'>' if reicht == 'Ja' else '<'} {_prozent(noetig)} → **{reicht}**")
-    felder = [Feld("noetig", "Nötige Verfügbarkeit", noetig * 100, "%", stellen=3),
+    felder = [Feld("noetig", "Nötige Verfügbarkeit", noetig * 100, "%", stellen=3, typisch=(
+                  ((1 - noetig) * 100, "Das ist der erlaubte Ausfall; die Verfügbarkeit ist 100 % minus diesen Anteil."),)),
               Feld("reicht", "Reicht das Angebot?", reicht, typ="text", optionen=["Ja", "Nein"])]
     return Aufgabe(frage, felder, weg, toleranz=0.00001, titel="Nötige Verfügbarkeit")
 
@@ -308,7 +364,13 @@ def _system(rng):
                    f"{'²' if anzahl == 2 else '³'} = **{_prozent(cluster)}**",
                    f"Gesamt in Reihe: {de(router, 4)} · {de(firewall, 4)} · {de(cluster, 6)} · {de(storage, 4)} = **{_prozent(gesamt)}**",
                    "In Reihe sinkt die Verfügbarkeit mit jedem Glied, Redundanz hebt sie an.")
-    felder = [Feld("cluster", "Server-Verbund", cluster * 100, "%", stellen=3), Feld("gesamt", "Gesamter Dienst", gesamt * 100, "%", stellen=3)]
+    reihe = "Du hast die Server in Reihe gerechnet; redundant gilt 1 − (1 − V)ⁿ."
+    felder = [Feld("cluster", "Server-Verbund", cluster * 100, "%", stellen=3, typisch=(
+                  (server ** anzahl * 100, reihe),
+                  ((1 - server) ** anzahl * 100, "Das ist die Wahrscheinlichkeit, dass alle Server ausfallen; die Verfügbarkeit ist 1 minus das."))),
+              Feld("gesamt", "Gesamter Dienst", gesamt * 100, "%", stellen=3, typisch=(
+                  (gesamt / cluster * server ** anzahl * 100, reihe),
+                  (gesamt / cluster * server * 100, "Du hast nur einen Server gerechnet; der Verbund ist redundant.")))]
     return Aufgabe(frage, felder, weg, toleranz=0.00001, titel="Seriell und redundant")
 
 
@@ -320,7 +382,10 @@ def _mtbf(rng):
              "erwartende Ausfallzeit pro Jahr (365 Tage) in Stunden.")
     weg = schritte(f"V = MTBF : (MTBF + MTTR) = {de(mtbf)} : {de(mtbf + mttr)} = {de(v, 6)} = **{_prozent(v)}**",
                    f"Ausfall pro Jahr: (1 − {de(v, 6)}) · 8.760 h = **{de((1 - v) * 8760)} h**")
-    felder = [Feld("v", "Verfügbarkeit", v * 100, "%", stellen=3), Feld("ausfall", "Ausfall pro Jahr", (1 - v) * 8760, "h")]
+    felder = [Feld("v", "Verfügbarkeit", v * 100, "%", stellen=3,
+                   typisch=(((1 - v) * 100, "Das ist der Ausfallanteil; die Verfügbarkeit ist MTBF : (MTBF + MTTR)."),)),
+              Feld("ausfall", "Ausfall pro Jahr", (1 - v) * 8760, "h", typisch=(
+                  (v * 8760, "Das ist die Betriebszeit; gefragt ist die Ausfallzeit (1 − Verfügbarkeit)."),))]
     return Aufgabe(frage, felder, weg, toleranz=0.002, titel="MTBF und MTTR")
 
 
@@ -352,8 +417,15 @@ def _backup_menge(rng):
              else "seit der letzten Vollsicherung geändert hat, also jeden Tag mehr: k · " + f"{taeglich} GB")
     weg = schritte(f"{art_.capitalize()} sichert, was sich {regel}", *zeilen,
                    f"{TAGE[tag]}: **{de(mengen[tag])} GB**; zusammen: {' + '.join(de(m) for m in mengen)} = **{de(sum(mengen))} GB**")
-    felder = [Feld("tag", f"Sicherung am {TAGE[tag]}", mengen[tag], "GB", stellen=0),
-              Feld("woche", "Montag bis Freitag zusammen", sum(mengen), "GB", stellen=0)]
+    if art_ == "inkrementell":
+        anders = [gesamt] + [taeglich * k for k in range(1, 5)]
+        verwechselt = "Inkrementell sichert nur, was seit der letzten Sicherung neu ist, nicht seit der Vollsicherung."
+    else:
+        anders = [gesamt] + [taeglich] * 4
+        verwechselt = "Differenziell sichert alles seit der letzten Vollsicherung, nicht nur einen Tag."
+    felder = [Feld("tag", f"Sicherung am {TAGE[tag]}", mengen[tag], "GB", stellen=0, typisch=((anders[tag], verwechselt),)),
+              Feld("woche", "Montag bis Freitag zusammen", sum(mengen), "GB", stellen=0, typisch=(
+                  (sum(anders), verwechselt), (sum(mengen) - gesamt, "Du hast die Vollsicherung vom Montag vergessen.")))]
     return Aufgabe(frage, felder, weg, titel=f"Datenmenge {art_}")
 
 
@@ -374,8 +446,18 @@ def _wiederherstellen(rng):
         f"Einspielen: **{', '.join(TAGE[k] for k in noetig)}**",
         f"Datenmenge: {de(gesamt)} GB + {ausfall - 1} · {taeglich} GB = **{de(menge)} GB** (bei beiden Verfahren gleich, nur verteilt "
         "auf unterschiedlich viele Sicherungen)")
-    felder = [Feld("tage", "Benötigte Sicherungen", ", ".join(TAGE[k] for k in noetig), typ="wochentage"),
-              Feld("menge", "Einzuspielende Daten", menge, "GB", stellen=0)]
+    if art_ == "inkrementell":
+        tage_falsch = [(", ".join(TAGE[k] for k in dict.fromkeys([0, ausfall - 1])),
+                        "Inkrementell brauchst du jede Sicherung seit der Vollsicherung, nicht nur die letzte.")]
+        menge_falsch = []
+    else:
+        tage_falsch = [(", ".join(TAGE[:ausfall]), "Differenziell reicht die letzte differenzielle Sicherung; sie enthält alle davor.")]
+        menge_falsch = [(gesamt + taeglich * sum(range(ausfall)), "Du hast alle differenziellen Sicherungen gezählt; eingespielt "
+                                                                    "wird nur die letzte.")]
+    tage_falsch.append((", ".join(TAGE[k] for k in noetig[1:]), "Ohne die Vollsicherung vom Montag geht es nicht."))
+    menge_falsch.append((menge - gesamt, "Du hast die Vollsicherung vergessen; sie wird zuerst eingespielt."))
+    felder = [Feld("tage", "Benötigte Sicherungen", ", ".join(TAGE[k] for k in noetig), typ="wochentage", typisch=tuple(tage_falsch)),
+              Feld("menge", "Einzuspielende Daten", menge, "GB", stellen=0, typisch=tuple(menge_falsch))]
     return Aufgabe(frage, felder, weg, titel=f"Wiederherstellen ({art_})")
 
 
@@ -395,5 +477,7 @@ def _generationen(rng):
                    f"Großväter: {monate}", f"Bänder: {soehne} + {wochen} + {monate} = **{medien}**",
                    f"Daten auf allen Bändern: {medien} · {de(gesamt_gb)} GB = **{de(medien * gesamt_gb / 1000)} TB** "
                    f"(passt auf je ein Band, weil {de(gesamt_gb)} GB < {de(band)} TB)")
-    felder = [Feld("medien", "Bänder", medien, stellen=0), Feld("daten", "Daten auf allen Bändern", medien * gesamt_gb / 1000, "TB")]
+    felder = [Feld("medien", "Bänder", medien, stellen=0, typisch=(
+                  (medien + 1, "Am letzten Arbeitstag läuft die Wochensicherung; Söhne gibt es nur für die übrigen Tage."),)),
+              Feld("daten", "Daten auf allen Bändern", medien * gesamt_gb / 1000, "TB")]
     return Aufgabe(frage, felder, weg, titel="Großvater-Vater-Sohn")

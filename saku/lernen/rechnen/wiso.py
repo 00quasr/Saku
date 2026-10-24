@@ -14,6 +14,7 @@ FORMELN = {
 - § 622 Abs. 3 BGB, vereinbarte Probezeit (höchstens 6 Monate): 2 Wochen, zu jedem Tag
 - Fristbeginn am Tag nach dem Zugang (§ 187 BGB); 4 Wochen enden 28 Tage nach dem Zugang, n Monate am gleichen Tag n Monate später (§ 188 BGB); danach der nächste zulässige Termin
 - Ausbildung (§ 22 BBiG): in der Probezeit (1 bis 4 Monate) jederzeit ohne Frist; danach Azubi mit 4 Wochen, wenn er die Ausbildung aufgibt oder wechselt; der Betrieb nur fristlos aus wichtigem Grund
+- *Typische Fehler:* den Tag des Zugangs mitgezählt, nach den 4 Wochen nicht bis zum 15. oder Monatsende weitergezählt, die verlängerten Fristen auch bei Kündigung durch den Arbeitnehmer
 
 *Beispiel:* Zugang 3. März, + 28 Tage = 31. März → Termin 31. März; Zugang 4. März, + 28 Tage = 1. April → Termin 15. April""",
     "urlaub": """- § 3 BUrlG: mindestens 24 Werktage im Jahr; Werktage sind Montag bis Samstag (6-Tage-Woche)
@@ -73,9 +74,23 @@ def kuendigung(rng):
     return rng.choice([_arbeitnehmer, _arbeitgeber, _arbeitgeber, _probezeit, _ausbildung])(rng)
 
 
-def _felder(frist: str, ende: date, optionen=FRISTEN) -> list[Feld]:
-    return [Feld("frist", "Kündigungsfrist", frist, typ="text", optionen=optionen),
-            Feld("ende", "Ende des Arbeitsverhältnisses", kurz(ende), typ="datum")]
+# typische Fehler (Feld.typisch)
+ZUGANG = "Du hast den Tag des Zugangs mitgezählt; die Frist beginnt erst am Tag danach (§ 187 BGB)."
+NUR_ARBEITGEBER = "Die verlängerten Fristen aus § 622 Abs. 2 gelten nur, wenn der Arbeitgeber kündigt."
+GRUNDFRIST = "Du hast die Grundfrist genommen; kündigt der Arbeitgeber, verlängert sie sich mit der Betriebszugehörigkeit."
+PROBEZEIT = "In der Probezeit gilt die kürzere Frist von 2 Wochen, zu jedem Tag."
+
+
+def _felder(frist: str, ende: date, optionen=FRISTEN, frist_typisch=(), ende_typisch=()) -> list[Feld]:
+    """ende_typisch: (Datum, Hinweis) aus typischen Fehlern."""
+    return [Feld("frist", "Kündigungsfrist", frist, typ="text", optionen=optionen, typisch=tuple(frist_typisch)),
+            Feld("ende", "Ende des Arbeitsverhältnisses", kurz(ende), typ="datum", typisch=tuple((kurz(d), h) for d, h in ende_typisch))]
+
+
+def _grund_typisch(zugang: date) -> list:
+    """Ende nach § 622 Abs. 1: Zugang mitgezählt, oder nach den 4 Wochen nicht bis zum Termin weitergezählt."""
+    return [(grundfrist(zugang - timedelta(days=1)), ZUGANG),
+            (zugang + timedelta(days=28), "Nach den 4 Wochen geht es noch bis zum nächsten 15. oder Monatsende.")]
 
 
 def _grund_weg(zugang: date, wer: str) -> list[str]:
@@ -100,7 +115,12 @@ def _arbeitnehmer(rng):
              "Welche Kündigungsfrist gilt, und an welchem Tag endet das Arbeitsverhältnis frühestens? (Datum als TT.MM.JJJJ)")
     weg = schritte(f"Kündigung durch die Arbeitnehmerin: die verlängerten Fristen aus § 622 Abs. 2 BGB gelten nur für den Arbeitgeber, "
                    f"die {jahre} Jahre Betriebszugehörigkeit spielen keine Rolle", *_grund_weg(zugang, "für Arbeitnehmer immer"))
-    return Aufgabe(frage, _felder(FRISTEN[1], grundfrist(zugang)), weg, titel="Kündigung durch den Arbeitnehmer")
+    frist_typisch, ende_typisch = [], _grund_typisch(zugang)
+    if laenger := next((m for j, m in STAFFEL if jahre >= j), 0):  # was gälte, wenn der Arbeitgeber kündigte
+        frist_typisch.append((FRISTEN[1 + laenger], NUR_ARBEITGEBER))
+        ende_typisch.append((monatsende(plus_monate(zugang, laenger)), NUR_ARBEITGEBER))
+    return Aufgabe(frage, _felder(FRISTEN[1], grundfrist(zugang), frist_typisch=frist_typisch, ende_typisch=ende_typisch), weg,
+                   titel="Kündigung durch den Arbeitnehmer")
 
 
 def _arbeitgeber(rng):
@@ -114,7 +134,8 @@ def _arbeitgeber(rng):
     if not monate:
         weg = schritte(f"Betriebszugehörigkeit beim Zugang: {jahre} {'Jahr' if jahre == 1 else 'Jahre'} (seit {kurz(eintritt)}), "
                        "weniger als 2 Jahre", *_grund_weg(zugang, "Arbeitgeber, unter 2 Jahren Betriebszugehörigkeit"))
-        return Aufgabe(frage, _felder(FRISTEN[1], grundfrist(zugang)), weg, titel="Kündigung durch den Arbeitgeber")
+        return Aufgabe(frage, _felder(FRISTEN[1], grundfrist(zugang), ende_typisch=_grund_typisch(zugang)), weg,
+                       titel="Kündigung durch den Arbeitgeber")
     fristende = plus_monate(zugang, monate)
     ende = monatsende(fristende)
     stufe = next(j for j, m in STAFFEL if m == monate)
@@ -124,7 +145,10 @@ def _arbeitgeber(rng):
                    f"Fristbeginn am Tag nach dem Zugang; {monate} {'Monat' if monate == 1 else 'Monate'} nach dem {kurz(zugang)} "
                    f"ist der {kurz(fristende)} (§ 188 BGB)",
                    f"Nächstes Monatsende ab {kurz(fristende)}: **{kurz(ende)}**")
-    return Aufgabe(frage, _felder(FRISTEN[1 + monate], ende), weg, titel="Kündigung durch den Arbeitgeber")
+    felder = _felder(FRISTEN[1 + monate], ende, frist_typisch=[(FRISTEN[1], GRUNDFRIST)], ende_typisch=[
+        (grundfrist(zugang), GRUNDFRIST), (monatsende(plus_monate(zugang - timedelta(days=1), monate)), ZUGANG),
+        (fristende, "Nach den Monaten geht es noch bis zum Monatsende.")])
+    return Aufgabe(frage, felder, weg, titel="Kündigung durch den Arbeitgeber")
 
 
 def _probezeit(rng):
@@ -139,7 +163,9 @@ def _probezeit(rng):
     weg = schritte(f"Die Probezeit läuft bis {kurz(plus_monate(eintritt, probe) - timedelta(days=1))}, der Zugang liegt darin",
                    "§ 622 Abs. 3 BGB: in der Probezeit **2 Wochen**, nicht an den 15. oder das Monatsende gebunden (für beide Seiten)",
                    f"{kurz(zugang)} + 14 Tage = **{kurz(ende)}**")
-    return Aufgabe(frage, _felder(FRISTEN[0], ende), weg, titel="Kündigung in der Probezeit")
+    felder = _felder(FRISTEN[0], ende, frist_typisch=[(FRISTEN[1], PROBEZEIT)],
+                     ende_typisch=[(grundfrist(zugang), PROBEZEIT), (ende - timedelta(days=1), ZUGANG)])
+    return Aufgabe(frage, felder, weg, titel="Kündigung in der Probezeit")
 
 
 def _ausbildung(rng):
@@ -159,7 +185,9 @@ def _ausbildung(rng):
                        "§ 22 Abs. 2 BBiG: nach der Probezeit kann der Ausbildungsbetrieb nicht ordentlich kündigen, "
                        "**nur fristlos aus wichtigem Grund** (Nr. 1), schriftlich mit Angabe der Gründe (Abs. 3)",
                        "Schwache Leistungen allein sind in der Regel kein wichtiger Grund; erst Gespräche und Abmahnung")
-        felder = [Feld("frist", "Kündigung durch den Betrieb", FRISTEN_AUSBILDUNG[3], typ="text", optionen=FRISTEN_AUSBILDUNG)]
+        felder = [Feld("frist", "Kündigung durch den Betrieb", FRISTEN_AUSBILDUNG[3], typ="text", optionen=FRISTEN_AUSBILDUNG, typisch=(
+            (FRISTEN_AUSBILDUNG[1], "Nach der Probezeit kann der Betrieb nicht mehr ordentlich kündigen, nur der Auszubildende."),
+            (FRISTEN_AUSBILDUNG[2], "Das ist die Grundfrist aus dem Arbeitsrecht; im Ausbildungsverhältnis gilt § 22 BBiG.")))]
         return Aufgabe(frage, felder, weg, titel="Ausbildung: Kündigung durch den Betrieb")
     if fall == "probe":
         wer = rng.choice(["Der Betrieb kündigt", "Der Auszubildende kündigt"])
@@ -168,6 +196,8 @@ def _ausbildung(rng):
                        "§ 22 Abs. 1 BBiG: in der Probezeit jederzeit **ohne Kündigungsfrist** (für beide Seiten, schriftlich)",
                        f"Das Ausbildungsverhältnis endet mit dem Zugang: **{kurz(zugang)}**")
         frist, ende = FRISTEN_AUSBILDUNG[0], zugang
+        typisch = [(zugang + timedelta(days=14), "Die 2 Wochen gelten in der Probezeit eines Arbeitsverhältnisses; in der "
+                                                  "Ausbildung geht es ohne Frist (§ 22 Abs. 1 BBiG).")]
     else:
         frage = (f"{lage} Am **{lang(zugang)}** geht dem Betrieb seine Kündigung zu: Er will die Ausbildung aufgeben und "
                  "studieren.")
@@ -177,9 +207,11 @@ def _ausbildung(rng):
                        "oder sich für einen anderen Beruf ausbilden lassen will; nicht an den 15. oder das Monatsende gebunden",
                        f"{kurz(zugang)} + 28 Tage = **{kurz(ende)}**")
         frist = FRISTEN_AUSBILDUNG[1]
+        typisch = [(grundfrist(zugang), "Der Auszubildende kündigt mit 4 Wochen ohne festen Termin, nicht zum 15. oder Monatsende."),
+                   (ende - timedelta(days=1), ZUGANG)]
     frage += "\n\nWelche Kündigungsfrist gilt, und an welchem Tag endet das Ausbildungsverhältnis? (Datum als TT.MM.JJJJ)"
     felder = [Feld("frist", "Kündigungsfrist", frist, typ="text", optionen=FRISTEN_AUSBILDUNG),
-              Feld("ende", "Ende des Ausbildungsverhältnisses", kurz(ende), typ="datum")]
+              Feld("ende", "Ende des Ausbildungsverhältnisses", kurz(ende), typ="datum", typisch=tuple((kurz(d), h) for d, h in typisch))]
     return Aufgabe(frage, felder, weg, titel="Ausbildung: Kündigung")
 
 

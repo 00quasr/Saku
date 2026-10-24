@@ -4,6 +4,7 @@ Jede Art ist eine Funktion (rng) -> Aufgabe; derselbe Seed ergibt immer dieselbe
 import ipaddress
 import random
 import re
+from dataclasses import replace
 from datetime import date
 
 from saku.lernen import sql
@@ -13,12 +14,16 @@ from saku.lernen.rechnen import netzwerk, daten, hardware, komponenten, sicherhe
 from saku.lernen.rechnen.plan import faellig, im_umfang
 from saku.lernen.rechnen.basis import ARTEN, GRUPPEN, Art, Aufgabe, Feld
 
-__all__ = ["ARTEN", "GRUPPEN", "Art", "Aufgabe", "Feld", "erzeugen", "pruefen", "stimmt", "sql_vergleich", "code_vergleich", "passend", "passende",
-           "themen_je_art", "gemischt", "faellig", "im_umfang"]
+__all__ = ["ARTEN", "GRUPPEN", "Art", "Aufgabe", "Feld", "erzeugen", "pruefen", "stimmt", "denkfehler", "sql_vergleich", "code_vergleich",
+           "passend", "passende", "themen_je_art", "gemischt", "faellig", "im_umfang"]
 
 
 def erzeugen(art: str, seed: int) -> Aufgabe:
-    return ARTEN[art].erzeugen(random.Random(seed))
+    """Typische Fehler, die zufällig der Lösung gleichen, fallen weg: sonst hieße eine fast richtige Eingabe Denkfehler."""
+    aufgabe = ARTEN[art].erzeugen(random.Random(seed))
+    for f in aufgabe.felder:
+        f.typisch = tuple((w, h) for w, h in f.typisch if not _gleich(f, w, aufgabe.toleranz))
+    return aufgabe
 
 
 def _ipv4(text: str) -> list[int] | None:
@@ -116,6 +121,27 @@ def stimmt(feld: Feld, eingabe: str, toleranz: float = 0.0) -> bool:
         ist = _ganzzahl(eingabe, basis, praefix)
         return ist is not None and ist == int(soll, basis)
     return any(re.sub(r"\s", "", eingabe).casefold() == re.sub(r"\s", "", s).casefold() for s in (soll, *feld.auch))
+
+
+def _passt(feld: Feld, wert, eingabe: str, toleranz: float) -> bool:
+    """Passt die Eingabe zum typischen Fehler wert, so genau, wie stimmt sie mit der Lösung vergleicht?"""
+    return stimmt(replace(feld, loesung=wert, auch=()), eingabe, toleranz)
+
+
+def _gleich(feld: Feld, wert, toleranz: float) -> bool:
+    """Gleicht der typische Fehler der Lösung, in die eine oder die andere Richtung (so angezeigt, wie man ihn tippen würde)?"""
+    return _passt(feld, wert, feld.anzeige, toleranz) or stimmt(feld, replace(feld, loesung=wert).anzeige, toleranz)
+
+
+def denkfehler(aufgabe: Aufgabe, eingaben: dict[str, str]) -> dict[str, str]:
+    """Je falschem Feld der Hinweis zum typischen Fehler, zu dem die Eingabe passt („mit 1000 statt 1024 gerechnet“)."""
+    raus = {}
+    for f in aufgabe.felder:
+        eingabe = eingaben.get(f.name, "")
+        if f.typisch and not stimmt(f, eingabe, aufgabe.toleranz):
+            if hinweis := next((h for w, h in f.typisch if _passt(f, w, eingabe, aufgabe.toleranz)), None):
+                raus[f.name] = hinweis
+    return raus
 
 
 def sql_vergleich(aufgabe: Aufgabe, eingabe: str) -> dict:

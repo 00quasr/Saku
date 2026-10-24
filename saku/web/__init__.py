@@ -86,6 +86,8 @@ def create_app(daten: Path | None = None) -> Flask:
     app.add_template_filter(antwort.tabelle, "tabelle")
     app.add_template_filter(antwort.als_text, "antwort_als_text")
     app.add_template_global(antwort.pruefbar, "pruefbar")
+    from saku.lernen import rechnen
+    app.add_template_global(rechnen.denkfehler, "denkfehler")
     from saku.lernen import operatoren
     app.add_template_filter(operatoren.erkennen, "operatoren")
     from saku.lernen.tagesziel import ihk_termine

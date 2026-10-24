@@ -3,7 +3,8 @@
 import ipaddress
 import math
 
-from saku.lernen.rechnen.basis import ABTEILUNGEN, BYTE, FAKTOR, FIRMEN, Aufgabe, Feld, art, de, hoch, schritte, tabelle
+from saku.lernen.rechnen.basis import (ABTEILUNGEN, ANDERS, BIT_BYTE, BYTE, FAKTOR, FIRMEN, Aufgabe, Feld, art, de, hoch, praefix_fehler,
+                                       schritte, tabelle)
 
 # Formeln und Merksätze je Art: Formelsammlung und Karte zeigen sie nach dem Rechenweg
 FORMELN = {
@@ -13,6 +14,7 @@ FORMELN = {
 - Blockgröße = 256 − Maskenwert im angebrochenen Oktett
 - Netz-ID: Oktett auf ein Vielfaches der Blockgröße abrunden, dahinter 0; Broadcast: nächste Netz-ID − 1, dahinter 255
 - n gleich große Subnetze: log₂ n Bits leihen → neues Präfix p + log₂ n; k. Subnetz = Netz-ID + (k − 1) · Blockgröße
+- *Typische Fehler:* Netz-ID und Broadcast mitgezählt (2^h statt 2^h − 2), Netz-ID und Broadcast vertauscht, die Blockgröße statt des Maskenwerts in die Maske geschrieben
 
 *Beispiel:* 192.168.1.77/26 → Maske 255.255.255.192, Block 256 − 192 = 64, Netz-ID 192.168.1.64, Broadcast 192.168.1.127, 2⁶ − 2 = 62 Hosts""",
     "uebertragung": """- Dauer = Datenmenge in Bit : Datenrate in Bit/s
@@ -20,6 +22,7 @@ FORMELN = {
 - Dateigrößen in MiB oder GiB erst in Byte umrechnen (· 1.024² bzw. · 1.024³)
 - Overhead p %: nutzbare Datenrate = Datenrate · (1 − p : 100)
 - Nötige Datenrate = Datenmenge : Zeit, mit Overhead geteilt durch (1 − p : 100)
+- *Typische Fehler:* Byte nicht mal 8 genommen, MB und MiB verwechselt (1.000 und 1.024), Minuten nicht in Sekunden umgerechnet, Overhead vergessen oder mit dem Anteil multipliziert statt geteilt
 
 *Beispiel:* 650 MB über 25 Mbit/s: 650 · 8 = 5.200 Mbit; 5.200 : 25 = 208 s ≈ 3,47 min""",
     "ipv6": """- 128 Bit in 8 Blöcken zu je 4 Hexadezimalziffern (16 Bit)
@@ -87,6 +90,25 @@ def _maske_erklaert(p: int) -> str:
     return zeile
 
 
+# typische Fehler (Feld.typisch), die in mehreren Varianten vorkommen
+VERTAUSCHT = "Du hast vermutlich Netz-ID und Broadcast vertauscht."
+HOSTBITS = "Du hast vermutlich die Hostbits gezählt; das Präfix zählt die Einsen der Maske."
+
+
+def _hosts_typisch(hostbits: int) -> tuple:
+    return ((2 ** hostbits, "Du hast vermutlich Netz-ID und Broadcast mitgezählt; beide sind nicht nutzbar."),
+            (2 ** hostbits - 3, "Du hast vermutlich auch das Gateway abgezogen; es ist ein ganz normaler Host."))
+
+
+def _maske_typisch(p: int) -> tuple:
+    """Blockgröße statt Maskenwert im angebrochenen Oktett: /26 → 255.255.255.64 statt .192."""
+    if not p % 8:
+        return ()
+    stelle = 24 - 8 * (p // 8)
+    falsch = _maske(p) & ~(0xFF << stelle) | 2 ** (8 - p % 8) << stelle
+    return ((_ip(falsch), "Du hast vermutlich die Blockgröße als Maskenwert eingetragen; Maskenwert = 256 − Blockgröße."),)
+
+
 @art("subnetz", "Subnetting", "Netzwerk", "IPv4: Netz-ID, Broadcast, Hosts, Maske ↔ Präfix, Netze teilen",
      ("Subnet", "IPv4", "IP-Adressierung", "IP-Konfiguration", "Netzmaske", "CIDR"),
      formeln=FORMELN["subnetz"])
@@ -115,20 +137,28 @@ def _host_infos(rng):
         f"Hosts: 32 − {p} = {hostbits} Hostbits → 2{hoch(hostbits)} − 2 = **{de(2 ** hostbits - 2)}** "
         "(Netz-ID und Broadcast sind nicht nutzbar)",
     ]
+    netz_feld = Feld("netz", "Netz-ID", _ip(netz), typ="ip", typisch=(
+        (_ip(broadcast), VERTAUSCHT), (_ip(ip), "Du hast die Adresse des Geräts übernommen; in der Netz-ID sind alle Hostbits 0."),
+        (_ip(netz + 1), "Das ist der erste nutzbare Host, nicht die Netz-ID.")))
     firma, abteilung = rng.choice(FIRMEN), rng.choice(ABTEILUNGEN)
     if rng.random() < 0.5:
         frage = (f"Die {firma} richtet in der Abteilung {abteilung} einen neuen Client ein. Er erhält die IP-Adresse "
                  f"`{_ip(ip)}/{p}`.\n\nErmitteln Sie die Subnetzmaske, die Netz-ID, die Broadcast-Adresse und die Anzahl "
                  "der nutzbaren Host-Adressen in diesem Netz.")
-        felder = [Feld("maske", "Subnetzmaske", _ip(_maske(p)), typ="ip"), Feld("netz", "Netz-ID", _ip(netz), typ="ip"),
-                  Feld("broadcast", "Broadcast-Adresse", _ip(broadcast), typ="ip"),
-                  Feld("hosts", "Nutzbare Hosts", 2 ** hostbits - 2, stellen=0)]
+        felder = [Feld("maske", "Subnetzmaske", _ip(_maske(p)), typ="ip", typisch=_maske_typisch(p)), netz_feld,
+                  Feld("broadcast", "Broadcast-Adresse", _ip(broadcast), typ="ip", typisch=(
+                      (_ip(netz), VERTAUSCHT), (_ip(broadcast - 1), "Das ist der letzte nutzbare Host, nicht der Broadcast."),
+                      (_ip(broadcast + 1), "Das ist schon die Netz-ID des nächsten Netzes; der Broadcast liegt davor."))),
+                  Feld("hosts", "Nutzbare Hosts", 2 ** hostbits - 2, stellen=0, typisch=_hosts_typisch(hostbits))]
         return Aufgabe(frage, felder, schritte(*weg), titel="Netz-ID und Broadcast")
     frage = (f"Ein Drucker der {firma} ({abteilung}) ist so konfiguriert:\n\n"
              f"- IP-Adresse: `{_ip(ip)}`\n- Subnetzmaske: `{_ip(_maske(p))}`\n\n"
              "Geben Sie die Präfixlänge, die Netz-ID sowie die erste und die letzte nutzbare Host-Adresse des Netzes an.")
-    felder = [Feld("praefix", "Präfixlänge", p, einheit="Bit", stellen=0), Feld("netz", "Netz-ID", _ip(netz), typ="ip"),
-              Feld("erster", "Erster Host", _ip(netz + 1), typ="ip"), Feld("letzter", "Letzter Host", _ip(broadcast - 1), typ="ip")]
+    felder = [Feld("praefix", "Präfixlänge", p, einheit="Bit", stellen=0, typisch=((hostbits, HOSTBITS),)), netz_feld,
+              Feld("erster", "Erster Host", _ip(netz + 1), typ="ip",
+                   typisch=((_ip(netz), "Die Netz-ID selbst ist nicht nutzbar."),)),
+              Feld("letzter", "Letzter Host", _ip(broadcast - 1), typ="ip",
+                   typisch=((_ip(broadcast), "Die Broadcast-Adresse ist nicht nutzbar."),))]
     weg[0] = f"Maske binär: `{_bits(_maske(p))}` → {p} Einsen → **/{p}**"
     return Aufgabe(frage, felder, schritte(*weg[:5]), titel="Erster und letzter Host")
 
@@ -136,20 +166,20 @@ def _host_infos(rng):
 def _maske_praefix(rng):
     p = rng.randint(8, 30)
     hostbits = 32 - p
-    hosts = Feld("hosts", "Nutzbare Hosts", 2 ** hostbits - 2, stellen=0)
+    hosts = Feld("hosts", "Nutzbare Hosts", 2 ** hostbits - 2, stellen=0, typisch=_hosts_typisch(hostbits))
     host_weg = f"Hosts: 32 − {p} = {hostbits} Hostbits → 2{hoch(hostbits)} − 2 = **{de(2 ** hostbits - 2)}**"
     if rng.random() < 0.5:
         frage = (f"In der Netzwerkdokumentation der {rng.choice(FIRMEN)} ist ein Netz mit dem Präfix `/{p}` angegeben.\n\n"
                  "Geben Sie die Subnetzmaske in Punktschreibweise an und berechnen Sie die Anzahl der nutzbaren Host-Adressen.")
-        return Aufgabe(frage, [Feld("maske", "Subnetzmaske", _ip(_maske(p)), typ="ip"), hosts],
+        return Aufgabe(frage, [Feld("maske", "Subnetzmaske", _ip(_maske(p)), typ="ip", typisch=_maske_typisch(p)), hosts],
                        schritte(_maske_erklaert(p), host_weg), titel="Präfix → Maske")
     maske = _ip(_maske(p))
     einsen = [f"{o} = {bin(o).count('1')}" for o in map(int, maske.split(".")) if o]
     frage = (f"Im Datenblatt eines Routers der {rng.choice(FIRMEN)} steht die Subnetzmaske `{maske}`.\n\n"
              "Geben Sie die Maske in CIDR-Schreibweise (Präfixlänge) an und berechnen Sie die Anzahl der nutzbaren Host-Adressen.")
     weg = [f"Binär: `{_bits(_maske(p))}`", f"Einsen je Oktett: {', '.join(einsen)} → zusammen **/{p}**", host_weg]
-    return Aufgabe(frage, [Feld("praefix", "Präfixlänge", p, einheit="Bit", stellen=0), hosts], schritte(*weg),
-                   titel="Maske → Präfix")
+    praefix = Feld("praefix", "Präfixlänge", p, einheit="Bit", stellen=0, typisch=((hostbits, HOSTBITS),))
+    return Aufgabe(frage, [praefix, hosts], schritte(*weg), titel="Maske → Präfix")
 
 
 def _teilen(rng):
@@ -163,10 +193,15 @@ def _teilen(rng):
     frage = (f"Die {rng.choice(FIRMEN)} verwendet das Netz `{_ip(netz)}/{p0}`. Es soll in **{n} gleich große Subnetze** "
              f"aufgeteilt werden, eines je Abteilung.\n\nErmitteln Sie das neue Präfix, die Anzahl der nutzbaren Hosts je Subnetz "
              f"sowie Netz-ID und Broadcast-Adresse des **{k}. Subnetzes**.")
-    felder = [Feld("praefix", "Neues Präfix", p, einheit="Bit", stellen=0),
-              Feld("hosts", "Hosts je Subnetz", block - 2, stellen=0),
-              Feld("netz", f"Netz-ID des {k}. Subnetzes", zeilen[-1][1], typ="ip"),
-              Feld("broadcast", f"Broadcast des {k}. Subnetzes", zeilen[-1][2], typ="ip")]
+    ab_eins = "Du hast vermutlich ab 1 gezählt; das 1. Subnetz beginnt bei der Netz-ID des ganzen Netzes."
+    felder = [Feld("praefix", "Neues Präfix", p, einheit="Bit", stellen=0, typisch=(
+                  (p0 + n, "Du hast die Anzahl der Subnetze addiert; addiert werden die geliehenen Bits (2^Bits = Subnetze)."),
+                  (p0 - bits, "Beim Teilen wird das Präfix länger, nicht kürzer."))),
+              Feld("hosts", "Hosts je Subnetz", block - 2, stellen=0, typisch=_hosts_typisch(32 - p)),
+              Feld("netz", f"Netz-ID des {k}. Subnetzes", zeilen[-1][1], typ="ip", typisch=((_ip(netz + k * block), ab_eins),)),
+              Feld("broadcast", f"Broadcast des {k}. Subnetzes", zeilen[-1][2], typ="ip", typisch=(
+                  (_ip(netz + (k + 1) * block - 1), ab_eins),
+                  (_ip(netz + k * block), "Das ist schon die Netz-ID des nächsten Subnetzes; der Broadcast liegt davor.")))]
     weg = schritte(
         f"{n} Subnetze = 2{hoch(bits)} → {bits} Bit vom Hostanteil leihen → /{p0} + {bits} = **/{p}**",
         f"Hostbits: 32 − {p} = {32 - p} → 2{hoch(32 - p)} − 2 = **{de(block - 2)}** Hosts je Subnetz",
@@ -187,9 +222,11 @@ def _mindest_hosts(rng):
     frage = (f"Die {rng.choice(FIRMEN)} hat das Netz `{_ip(netz)}/{p0}`. Es soll in gleich große Subnetze aufgeteilt werden, "
              f"von denen jedes **mindestens {bedarf} Hosts** aufnehmen kann. Die Subnetze sollen so klein wie möglich sein.\n\n"
              "Ermitteln Sie das Präfix der Subnetze, die Anzahl der nutzbaren Hosts je Subnetz und die Anzahl der Subnetze.")
-    felder = [Feld("praefix", "Präfix der Subnetze", p, einheit="Bit", stellen=0),
-              Feld("hosts", "Hosts je Subnetz", 2 ** hostbits - 2, stellen=0),
-              Feld("anzahl", "Anzahl Subnetze", 2 ** (p - p0), stellen=0)]
+    felder = [Feld("praefix", "Präfix der Subnetze", p, einheit="Bit", stellen=0, typisch=((hostbits, HOSTBITS),)),
+              Feld("hosts", "Hosts je Subnetz", 2 ** hostbits - 2, stellen=0, typisch=_hosts_typisch(hostbits)),
+              Feld("anzahl", "Anzahl Subnetze", 2 ** (p - p0), stellen=0, typisch=(
+                  (2 ** (p - p0) - 2, "Du hast 2 abgezogen; das gilt nur für Hosts, nicht für die Anzahl der Subnetze."),
+                  (p - p0, "Das sind die geliehenen Bits; die Anzahl der Subnetze ist 2 hoch diese Bits.")))]
     kleiner = f"2{hoch(hostbits - 1)} − 2 = {de(2 ** (hostbits - 1) - 2)} reicht nicht, " if hostbits > 2 else ""
     weg = schritte(
         f"Kleinste Hostbit-Zahl b mit 2ᵇ − 2 ≥ {bedarf}: {kleiner}2{hoch(hostbits)} − 2 = {de(2 ** hostbits - 2)} reicht → b = {hostbits}",
@@ -229,6 +266,14 @@ def _overhead(rng) -> int:
     return rng.choice([0, 0, 5, 8, 10, 12, 15, 20])
 
 
+def _mbit_typisch(mbit: float, wert: float, einheit: str) -> list:
+    """Datenmenge in Mbit: Byte nicht mal 8, oder MB und MiB verwechselt."""
+    return [(mbit / 8, BIT_BYTE), (wert * BYTE[ANDERS[einheit]] * 8 / 10 ** 6, praefix_fehler(einheit))]
+
+
+MINUTEN = "Du hast vermutlich mit Minuten statt Sekunden gerechnet."
+
+
 def _dauer(rng):
     while True:  # nicht wochenlang: 2 TB über 16 Mbit/s rechnet niemand
         name, wert, einheit = _datei(rng)
@@ -243,8 +288,12 @@ def _dauer(rng):
     frage = (f"Die {rng.choice(FIRMEN)} überträgt {name} mit **{de(wert)} {einheit}** über eine Leitung mit "
              f"**{_rate(rate)}**.{satz}\n\nBerechnen Sie die Datenmenge in Mbit und die Übertragungsdauer in Sekunden und in "
              "Minuten. Runden Sie auf zwei Nachkommastellen. (1 Mbit = 10⁶ Bit)")
-    felder = [Feld("mbit", "Datenmenge", mbit, "Mbit"), Feld("sekunden", "Dauer", sekunden, "s"),
-              Feld("minuten", "Dauer", sekunden / 60, "min")]
+    menge = _mbit_typisch(mbit, wert, einheit)
+    dauer = [(m / netto, h) for m, h in menge]  # die Fehler in der Datenmenge ziehen sich durch
+    if overhead:
+        dauer.append((mbit / rate, "Du hast den Overhead nicht abgezogen; nur ein Teil der Datenrate trägt Nutzdaten."))
+    felder = [Feld("mbit", "Datenmenge", mbit, "Mbit", typisch=tuple(menge)), Feld("sekunden", "Dauer", sekunden, "s", typisch=tuple(dauer)),
+              Feld("minuten", "Dauer", sekunden / 60, "min", typisch=tuple((d / 60, h) for d, h in dauer))]
     weg = [f"In Byte: {de(wert)} {einheit} = {de(wert)} · {FAKTOR[einheit]} Byte = {de(byte, 0)} Byte",
            f"In Bit: · 8 = {de(byte * 8, 0)} Bit = **{de(mbit)} Mbit**"]
     if rate >= 1000:
@@ -269,7 +318,14 @@ def _noetige_rate(rng):
     satz = f" Planen Sie ein, dass **{overhead} %** der Datenrate für Protokoll-Overhead verloren gehen." if overhead else ""
     frage = (f"Die {rng.choice(FIRMEN)} will {name} mit **{de(wert)} {einheit}** in höchstens **{zeit}** übertragen.{satz}\n\n"
              "Berechnen Sie die Datenmenge in Mbit und die mindestens nötige Datenrate der Leitung in Mbit/s (zwei Nachkommastellen).")
-    felder = [Feld("mbit", "Datenmenge", mbit, "Mbit"), Feld("rate", "Nötige Datenrate", brutto, "Mbit/s")]
+    menge = _mbit_typisch(mbit, wert, einheit)
+    noetig = [(m / mbit * brutto, h) for m, h in menge] + [(brutto * 60, MINUTEN)]
+    if overhead:
+        noetig += [(netto, "Du hast den Overhead nicht eingerechnet; die Leitung muss mehr schaffen als die Nutzdaten."),
+                   (netto * (1 - overhead / 100), "Du hast mit dem Anteil ohne Overhead multipliziert; die Leitung muss schneller sein, "
+                                                  "nicht langsamer.")]
+    felder = [Feld("mbit", "Datenmenge", mbit, "Mbit", typisch=tuple(menge)),
+              Feld("rate", "Nötige Datenrate", brutto, "Mbit/s", typisch=tuple(noetig))]
     weg = [f"Datenmenge: {de(wert)} · {FAKTOR[einheit]} Byte · 8 = **{de(mbit)} Mbit**",
            f"Zeit: {zeit} = {de(minuten * 60)} s",
            f"Nutzdatenrate = {de(mbit)} Mbit : {de(minuten * 60)} s = **{de(netto)} Mbit/s**"]
@@ -284,7 +340,10 @@ def _menge_in_zeit(rng):
     frage = (f"Ein Server der {rng.choice(FIRMEN)} ist mit **{_rate(rate)}** angebunden. Die Leitung wird **{minuten} Minuten** "
              "lang voll ausgelastet.\n\nWie viele Daten werden in dieser Zeit übertragen? Geben Sie das Ergebnis in GB und in GiB an "
              "(zwei Nachkommastellen).")
-    felder = [Feld("gb", "Datenmenge", byte / 10 ** 9, "GB"), Feld("gib", "Datenmenge", byte / 2 ** 30, "GiB")]
+    felder = [Feld("gb", "Datenmenge", byte / 10 ** 9, "GB", typisch=(
+                  (byte * 8 / 10 ** 9, BIT_BYTE), (byte / 2 ** 30, praefix_fehler("GB")), (byte / 60 / 10 ** 9, MINUTEN))),
+              Feld("gib", "Datenmenge", byte / 2 ** 30, "GiB", typisch=(
+                  (byte * 8 / 2 ** 30, BIT_BYTE), (byte / 10 ** 9, praefix_fehler("GiB")), (byte / 60 / 2 ** 30, MINUTEN)))]
     weg = schritte(
         f"Zeit: {minuten} min = {de(minuten * 60)} s",
         f"Bit: {de(rate)} · 10⁶ Bit/s · {de(minuten * 60)} s = {de(rate * 10 ** 6 * minuten * 60, 0)} Bit",

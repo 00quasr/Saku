@@ -2,7 +2,7 @@
 
 import math
 
-from saku.lernen.rechnen.basis import BYTE, FAKTOR, FIRMEN, Aufgabe, Feld, art, de, hoch, schritte, tabelle
+from saku.lernen.rechnen.basis import ANDERS, BIT_BYTE, BYTE, FAKTOR, FIRMEN, Aufgabe, Feld, art, de, hoch, praefix_fehler, schritte, tabelle
 
 # Formeln und Merksätze je Art: Formelsammlung und Karte zeigen sie nach dem Rechenweg
 FORMELN = {
@@ -12,18 +12,21 @@ FORMELN = {
 - Audio: Abtastrate · Bit je Abtastwert · Kanäle · Sekunden : 8 = Byte
 - Video: Bild in Byte · Bilder je Sekunde · Sekunden
 - Anzahl Dateien auf einem Datenträger: Kapazität : Dateigröße, abrunden
+- *Typische Fehler:* Bit nicht durch 8 geteilt, die Farbanzahl statt der Farbtiefe eingesetzt, dpi nur einmal genommen, Stereo als ein Kanal gerechnet, 1.000 und 1.024 verwechselt
 
 *Beispiel:* 1.920 × 1.080 Pixel, 24 Bit: 1.920 · 1.080 · 24 : 8 = 6.220.800 Byte ≈ 5,93 MiB""",
     "speicher": """- Dezimalpräfixe (Hersteller): 1 kB = 10³, 1 MB = 10⁶, 1 GB = 10⁹, 1 TB = 10¹² Byte
 - Binärpräfixe (Betriebssystem): 1 KiB = 1.024, 1 MiB = 1.024², 1 GiB = 1.024³, 1 TiB = 1.024⁴ Byte
 - Umrechnen immer über Byte: Wert · Faktor der alten Einheit : Faktor der neuen Einheit
 - Scheinbarer Verlust GB → GiB: 1 − 10⁹ : 1.024³ ≈ 6,87 %, TB → TiB ≈ 9,05 %
+- *Typische Fehler:* nur einmal durch 1,024 geteilt (TB → TiB braucht 10¹² : 1.024⁴), in die falsche Richtung umgerechnet, den angezeigten statt des scheinbar fehlenden Anteils angegeben
 
 *Beispiel:* 2 TB = 2 · 10¹² Byte : 1.024⁴ ≈ 1,82 TiB""",
     "zahlensystem": """- Stellenwerte binär: 128, 64, 32, 16, 8, 4, 2, 1; hexadezimal: 16³ = 4.096, 16² = 256, 16, 1
 - Dezimal → binär: Stellenwerte von links füllen, solange der Rest reicht (oder fortlaufend durch 2 teilen, Reste von unten lesen)
 - Binär ↔ hexadezimal: je 4 Bit sind eine Hex-Ziffer (A = 10 … F = 15)
 - Zweierkomplement (8 Bit): Betrag binär, alle Bits invertieren, + 1; höchstes Bit 1 heißt negativ; Bereich −128 bis 127
+- *Typische Fehler:* Reste von oben nach unten gelesen, Hex-Ziffern ab 10 als Zahl geschrieben (13 statt D), eine Hex-Ziffer nicht auf 4 Bit aufgefüllt, beim Zweierkomplement die + 1 vergessen
 
 *Beispiel:* 45 = 32 + 8 + 4 + 1 = `0010 1101` = 2D; −45 = `1101 0010` + 1 = `1101 0011`""",
 }
@@ -42,6 +45,12 @@ def _ziel(rng, byte: float) -> str:
 
 def _byte_weg(byte: float, einheit: str) -> str:
     return f"In {einheit}: {de(byte, 0)} Byte : {FAKTOR[einheit]} = **{de(byte / BYTE[einheit])} {einheit}**"
+
+
+def _in_einheit(byte: float, einheit: str, falsch: list) -> Feld:
+    """Feld für die Datenmenge in einer Einheit; typisch: 1.000 und 1.024 verwechselt, dazu die Fehler (Byte, Hinweis) davor."""
+    typisch = [(byte / BYTE[ANDERS[einheit]], praefix_fehler(einheit))] + [(b / BYTE[einheit], h) for b, h in falsch]
+    return Feld("einheit", "Datenmenge", byte / BYTE[einheit], einheit, typisch=tuple(typisch))
 
 
 def _praefix_hinweis(einheit: str) -> str:
@@ -71,7 +80,10 @@ def _bild(rng):
     weg += [f"Pixel: {de(breite)} · {de(hoehe)} = {de(breite * hoehe)}",
             f"Bit: {de(breite * hoehe)} · {bit} Bit = {de(breite * hoehe * bit)} Bit",
             f"Byte: : 8 = **{de(byte, 0)} Byte**", _byte_weg(byte, einheit)]
-    felder = [Feld("byte", "Datenmenge", byte, "Byte", stellen=0), Feld("einheit", "Datenmenge", byte / BYTE[einheit], einheit)]
+    falsch = [(byte * 8, BIT_BYTE)]
+    if farben:
+        falsch.append((breite * hoehe * 2 ** bit / 8, "Du hast die Anzahl der Farben eingesetzt; gerechnet wird mit der Farbtiefe in Bit."))
+    felder = [Feld("byte", "Datenmenge", byte, "Byte", stellen=0, typisch=tuple(falsch)), _in_einheit(byte, einheit, falsch)]
     return Aufgabe(frage, felder, schritte(*weg), toleranz=0.005, titel="Bild")
 
 
@@ -91,7 +103,9 @@ def _scan(rng):
         f"Byte: {de(pixel)} · {bit} Bit : 8 = {de(byte, 0)} Byte",
         _byte_weg(byte, einheit),
     )
-    felder = [Feld("pixel", "Pixel", pixel, stellen=0), Feld("einheit", "Datenmenge", byte / BYTE[einheit], einheit)]
+    nur_einmal = "Du hast die dpi nur einmal genommen; Breite und Höhe werden beide mit dpi multipliziert."
+    felder = [Feld("pixel", "Pixel", pixel, stellen=0, typisch=((pixel / dpi, nur_einmal),)),
+              _in_einheit(byte, einheit, [(byte * 8, BIT_BYTE), (byte / dpi, nur_einmal)])]
     return Aufgabe(frage, felder, weg, toleranz=0.005, titel="Scan")
 
 
@@ -119,7 +133,10 @@ def _audio(rng):
         f"Byte: : 8 = **{de(byte, 0)} Byte**",
         _byte_weg(byte, einheit),
     )
-    felder = [Feld("byte", "Datenmenge", byte, "Byte", stellen=0), Feld("einheit", "Datenmenge", byte / BYTE[einheit], einheit)]
+    falsch = [(bits, BIT_BYTE)]
+    if kanaele == 2:
+        falsch.append((byte / 2, "Du hast vermutlich nur einen Kanal gerechnet; Stereo hat zwei."))
+    felder = [Feld("byte", "Datenmenge", byte, "Byte", stellen=0, typisch=tuple(falsch)), _in_einheit(byte, einheit, falsch)]
     return Aufgabe(frage, felder, weg, toleranz=0.005, titel="Audio")
 
 
@@ -139,7 +156,9 @@ def _video(rng):
         f"Gesamt: {de(bild)} Byte · {de(fps * sekunden)} = {de(byte)} Byte",
         _byte_weg(byte, einheit),
     )
-    felder = [Feld("bild", "Einzelbild", bild, "Byte", stellen=0), Feld("gesamt", "Gesamt", byte / BYTE[einheit], einheit)]
+    felder = [Feld("bild", "Einzelbild", bild, "Byte", stellen=0, typisch=((bild * 8, BIT_BYTE),)),
+              Feld("gesamt", "Gesamt", byte / BYTE[einheit], einheit,
+                   typisch=((byte / BYTE[ANDERS[einheit]], praefix_fehler(einheit)), (byte * 8 / BYTE[einheit], BIT_BYTE)))]
     return Aufgabe(frage, felder, weg, toleranz=0.005, titel="Video")
 
 
@@ -158,7 +177,14 @@ def _fotos_auf_karte(rng):
     weg += [f"Karte: {karte} GB = {de(karte * 1000)} MB",
             f"Anzahl: {de(karte * 1000)} : {de(mb)} = {de(karte * 1000 / mb)} → abrunden, ein angefangenes Foto passt nicht: "
             f"**{de(anzahl)} Fotos**"]
-    felder = [Feld("foto", "Größe je Foto", mb, "MB"), Feld("anzahl", "Fotos auf der Karte", anzahl, stellen=0)]
+    falsch = [(mb * 8, BIT_BYTE)]
+    if kompression:
+        falsch.append((breite * hoehe * 3 * (100 - kompression) / 100 / 10 ** 6,
+                       "Du hast die Prozent abgezogen; das Foto ist nur noch so viele Prozent groß, wie angegeben."))
+    anzahl_falsch = [(math.ceil(karte * 1000 / mb - 1e-9), "Du hast aufgerundet; ein angefangenes Foto passt nicht mehr drauf."),
+                     (math.floor(karte * 1024 / mb + 1e-9), "Du hast mit 1.024 gerechnet; hier ist 1 GB = 1.000 MB.")]
+    felder = [Feld("foto", "Größe je Foto", mb, "MB", typisch=tuple(falsch)),
+              Feld("anzahl", "Fotos auf der Karte", anzahl, stellen=0, typisch=tuple(anzahl_falsch))]
     return Aufgabe(frage, felder, schritte(*weg), titel="Fotos auf der Speicherkarte")
 
 
@@ -186,7 +212,14 @@ def _anzeige(rng):
         f"Anteil: {de(angezeigt, 4)} : {de(wert)} = {de(angezeigt / wert * 100)} % → es „fehlen“ **{de(verlust)} %**. "
         "Es fehlt nichts, nur die Einheit ist eine andere.",
     )
-    felder = [Feld("anzeige", "Angezeigte Kapazität", angezeigt, ziel), Feld("verlust", "Scheinbar fehlend", verlust, "%")]
+    einmal = wert * 1000 / 1024  # nur einmal durch 1,024 statt 10ⁿ : 1.024ⁿ
+    nur_einmal = f"Du hast nur einmal mit 1.024 gerechnet; {einheit} → {ziel} braucht {FAKTOR[einheit]} : {FAKTOR[ziel]}."
+    felder = [Feld("anzeige", "Angezeigte Kapazität", angezeigt, ziel, typisch=(
+                  (wert * BYTE[ziel] / BYTE[einheit], f"Du hast in die falsche Richtung umgerechnet; 1 {ziel} ist mehr als 1 {einheit}."),
+                  (einmal, nur_einmal))),
+              Feld("verlust", "Scheinbar fehlend", verlust, "%", typisch=(
+                  (100 - verlust, "Das ist der Anteil, der angezeigt wird; gefragt ist der, der scheinbar fehlt."),
+                  ((1 - einmal / wert) * 100, nur_einmal)))]
     return Aufgabe(frage, felder, weg, toleranz=0.005, titel="Was zeigt das Betriebssystem?")
 
 
@@ -208,7 +241,10 @@ def _umrechnen(rng):
     felder, weg = [], []
     for i, (wert, von, nach) in enumerate((erste, zweite), start=1):
         byte = wert * BYTE[von]
-        felder.append(Feld(f"wert{i}", f"{de(wert)} {von}", byte / BYTE[nach], nach))
+        felder.append(Feld(f"wert{i}", f"{de(wert)} {von}", byte / BYTE[nach], nach, typisch=(
+            (byte / BYTE[ANDERS[nach]], f"Du hast {von} und {nach} mit demselben Faktor gerechnet; Dezimalpräfixe rechnen mit 1.000, "
+                                        "Binärpräfixe mit 1.024."),
+            (wert * BYTE[nach] / BYTE[von], "Du hast in die falsche Richtung umgerechnet; erst in Byte, dann durch die neue Einheit."))))
         weg.append(f"{de(wert)} {von} = {de(wert)} · {FAKTOR[von]} Byte = {de(byte, 0)} Byte; : {FAKTOR[nach]} "
                    f"= **{de(byte / BYTE[nach])} {nach}**")
     return Aufgabe(frage, felder, schritte(*weg), toleranz=0.005, titel="Einheiten umrechnen")
@@ -226,7 +262,12 @@ def _dateien_auf_stick(rng):
         f"Kapazität: {stick} GB = {stick} · 10⁹ Byte; : {FAKTOR[einheit]} = **{de(kapazitaet)} {einheit}**",
         f"Anzahl: {de(kapazitaet)} : {de(groesse)} = {de(kapazitaet / groesse)} → abrunden: **{de(anzahl)} Dokumente**",
     )
-    felder = [Feld("kapazitaet", "Kapazität", kapazitaet, einheit), Feld("anzahl", "Dokumente", anzahl, stellen=0)]
+    falsch = [(stick * 2 ** 30 / BYTE[einheit], "Du hast den Stick binär gerechnet; GB ist ein Dezimalpräfix (10⁹ Byte)."),
+              (stick * 10 ** 9 / BYTE[ANDERS[einheit]], praefix_fehler(einheit))]
+    anzahl_falsch = [(math.ceil(kapazitaet / groesse - 1e-9), "Du hast aufgerundet; ein angefangenes Dokument passt nicht mehr drauf.")]
+    anzahl_falsch += [(math.floor(k / groesse + 1e-9), h) for k, h in falsch]
+    felder = [Feld("kapazitaet", "Kapazität", kapazitaet, einheit, typisch=tuple(falsch)),
+              Feld("anzahl", "Dokumente", anzahl, stellen=0, typisch=tuple(anzahl_falsch))]
     return Aufgabe(frage, felder, weg, titel="Dateien auf dem Stick")
 
 
@@ -248,6 +289,16 @@ def _stellenwerte(n: int) -> str:
     return tabelle([str(w) for w in werte], [list(bits)]) + f"\n\n{summe} = **{n}**"
 
 
+# typische Fehler (Feld.typisch)
+UMGEDREHT = "Du hast die Bits in umgekehrter Reihenfolge; das rechte Bit hat den Stellenwert 2⁰ = 1."
+
+
+def _hex_typisch(n: int, stellen: int = 2) -> tuple:
+    """Ziffern ab 10 dezimal hingeschrieben: 2D als „213“."""
+    ziffern = [(n >> 4 * i) & 15 for i in reversed(range(stellen))]
+    return (("".join(map(str, ziffern)), "Ziffern ab 10 schreibt man als Buchstaben: A = 10 bis F = 15."),) if max(ziffern) > 9 else ()
+
+
 def _nibbles(bits: str) -> str:
     return ", ".join(f"`{bits[i:i + 4]}` = {int(bits[i:i + 4], 2):X}" for i in range(0, len(bits), 4))
 
@@ -265,7 +316,9 @@ def _dez_bin(rng):
              "erwartet ihn aber binär und hexadezimal.\n\nWandeln Sie die Zahl in eine 8-Bit-Binärzahl und in eine Hexadezimalzahl um.")
     weg = (f"Stellenwerte von links nach rechts füllen, solange der Rest reicht:\n\n{_stellenwerte(n)}\n\n"
            f"Binär: **{_gruppiert(bits)}**. Hexadezimal je 4 Bit: {_nibbles(bits)} → **{n:02X}**")
-    felder = [Feld("binaer", "Binär (8 Bit)", bits, typ="binaer"), Feld("hex", "Hexadezimal", f"{n:02X}", typ="hex")]
+    felder = [Feld("binaer", "Binär (8 Bit)", bits, typ="binaer",
+                   typisch=((bits[::-1], "Du hast die Reste von oben nach unten gelesen; sie gehören von unten nach oben."),)),
+              Feld("hex", "Hexadezimal", f"{n:02X}", typ="hex", typisch=_hex_typisch(n))]
     return Aufgabe(frage, felder, weg, titel="Dezimal → binär und hexadezimal")
 
 
@@ -276,7 +329,9 @@ def _bin_dez(rng):
              "Geben Sie den Wert dezimal und hexadezimal an.")
     weg = (f"Stellenwerte der gesetzten Bits addieren:\n\n{_stellenwerte(n)}\n\n"
            f"Hexadezimal je 4 Bit: {_nibbles(bits)} → **{n:02X}**")
-    felder = [Feld("dezimal", "Dezimal", n, stellen=0), Feld("hex", "Hexadezimal", f"{n:02X}", typ="hex")]
+    felder = [Feld("dezimal", "Dezimal", n, stellen=0, typisch=(
+                  (int(bits[::-1], 2), UMGEDREHT), (2 * n, "Du hast die Stellenwerte bei 2 begonnen; das rechte Bit zählt 2⁰ = 1."))),
+              Feld("hex", "Hexadezimal", f"{n:02X}", typ="hex", typisch=_hex_typisch(n))]
     return Aufgabe(frage, felder, weg, titel="Binär → dezimal und hexadezimal")
 
 
@@ -293,7 +348,12 @@ def _hex_dez(rng):
         "Binär: jede Hex-Ziffer wird zu 4 Bit: " + ", ".join(f"{z} = `{int(z, 16):04b}`" for z in ziffern)
         + f" → **{_gruppiert(bits)}**",
     )
-    felder = [Feld("dezimal", "Dezimal", n, stellen=0), Feld("binaer", "Binär (16 Bit)", bits, typ="binaer")]
+    zehner = sum(int(z, 16) * 10 ** (3 - i) for i, z in enumerate(ziffern))
+    felder = [Feld("dezimal", "Dezimal", n, stellen=0, typisch=(
+                  (zehner, "Du hast mit Zehnerpotenzen gerechnet; die Stellen im Hexadezimalsystem sind 16er-Potenzen."),
+                  (16 * n, "Du hast die Stellenwerte bei 16¹ begonnen; die rechte Ziffer zählt 16⁰ = 1."))),
+              Feld("binaer", "Binär (16 Bit)", bits, typ="binaer", typisch=(
+                  ("".join(f"{int(z, 16):b}" for z in ziffern), "Jede Hex-Ziffer braucht genau 4 Bit, auch mit führenden Nullen (2 = 0010)."),))]
     return Aufgabe(frage, felder, weg, titel="Hexadezimal → dezimal und binär")
 
 
@@ -311,6 +371,11 @@ def _zweierkomplement(rng):
         f"`{_gruppiert(_binaer(b))}`: höchstes Bit ist 1, also negativ. Invertieren: `{_gruppiert(invertiert_b)}` → + 1 = "
         f"`{_gruppiert(_binaer(256 - b))}` = {256 - b} → **−{256 - b}**",
     )
-    felder = [Feld("muster", f"−{a} im Zweierkomplement", muster, typ="binaer"),
-              Feld("wert", f"{_gruppiert(_binaer(b))} als Dezimalzahl", b - 256, stellen=0)]
+    felder = [Feld("muster", f"−{a} im Zweierkomplement", muster, typ="binaer", typisch=(
+                  (invertiert_a, "Du hast nur invertiert (Einerkomplement); beim Zweierkomplement kommt noch + 1 dazu."),
+                  (_binaer(128 + a), "Du hast nur das Vorzeichenbit gesetzt; im Zweierkomplement wird invertiert und 1 addiert."))),
+              Feld("wert", f"{_gruppiert(_binaer(b))} als Dezimalzahl", b - 256, stellen=0, typisch=(
+                  (b, "Du hast das Byte ohne Vorzeichen gelesen; ist das höchste Bit 1, ist die Zahl negativ."),
+                  (b - 255, "Du hast nur invertiert; zum Betrag gehört noch + 1."),
+                  (128 - b, "Du hast das höchste Bit nur als Minuszeichen gelesen; im Zweierkomplement wird invertiert und 1 addiert.")))]
     return Aufgabe(frage, felder, weg, titel="Zweierkomplement")

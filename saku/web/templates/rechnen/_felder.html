@@ -58,6 +58,7 @@
 
 {% set uebrige = a.felder|rejectattr('name', 'in', a.tabellen_felder)|rejectattr('typ', 'in', ('sql', 'code'))|list %}
 {% if uebrige %}
+{% set hinweise = denkfehler(a, eingaben) if fertig else {} %}
 <div class="rechnen-felder" role="group" aria-label="Deine Ergebnisse">
   {% for f in uebrige %}
   {% set ok = fertig and werte[f.name] %}
@@ -81,7 +82,8 @@
     </span>
     <span class="rechnen-marke">
       {% if ok %}<span aria-label="richtig">✓</span>
-      {% elif fertig %}<span aria-label="falsch">✕</span> <span class="gedaempft">richtig:</span> <strong class="zahl">{{ f.anzeige }}</strong> {{ f.einheit }}{% endif %}
+      {% elif fertig %}<span aria-label="falsch">✕</span> <span class="gedaempft">richtig:</span> <strong class="zahl">{{ f.anzeige }}</strong> {{ f.einheit }}
+      {% if f.name in hinweise %}<span class="rechnen-denkfehler">{{ hinweise[f.name] }}</span>{% endif %}{% endif %}
     </span>
   </div>
   {% endfor %}

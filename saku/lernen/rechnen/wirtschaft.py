@@ -20,12 +20,14 @@ FORMELN = {
 - Angebotsvergleich: Bezugspreis jedes Angebots für die ganze Menge, das günstigste gewinnt
 - Differenzkalkulation (Verkaufspreis vom Markt vorgegeben): vorwärts bis zu den Selbstkosten, rückwärts vom Listenverkaufspreis bis zum Barverkaufspreis (Rabatt und Skonto jetzt vom Hundert); Gewinn = Barverkaufspreis − Selbstkosten, in % der Selbstkosten
 - Rückwärtskalkulation (höchster Einkaufspreis): Kundenrabatt und -skonto vom Hundert abziehen, Gewinn und Handlungskosten auf Hundert herausrechnen (: (100 + p) · 100), Bezugskosten abziehen, Liefererskonto und -rabatt im Hundert (: (100 − p) · 100)
+- *Typische Fehler:* Skonto vom Listenpreis statt vom Zieleinkaufspreis, Zuschläge addiert statt nacheinander, Kundenskonto und -rabatt vom statt im Hundert, Gewinn in Prozent vom Barverkaufspreis statt von den Selbstkosten
 
 *Beispiel:* 1.000 € − 10 % = 900 €, − 2 % Skonto = 882 €, + 20 € Bezugskosten = 902 € Bezugspreis""",
     "vergleich": """- Gesamtkosten = einmalige Kosten + monatliche Kosten · Monate
 - Kauf: Preis + Wartung · Monate; Leasing: Sonderzahlung + Rate · Monate; Miete: Rate · Monate
 - Ab wann lohnt sich der Kauf? Kauf + w · m < Rate · m ⇔ m > Kaufpreis : (Rate − w) → der erste ganze Monat danach
 - Fixkosten fallen unabhängig von der Nutzung an, variable Kosten mit ihr
+- *Typische Fehler:* Wartung oder Sonderzahlung vergessen, mit Jahren statt Monaten multipliziert, den Monat des Gleichstands statt des ersten Monats danach angegeben
 
 *Beispiel:* 4.800 € + 30 €/Monat gegen Miete 190 €/Monat: m > 4.800 : 160 = 30 → ab Monat 31""",
     "nutzwert": """- Gewichtungen zusammen 100 %; eine fehlende = 100 % − Summe der übrigen
@@ -47,6 +49,12 @@ def _cent(x: Decimal) -> Decimal:
 
 def _prozent(p: Decimal) -> str:
     return f"{de(float(p))} %"
+
+
+# typische Fehler (Feld.typisch): Prozent vom falschen Grundwert
+SKONTO_VOM_LISTENPREIS = "Du hast den Skonto vom Listenpreis berechnet; erst geht der Rabatt ab, der Skonto rechnet vom Zieleinkaufspreis."
+VOM_HUNDERT = ("Du hast Kundenskonto und -rabatt vom Hundert aufgeschlagen; der Kunde zieht sie vom höheren Preis ab, also im Hundert: "
+               ": (100 − p) · 100.")
 
 
 @art("kalkulation", "Kalkulation", "Wirtschaft", "Bezugs-, Angebots-, Differenz- und Rückwärtskalkulation, Angebotsvergleich",
@@ -88,10 +96,14 @@ def _vorwaerts(rng):
         ["**= Listenverkaufspreis brutto**", "", f"**{euro(lvp + ust)}**"],
     ]
     variante = rng.choice(["bezug", "selbstkosten", "angebot"])
+    vom_lep = zep - _cent(lep * skonto / h)
+    bzp_feld = Feld("bzp", "Bezugspreis", float(bzp), "€", typisch=(
+        (float(vom_lep + bezug), SKONTO_VOM_LISTENPREIS), (float(bep), "Du hast die Bezugskosten vergessen.")))
+    sk_feld = Feld("sk", "Selbstkosten", float(sk), "€", typisch=((float(bep + _cent(bep * hk / h)), "Du hast die Bezugskosten vergessen."),))
     if variante == "bezug":
         zeilen = zeilen[:7]
-        felder = [Feld("zep", "Zieleinkaufspreis", float(zep), "€"), Feld("bep", "Bareinkaufspreis", float(bep), "€"),
-                  Feld("bzp", "Bezugspreis", float(bzp), "€")]
+        felder = [Feld("zep", "Zieleinkaufspreis", float(zep), "€"),
+                  Feld("bep", "Bareinkaufspreis", float(bep), "€", typisch=((float(vom_lep), SKONTO_VOM_LISTENPREIS),)), bzp_feld]
         auftrag = "Berechnen Sie mit einer Bezugskalkulation den Ziel- und den Bareinkaufspreis sowie den Bezugspreis je Stück."
         daten = (f"- Listeneinkaufspreis: {euro(lep)}\n- Liefererrabatt: {_prozent(rabatt)}\n- Liefererskonto: {_prozent(skonto)}\n"
                  f"- Bezugskosten (Fracht, Verpackung): {euro(bezug)}")
@@ -100,13 +112,17 @@ def _vorwaerts(rng):
                  f"- Bezugskosten: {euro(bezug)}\n- Handlungskostenzuschlag: {_prozent(hk)}\n- Gewinnzuschlag: {_prozent(gewinn)}\n"
                  f"- Kundenskonto: {_prozent(k_skonto)}, Kundenrabatt: {_prozent(k_rabatt)}\n- Umsatzsteuer: 19 %")
         if variante == "selbstkosten":
-            felder = [Feld("bzp", "Bezugspreis", float(bzp), "€"), Feld("sk", "Selbstkosten", float(sk), "€"),
-                      Feld("bvp", "Barverkaufspreis", float(bvp), "€")]
+            felder = [bzp_feld, sk_feld, Feld("bvp", "Barverkaufspreis", float(bvp), "€", typisch=(
+                (float(bzp + _cent(bzp * (hk + gewinn) / h)), "Du hast die Zuschläge addiert; der Gewinn rechnet von den Selbstkosten, "
+                                                              "nicht vom Bezugspreis."),))]
             auftrag = "Berechnen Sie den Bezugspreis, die Selbstkosten und den Barverkaufspreis je Stück."
             zeilen = zeilen[:11]
         else:
-            felder = [Feld("sk", "Selbstkosten", float(sk), "€"), Feld("lvp", "Listenverkaufspreis netto", float(lvp), "€"),
-                      Feld("brutto", "Listenverkaufspreis brutto", float(lvp + ust), "€")]
+            vom_hundert = _cent(_cent(bvp * (h + k_skonto) / h) * (h + k_rabatt) / h)
+            felder = [sk_feld, Feld("lvp", "Listenverkaufspreis netto", float(lvp), "€", typisch=((float(vom_hundert), VOM_HUNDERT),)),
+                      Feld("brutto", "Listenverkaufspreis brutto", float(lvp + ust), "€", typisch=(
+                          (float(lvp), "Das ist der Nettopreis; brutto kommen 19 % Umsatzsteuer dazu."),
+                          (float(vom_hundert * Decimal("1.19")), VOM_HUNDERT)))]
             auftrag = "Erstellen Sie das Angebot: Berechnen Sie die Selbstkosten und den Listenverkaufspreis netto und brutto je Stück."
     frage = (f"Die {rng.choice(FIRMEN)} kauft {ware} ein und verkauft sie an Geschäftskunden weiter. Für die Kalkulation "
              f"gelten:\n\n{daten}\n\n{auftrag} Runden Sie jeden Schritt auf Cent.")
@@ -169,8 +185,12 @@ def _differenz(rng):
     weg = (tabelle(["Schritt", "%", "Betrag"], zeilen)
            + "\n\nVom Listenverkaufspreis wird rückwärts gerechnet: Rabatt und Skonto stehen jetzt am höheren Preis, also vom "
              f"Hundert. Gewinn in Prozent = {euro(gewinn)} : {euro(sk)} · 100 = {de(float(prozent))} %.")
+    vom_listenpreis = "Du hast vom Listenverkaufspreis gerechnet; Kundenrabatt und -skonto gehen vorher ab."
     felder = [Feld("sk", "Selbstkosten", float(sk), "€"), Feld("bvp", "Barverkaufspreis", float(bvp), "€"),
-              Feld("gewinn", "Gewinn", float(gewinn), "€"), Feld("prozent", "Gewinn in Prozent", float(prozent), "%")]
+              Feld("gewinn", "Gewinn", float(gewinn), "€", typisch=((float(lvp - sk), vom_listenpreis),)),
+              Feld("prozent", "Gewinn in Prozent", float(prozent), "%", typisch=(
+                  (float(gewinn / bvp * h), "Du hast den Gewinn auf den Barverkaufspreis bezogen; Grundwert sind die Selbstkosten."),
+                  (float((lvp - sk) / sk * h), vom_listenpreis)))]
     return Aufgabe(frage, felder, weg, toleranz=0.001, titel="Differenzkalkulation")
 
 
@@ -205,8 +225,15 @@ def _rueckwaerts(rng):
            + f"\n\nAuf Hundert heißt: der Prozentsatz hing am kleineren Wert, also Selbstkosten = Barverkaufspreis : "
              f"{de(float(h + gewinn))} % · 100 %. Im Hundert: der Lieferer zog den Rabatt vom größeren Wert ab, also Listeneinkaufspreis "
              f"= Zieleinkaufspreis : {de(float(h - z['rabatt']))} % · 100 %.")
-    felder = [Feld("bvp", "Barverkaufspreis", float(bvp), "€"), Feld("sk", "Selbstkosten", float(sk), "€"),
-              Feld("bzp", "Bezugspreis", float(bzp), "€"), Feld("lep", "Listeneinkaufspreis höchstens", float(lep), "€")]
+    abgezogen = "Du hast {} vom Hundert abgezogen; er hing am kleineren Wert, also auf Hundert herausrechnen: : (100 + p) · 100."
+    felder = [Feld("bvp", "Barverkaufspreis", float(bvp), "€"),
+              Feld("sk", "Selbstkosten", float(sk), "€", typisch=((float(bvp - _cent(bvp * gewinn / h)), abgezogen.format("den Gewinn")),)),
+              Feld("bzp", "Bezugspreis", float(bzp), "€",
+                   typisch=((float(sk - _cent(sk * z["hk"] / h)), abgezogen.format("den Handlungskostenzuschlag")),)),
+              Feld("lep", "Listeneinkaufspreis höchstens", float(lep), "€", typisch=(
+                  (float(_cent(_cent(bep * (h + z["skonto"]) / h) * (h + z["rabatt"]) / h)),
+                   "Du hast Skonto und Rabatt vom Hundert aufgeschlagen; der Lieferer zog sie vom höheren Preis ab, also im Hundert."),
+                  (float(_cent(_cent(bzp / (h - z["skonto"]) * h) / (h - z["rabatt"]) * h)), "Du hast die Bezugskosten nicht abgezogen.")))]
     return Aufgabe(frage, felder, weg, toleranz=0.001, titel="Rückwärtskalkulation")
 
 
@@ -222,11 +249,14 @@ def _angebotsvergleich(rng):
             listen = stueck * menge
             r = _cent(listen * rabatt / 100)
             s = _cent((listen - r) * skonto / 100)
-            angebote.append((name, stueck, rabatt, skonto, fracht, listen, r, s, listen - r - s + fracht))
-        bezugspreise = sorted(a[-1] for a in angebote)
+            falsch = [(float(listen - r - _cent(listen * skonto / 100) + fracht), SKONTO_VOM_LISTENPREIS)]
+            if fracht:
+                falsch.append((float(listen - r - s), "Du hast den Versand vergessen; er gehört als Bezugskosten zum Bezugspreis."))
+            angebote.append((name, stueck, rabatt, skonto, fracht, listen, r, s, listen - r - s + fracht, tuple(falsch)))
+        bezugspreise = sorted(a[8] for a in angebote)
         if bezugspreise[1] - bezugspreise[0] >= 1:
             break
-    bester = min(angebote, key=lambda a: a[-1])[0]
+    bester = min(angebote, key=lambda a: a[8])[0]
     zeilen = [[f"Angebot {a[0]}", f"{euro(a[1])} · {menge} = {euro(a[5])}", f"− {euro(a[6])} ({_prozent(a[2])})",
                f"− {euro(a[7])} ({_prozent(a[3])})", f"+ {euro(a[4])}", f"**{euro(a[8])}**"] for a in angebote]
     liste = "\n".join(f"- **Angebot {a[0]}:** {euro(a[1])} je Stück, "
@@ -239,7 +269,7 @@ def _angebotsvergleich(rng):
     weg = (tabelle(["", "Listenpreis", "Rabatt", "Skonto", "Bezugskosten", "Bezugspreis"], zeilen)
            + f"\n\nRabatt vom Listenpreis, Skonto vom Zieleinkaufspreis (nach Rabatt), dann Bezugskosten dazu. "
            f"Am günstigsten: **Angebot {bester}**.")
-    felder = [Feld(f"angebot_{a[0].lower()}", f"Bezugspreis Angebot {a[0]}", float(a[8]), "€") for a in angebote]
+    felder = [Feld(f"angebot_{a[0].lower()}", f"Bezugspreis Angebot {a[0]}", float(a[8]), "€", typisch=a[9]) for a in angebote]
     felder.append(Feld("bester", "Günstigstes Angebot", bester, typ="text", optionen=list("ABC")))
     return Aufgabe(frage, felder, weg, toleranz=0.001, titel="Angebotsvergleich")
 
@@ -289,7 +319,11 @@ def _gesamtkosten(rng):
         f"Miete: {monate} · {euro(miete)} = **{euro(kosten['Miete'])}**",
         f"Am günstigsten: **{beste}**",
     )
-    felder = [Feld(n.lower(), f"Gesamtkosten {n}", k, "€") for n, k in kosten.items()]
+    jahre = "Du hast mit Jahren statt Monaten multipliziert."
+    typisch = {"Kauf": [(kauf, "Du hast die Wartung vergessen; sie kommt jeden Monat dazu."), (kauf + wartung * monate / 12, jahre)],
+               "Leasing": [(sonder + leasing * monate / 12, jahre), (leasing * monate, "Du hast die Sonderzahlung vergessen.")],
+               "Miete": [(miete * monate / 12, jahre)]}
+    felder = [Feld(n.lower(), f"Gesamtkosten {n}", k, "€", typisch=tuple(typisch[n])) for n, k in kosten.items()]
     felder.append(Feld("beste", "Günstigste Variante", beste, typ="text", optionen=list(kosten)))
     return Aufgabe(frage, felder, weg, toleranz=0.001, titel="Gesamtkosten")
 
@@ -313,8 +347,13 @@ def _ab_wann(rng):
         f"Kauf < Leasing: {de(kauf)} + {de(wartung)} m < {de(sonder) + ' + ' if sonder else ''}{de(leasing)} m ⇔ "
         f"{de(kauf - sonder)} < {de(leasing - wartung)} m ⇔ m > {de((kauf - sonder) / (leasing - wartung))} → ab Monat **{ab_leasing}**",
     )
-    felder = [Feld("miete", "Kauf günstiger als Miete ab Monat", ab_miete, stellen=0),
-              Feld("leasing", "Kauf günstiger als Leasing ab Monat", ab_leasing, stellen=0)]
+    gleichstand = "In diesem Monat ist der Kauf noch teurer; günstiger wird er erst im nächsten ganzen Monat."
+    wartung_fehlt = "Du hast die Wartung beim Kauf vergessen; sie schmälert die monatliche Ersparnis."
+    felder = [Feld("miete", "Kauf günstiger als Miete ab Monat", ab_miete, stellen=0, typisch=(
+                  (ab_miete - 1, gleichstand), (kauf // miete + 1, wartung_fehlt))),
+              Feld("leasing", "Kauf günstiger als Leasing ab Monat", ab_leasing, stellen=0, typisch=(
+                  (ab_leasing - 1, gleichstand), ((kauf - sonder) // leasing + 1, wartung_fehlt),
+                  (kauf // (leasing - wartung) + 1, "Du hast die Sonderzahlung des Leasings vergessen.")))]
     return Aufgabe(frage, felder, weg, titel="Ab wann lohnt sich der Kauf?")
 
 
