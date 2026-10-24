@@ -1,0 +1,17 @@
+{# Stichpunkt-Abgleich ohne KI (saku/lernen/stichpunkte.py): welche Punkte der Musterlösung in der eigenen Antwort stehen.
+   Nur eine Hilfe: der passende Knopf 1/2/3 wird hervorgehoben (keiko.css), bewertet wird von Hand. #}
+{% set worte = {1: 'Nicht gewusst', 2: 'Teilweise', 3: 'Gewusst'} %}
+<div class="stichpunkte" data-stichpunkt-vorschlag="{{ abgleich.vorschlag }}" role="group" aria-labelledby="stichpunkte-titel">
+  <p class="etikett" id="stichpunkte-titel">Stichpunkte der Musterlösung: {{ abgleich.erkannt }} von {{ abgleich.ziel }} erkannt
+    {%- if abgleich.verlangt %} <span class="stichpunkte-hinweis">· verlangt waren {{ abgleich.verlangt }}</span>{% endif %}</p>
+  <ul class="stichpunkte-liste klein">
+    {% for p in abgleich.punkte %}
+    <li class="{{ 'stichpunkt--erkannt' if p.erkannt }}">
+      <span class="stichpunkt-marke" aria-label="{{ 'erkannt' if p.erkannt else 'nicht erkannt' }}">{{ '✓' if p.erkannt else '·' }}</span>
+      <span>{% for stueck, getroffen in p.teile %}{% if getroffen %}<mark>{{ stueck }}</mark>{% else %}{{ stueck }}{% endif %}{% endfor %}</span>
+    </li>
+    {% endfor %}
+  </ul>
+  <p class="klein">Vorschlag: <strong>{{ worte[abgleich.vorschlag] }} ({{ abgleich.vorschlag }})</strong>
+    <span class="gedaempft">· reiner Wortabgleich ohne KI, du entscheidest selbst</span></p>
+</div>

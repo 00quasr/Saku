@@ -1,6 +1,7 @@
 {% import "_makros.html" as m %}
 {% import "keiko/_bausteine.html" as k %}
 <section class="tusche keiko-loesung" aria-label="Lösungshinweis">
+  {% if abgleich %}{% include "keiko/_stichpunkte.html" %}{% endif %}
   <p class="etikett">Lösungshinweis</p>
   {{ k.loesung(karte) }}
   {% if (antwort or zeichnung) and sensei_bereit %}

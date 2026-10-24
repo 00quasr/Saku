@@ -108,10 +108,13 @@ def sprint():
 
 @bp.get("/sprint/neu")
 def sprint_neu():
-    """Fünf verschiedene Arten, gewichtet wie „Gemischt üben“; Arten, Seeds und Startzeit stehen in der Adresse."""
-    rng, arten, quoten = random.Random(), [], _quoten(db())
+    """Fünf verschiedene Arten aus dem Umfang des Lernpfads, gewichtet wie „Gemischt üben“; Arten, Seeds und Startzeit stehen
+    in der Adresse."""
+    con = db()
+    rng, arten, quoten = random.Random(), [], _quoten(con)
+    ausserhalb = [a for a in rechnen.ARTEN if a not in rechnen.im_umfang(_pfad(con))]
     for _ in range(SPRINT_AUFGABEN):
-        arten.append(rechnen.gemischt(rng, quoten, ohne=arten))
+        arten.append(rechnen.gemischt(rng, quoten, ohne=arten + ausserhalb))
     return redirect(url_for("rechnen.sprint_lauf", a=[f"{art}:{rng.randrange(SEEDS)}" for art in arten], start=int(time.time())))
 
 
