@@ -1,0 +1,101 @@
+"""SQL-Sandbox: Vergleich, Sicherheit, Pipeline-Schritt (KI gemockt) und Üben (alles erfunden)."""
+
+import re
+import sqlite3
+import time
+
+import pytest
+
+from saku import db
+from saku.lernen import sql
+
+DDL = "CREATE TABLE kunde (id INTEGER PRIMARY KEY, name TEXT, ort TEXT, umsatz REAL);"
+DATEN = "INSERT INTO kunde VALUES (1, 'Ada', 'Köln', 120.5), (2, 'Bo', 'Bonn', 80), (3, 'Cem', 'Köln', 120.5), (4, 'Dana', NULL, 10);"
+
+
+def pruefen(loesung: str, eigene: str) -> dict:
+    return sql.pruefen(DDL, DATEN, loesung, eigene)
+
+
+def test_anweisungen_und_sortierung():
+    assert sql.anweisungen("SELECT ';'; -- a; b\nSELECT 2;\n-- Ende") == ["SELECT ';';", "-- a; b\nSELECT 2;"]
+    assert sql.sortierung("SELECT a FROM t WHERE a IN (SELECT b FROM u ORDER BY b)", ["a"]) is None
+    assert sql.sortierung("SELECT k.a, COUNT(*) AS n FROM t k GROUP BY k.a ORDER BY n DESC, k.a LIMIT 3", ["a", "n"]) == [1, 0]
+    assert sql.sortierung("SELECT a, b FROM t ORDER BY length(a)", ["a", "b"]) == [0, 1]  # Ausdruck: die ganze Zeile zählt
+
+
+def test_select_menge_reihenfolge_toleranz():
+    koeln = "SELECT name, umsatz FROM kunde WHERE ort = 'Köln'"
+    # Spaltennamen, Spalten- und Zeilenreihenfolge sind egal, solange die Lösung nicht sortiert
+    assert pruefen(koeln, "SELECT umsatz AS u, name AS n FROM kunde WHERE ort LIKE 'K%' ORDER BY id DESC")["ergebnis"] == 3
+    assert pruefen("SELECT AVG(umsatz) FROM kunde WHERE id IN (1, 2, 4)",
+                   "SELECT ROUND(AVG(umsatz), 2) FROM kunde WHERE id <> 3")["ergebnis"] == 3  # 70.1666… gegen 70.17
+
+    sortiert = "SELECT name, umsatz FROM kunde ORDER BY umsatz DESC"
+    assert pruefen(sortiert, "SELECT name, umsatz FROM kunde ORDER BY umsatz DESC, name DESC")["ergebnis"] == 3  # Gleichstand Ada/Cem
+    verkehrt = pruefen(sortiert, "SELECT name, umsatz FROM kunde ORDER BY umsatz")
+    assert verkehrt["ergebnis"] == 2 and verkehrt["hinweise"] == ["Die Zeilen stimmen, die Reihenfolge nicht (ORDER BY)."]
+
+    zu_viel = pruefen(koeln, "SELECT name, umsatz FROM kunde WHERE ort = 'Köln' OR ort IS NULL")
+    assert zu_viel["ergebnis"] == 2 and zu_viel["hinweise"] == ["1 Zeile zu viel."]
+    daneben = pruefen(koeln, "SELECT name, umsatz FROM kunde WHERE id = 2")
+    assert daneben["ergebnis"] == 1 and daneben["hinweise"] == ["2 Zeilen fehlen, 1 Zeile zu viel."]
+    assert [t["titel"] for t in daneben["tabellen"][0]] == ["Erwartet", "Dein Ergebnis"]
+    spalte = pruefen(koeln, "SELECT id, name, umsatz FROM kunde WHERE ort = 'Köln'")
+    assert spalte["ergebnis"] == 2 and spalte["hinweise"] == ["1 Spalte zu viel."]
+    assert pruefen(koeln, "SELECT name FROM kunde")["hinweise"] == ["2 Spalten erwartet, 1 geliefert."]
+    assert pruefen(koeln, "DELETE FROM kunde")["ergebnis"] == 1  # liefert kein Ergebnis
+
+
+def test_dml_und_ddl_vergleichen_den_zustand():
+    erhoehen = "UPDATE kunde SET umsatz = umsatz * 1.1 WHERE ort = 'Köln'"
+    assert pruefen(erhoehen, "update kunde set umsatz = umsatz + umsatz / 10 where ort in ('Köln')")["ergebnis"] == 3
+    halb = pruefen(erhoehen, "UPDATE kunde SET umsatz = umsatz * 1.1 WHERE id = 1")
+    assert halb["ergebnis"] == 2 and halb["hinweise"] == ["Tabelle kunde: 1 Zeile fehlt, 1 Zeile zu viel."]
+    assert [t["titel"] for t in halb["tabellen"][0]] == ["kunde erwartet", "kunde bei dir"]
+    nichts = pruefen(erhoehen, "SELECT * FROM kunde")  # „nichts tun“ ist nicht fast richtig
+    assert nichts["ergebnis"] == 1 and nichts["hinweise"][0] == "Deine Anweisung ändert nichts."
+    assert pruefen("INSERT INTO kunde (id, name) VALUES (5, 'Eda')", "INSERT INTO kunde VALUES (5, 'Eda', NULL, NULL)")["ergebnis"] == 3
+
+    anlegen = "CREATE TABLE bestellung (id INTEGER PRIMARY KEY, kunde_id INTEGER REFERENCES kunde(id), datum DATE)"
+    assert pruefen(anlegen, "create table Bestellung (Datum varchar(10), ID int primary key, Kunde_ID int)")["ergebnis"] == 3
+    fehlt = pruefen(anlegen, "CREATE TABLE bestellung (id INTEGER PRIMARY KEY, datum TEXT)")
+    assert fehlt["ergebnis"] == 2 and fehlt["hinweise"] == ["Tabelle bestellung: Spalte kunde_id fehlt."]
+    assert pruefen("ALTER TABLE kunde ADD COLUMN email TEXT", "ALTER TABLE kunde ADD email VARCHAR(100)")["ergebnis"] == 3
+
+
+@pytest.mark.parametrize("anweisung", ["ATTACH DATABASE 'fremd.db' AS fremd", "VACUUM INTO 'kopie.db'",
+                                       "SELECT load_extension('fremd')", "PRAGMA writable_schema = 1"])
+def test_sandbox_sperrt_dateien_pragma_und_erweiterungen(anweisung, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    with pytest.raises(sql.SqlFehler, match="Nicht erlaubt"):
+        sql.ausfuehren(DDL, DATEN, anweisung)
+    assert not list(tmp_path.iterdir())
+
+
+def test_endlosschleife_und_grenzen(monkeypatch):
+    monkeypatch.setattr(sql, "SEKUNDEN", 0.3)
+    start = time.monotonic()
+    with pytest.raises(sql.SqlFehler, match="Abgebrochen"):
+        sql.ausfuehren(DDL, DATEN, "WITH RECURSIVE r(x) AS (SELECT 1 UNION ALL SELECT x + 1 FROM r) SELECT COUNT(*) FROM r")
+    assert time.monotonic() - start < 2
+    gross = sql.ausfuehren(DDL, DATEN, "WITH RECURSIVE r(x) AS (SELECT 1 UNION ALL SELECT x + 1 FROM r LIMIT 6000) SELECT x FROM r")
+    assert gross["meldung"] == "mehr als 5000 Zeilen" and len(gross["tabellen"][0]["zeilen"]) == sql.ZEIGEN
+    with pytest.raises(sql.SqlFehler, match="Zu lang"):
+        sql.ausfuehren(DDL, DATEN, "SELECT 1;" * (sql.ANWEISUNGEN + 1))
+    with pytest.raises(sql.SqlFehler, match="Schreib erst"):
+        sql.ausfuehren(DDL, DATEN, " -- nur ein Kommentar\n")
+    # Skript: geänderte Tabellen statt Ergebnis
+    skript = sql.ausfuehren(DDL, DATEN, "DELETE FROM kunde WHERE ort IS NULL; UPDATE kunde SET ort = 'Bonn' WHERE id = 1;")
+    assert skript["meldung"] == "2 Zeilen geändert" and [t["titel"] for t in skript["tabellen"]] == ["kunde"]
+
+
+def test_migration_7(tmp_path):
+    alt = sqlite3.connect(tmp_path / "alt.db")
+    alt.executescript("CREATE TABLE aufgabe (id INTEGER PRIMARY KEY); CREATE TABLE teilaufgabe (id INTEGER PRIMARY KEY); "
+                      "INSERT INTO teilaufgabe VALUES (1); PRAGMA user_version = 6;")
+    alt.close()
+    db.init(tmp_path / "alt.db")
+    con = sqlite3.connect(tmp_path / "alt.db")
+    assert con.execute("SELECT id, loesung_sql FROM teilaufgabe").fetchall() == [(1, None)]
+    assert con.execute("SELECT COUNT(*) FROM sql_sandbox").fetchone()[0] == 0

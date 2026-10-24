@@ -31,6 +31,11 @@ MIGRATIONEN = {
         "fsrs TEXT, faellig_am TEXT, geaendert_am TEXT)",
         "ALTER TABLE teilaufgabe ADD COLUMN muster_id INTEGER REFERENCES muster(id) ON DELETE SET NULL",
     ],
+    7: [
+        "CREATE TABLE sql_sandbox (aufgabe_id INTEGER PRIMARY KEY REFERENCES aufgabe(id) ON DELETE CASCADE, "
+        "ddl TEXT NOT NULL, daten TEXT NOT NULL, erstellt TEXT DEFAULT (datetime('now')))",
+        "ALTER TABLE teilaufgabe ADD COLUMN loesung_sql TEXT",
+    ],
 }
 
 
