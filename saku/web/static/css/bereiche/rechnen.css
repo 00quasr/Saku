@@ -96,6 +96,21 @@
 .sg-rumpf { margin-left: 1.75rem; border-top: 1px solid var(--sg-linie); border-left: 1px solid var(--sg-linie); }
 .rechnen-weg + .struktogramm, .rechnen-frage + .struktogramm { margin-top: -4px; }
 
+/* Diagramme als SVG (svg.py): Linien und Schrift in currentColor, Flächen aus den Tokens; schmaler als das Bild wird es kleiner */
+.uml {
+  display: block; max-width: 100%; height: auto; color: var(--sumi); background: var(--washi-hell);
+  border: 1px solid var(--linie); border-radius: 10px; font-family: var(--schrift-code); font-size: 12px;
+}
+.uml text { fill: currentColor; }
+.uml .uml-kasten, .uml .uml-hohl { fill: var(--washi-hell); stroke: currentColor; stroke-width: 1.2; }
+.uml .uml-linie { fill: none; stroke: currentColor; stroke-width: 1.2; stroke-linejoin: round; }
+.uml .uml-strich { stroke-dasharray: 6 4; }
+.uml .uml-voll { fill: currentColor; stroke: currentColor; }
+.uml .uml-kursiv { font-style: italic; }
+.uml .uml-fett { font-weight: 600; }
+.uml .uml-unterstrichen { text-decoration: underline; }
+.rechnen-frage + .uml { margin-top: -4px; }
+
 /* Eingabetabelle (Wertetabelle, Array): die Grundform kommt aus Üben (.tabelle-eingabe) */
 .rechnen-tabelle { max-width: max-content; }
 .rechnen-tabelle th[scope="row"] { background: none; font-weight: 500; color: var(--sumi-mittel); }

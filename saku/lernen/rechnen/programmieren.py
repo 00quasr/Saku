@@ -13,6 +13,7 @@ import operator
 from markupsafe import Markup, escape
 
 from saku.lernen.rechnen.basis import FIRMEN, Aufgabe, Feld, art, de, tabelle
+from saku.lernen.rechnen.svg import Bild, breite
 
 # Formeln und Merksätze je Art: Formelsammlung und Karte zeigen sie nach dem Rechenweg
 FORMELN = {
@@ -22,6 +23,8 @@ FORMELN = {
 - `FÜR i ← 1 BIS n` läuft n-mal, einschließlich n; Arrays beginnen bei Index 0, der letzte ist länge − 1
 - Typische Fehler: falscher Startwert (Summe mit 1 statt 0), Schleife einen Durchlauf zu kurz oder zu lang, falsche Abbruchbedingung, `>` statt `≥`
 - Am Struktogramm genauso, von oben nach unten: Verzweigung links ja, rechts nein; der Rumpf einer Schleife steht eingerückt unter ihrem Kopf
+- Am Aktivitätsdiagramm vom Startknoten ● den Pfeilen nach bis zum Endknoten ◉: Aktionen in abgerundeten Kästen, an der Raute (Entscheidung) gilt der Pfeil, dessen Wächter `[…]` zutrifft, eine zweite Raute führt die Zweige wieder zusammen
+- Schleife im Aktivitätsdiagramm: Zusammenführung, Entscheidung, Rumpf, Pfeil zurück zur Zusammenführung; eine Zählschleife steht aufgelöst da (Startwert, `[i ≤ n]`, Rumpf, `i ← i + 1`)
 
 *Beispiel:* `zahl ← 345`, `SOLANGE zahl > 0`: quersumme 5, 9, 12; zahl 34, 3, 0""",
 }
@@ -130,6 +133,142 @@ def struktogramm(programm: list) -> Markup:
     """Nassi-Shneiderman-Diagramm als HTML (Aussehen in rechnen.css): Anweisung als Kasten, Verzweigung mit Dreieck, ja links
     und nein rechts, kopf- und zählergesteuerte Schleife mit Kopf und eingerücktem Rumpf. Texte wie im Pseudocode."""
     return Markup(f'<div class="struktogramm" role="group" aria-label="Struktogramm">{_sg(programm)}</div>')
+
+
+# --- Aktivitätsdiagramm ---------------------------------------------------------
+# Von oben nach unten auf einer Achse: Aktion als abgerundeter Kasten, Entscheidung und Zusammenführung als Raute, der Ja-Zweig
+# links und der Nein-Zweig rechts, Schleife als Zusammenführung, Entscheidung, Rumpf und Rücksprung links; raus geht es rechts.
+
+AKTION, RAUTE, ABSTAND = 30, 26, 24  # Höhe einer Aktion, Größe der Raute, Länge der Pfeile dazwischen
+UMKEHR = {"=": "<>", "<>": "=", "<": ">=", "<=": ">", ">": "<=", ">=": "<"}
+
+
+def nicht(bedingung):
+    """Die verneinte Bedingung, so schlicht wie möglich: i < 5 → i >= 5, NICHT x → x."""
+    if isinstance(bedingung, tuple) and bedingung[0] in UMKEHR:
+        return (UMKEHR[bedingung[0]], *bedingung[1:])
+    return bedingung[1] if isinstance(bedingung, tuple) and bedingung[0] == "NICHT" else ("NICHT", bedingung)
+
+
+def _ohne_fuer(block: list) -> list:
+    """FÜR, wie das Aktivitätsdiagramm es zeigt: Startwert, solange i ≤ bis, am Ende des Rumpfs i ← i + 1."""
+    raus = []
+    for s in block:
+        if s[0] == "wenn":
+            raus.append(("wenn", s[1], _ohne_fuer(s[2]), _ohne_fuer(s[3])))
+        elif s[0] == "solange":
+            raus.append(("solange", s[1], _ohne_fuer(s[2])))
+        elif s[0] == "fuer":
+            raus += [setze(s[1], s[2]), ("solange", ("<=", s[1], s[3]), [*_ohne_fuer(s[4]), setze(s[1], ("+", s[1], 1))])]
+        else:
+            raus.append(s)
+    return raus
+
+
+def _waechter(bedingung) -> tuple[str, str]:
+    return f"[{ausdruck(bedingung)}]", f"[{ausdruck(nicht(bedingung))}]"
+
+
+def _mass(s) -> tuple[float, float, float]:
+    """(links, rechts, Höhe) einer Anweisung, gemessen von ihrer Achse und ihrem oberen Ende."""
+    if s[0] in ("setze", "ausgabe"):
+        b = breite(zeilen([s])[0][0]) + 24
+        return b / 2, b / 2, AKTION
+    ja, nein = _waechter(s[1])
+    if s[0] == "wenn":
+        (lj, rj, hj), (ln, rn, hn), (dl, dr) = _mass_block(s[2]), _mass_block(s[3]), _zweige(s)
+        return max(dl + lj, RAUTE / 2 + 4 + breite(ja)), max(dr + rn, RAUTE / 2 + 4 + breite(nein)), 2 * RAUTE + 2 * ABSTAND + max(hj, hn)
+    l, r, h = _mass_block(s[2])
+    return max(l, RAUTE / 2) + 20, max(r + 20, RAUTE / 2 + breite(nein) + 14, breite(ja) + 20), 2 * RAUTE + 2 * ABSTAND + h + 32
+
+
+def _zweige(s) -> tuple[float, float]:
+    """Wie weit die Achsen von Ja- und Nein-Zweig links und rechts der Mitte stehen: weit genug, dass beide nebeneinander passen."""
+    (_, rj, _), (ln, _, _) = _mass_block(s[2]), _mass_block(s[3])
+    return max(rj + 10, RAUTE / 2 + 20), max(ln + 10, RAUTE / 2 + 20)
+
+
+def _mass_block(block: list) -> tuple[float, float, float]:
+    masse = [_mass(s) for s in block]
+    return (max((m[0] for m in masse), default=0), max((m[1] for m in masse), default=0),
+            sum(m[2] for m in masse) + ABSTAND * max(len(masse) - 1, 0))
+
+
+def _zeichne_block(bild: Bild, block: list, x: float, y: float):
+    for i, s in enumerate(block):
+        if i:
+            bild.pfeil([(x, y - ABSTAND), (x, y)])
+        _zeichne(bild, s, x, y)
+        y += _mass(s)[2] + ABSTAND
+
+
+def _zeichne(bild: Bild, s, x: float, y: float):
+    """Eine Anweisung mit dem Eingang oben an (x, y); der Ausgang liegt eine Höhe tiefer auf derselben Achse."""
+    if s[0] in ("setze", "ausgabe"):
+        text = zeilen([s])[0][0]
+        b = breite(text) + 24
+        bild.kasten(x - b / 2, y, b, AKTION, rund=10)
+        bild.text(x, y + AKTION / 2 + 4, text, "middle")
+        return
+    ja, nein = _waechter(s[1])
+    if s[0] == "wenn":
+        (dl, dr), hoehe = _zweige(s), max(_mass_block(s[2])[2], _mass_block(s[3])[2])
+        yd, yb = y + RAUTE / 2, y + RAUTE + ABSTAND  # Mitte der Entscheidung, Beginn der Zweige
+        ym = yb + hoehe + ABSTAND + RAUTE / 2  # Mitte der Zusammenführung
+        bild.raute(x, yd, RAUTE, RAUTE)
+        bild.raute(x, ym, RAUTE, RAUTE)
+        for zweig, seite, achse, waechter in ((s[2], -1, x - dl, ja), (s[3], 1, x + dr, nein)):
+            ecke, anker = x + seite * RAUTE / 2, "end" if seite < 0 else "start"
+            if zweig:
+                bild.pfeil([(ecke, yd), (achse, yd), (achse, yb)])
+                _zeichne_block(bild, zweig, achse, yb)
+                bild.pfeil([(achse, yb + _mass_block(zweig)[2]), (achse, ym), (ecke, ym)])
+            else:
+                bild.pfeil([(ecke, yd), (achse, yd), (achse, ym), (ecke, ym)])
+            bild.beschriftung([(ecke + seite * 4, yd - 5, anker), (ecke + seite * 4, yd + 15, anker)], [waechter])
+        return
+    l, r, h = _mass(s)
+    yd = y + RAUTE + ABSTAND + RAUTE / 2  # Mitte der Entscheidung
+    yb = yd + RAUTE / 2 + ABSTAND  # Beginn des Rumpfs
+    zurueck, raus = yb + _mass_block(s[2])[2] + 16, y + h
+    bild.raute(x, y + RAUTE / 2, RAUTE, RAUTE)
+    bild.pfeil([(x, y + RAUTE), (x, yd - RAUTE / 2)])
+    bild.raute(x, yd, RAUTE, RAUTE)
+    bild.pfeil([(x, yd + RAUTE / 2), (x, yb)])
+    _zeichne_block(bild, s[2], x, yb)
+    bild.pfeil([(x, zurueck - 16), (x, zurueck), (x - l, zurueck), (x - l, y + RAUTE / 2), (x - RAUTE / 2, y + RAUTE / 2)])
+    bild.linie([(x + RAUTE / 2, yd), (x + r, yd), (x + r, raus), (x, raus)])
+    bild.beschriftung([(x + 6, yd + RAUTE / 2 + 14, "start")], [ja])
+    bild.beschriftung([(x + RAUTE / 2 + 4, yd - 5, "start"), (x + r - 4, yd + 16, "end")], [nein])
+
+
+def _beschreibung(block: list) -> str:
+    teile = []
+    for s in block:
+        if s[0] in ("setze", "ausgabe"):
+            teile.append(zeilen([s])[0][0])
+            continue
+        ja, nein = _waechter(s[1])
+        if s[0] == "wenn":
+            teile.append(f"Entscheidung, bei {ja}: {_beschreibung(s[2]) or 'nichts'}, bei {nein}: {_beschreibung(s[3]) or 'nichts'}; "
+                         "Zusammenführung")
+        else:
+            teile.append(f"Schleife, solange {ja}: {_beschreibung(s[2])}, zurück zur Entscheidung; bei {nein} weiter")
+    return "; ".join(teile)
+
+
+def aktivitaetsdiagramm(programm: list) -> Markup:
+    """UML-Aktivitätsdiagramm als SVG aus demselben Baum wie das Struktogramm: Start, Aktionen mit den Texten aus dem Pseudocode,
+    Entscheidungen mit Wächtern, Zusammenführungen, Schleifen mit Rücksprung, Ende. Eine Zählschleife steht aufgelöst da."""
+    block, bild = _ohne_fuer(programm), Bild()
+    bild.kreis(0, 8, 8, voll=True)
+    bild.pfeil([(0, 16), (0, 16 + ABSTAND)])
+    _zeichne_block(bild, block, 0, 16 + ABSTAND)
+    ende = 16 + ABSTAND + _mass_block(block)[2]
+    bild.pfeil([(0, ende), (0, ende + ABSTAND)])
+    bild.kreis(0, ende + ABSTAND + 10, 10)
+    bild.kreis(0, ende + ABSTAND + 10, 5, voll=True)
+    return bild.svg("uml-aktivitaet", f"Aktivitätsdiagramm: Start; {_beschreibung(block)}; Ende")
 
 
 # --- ausführen ----------------------------------------------------------
@@ -390,7 +529,7 @@ def _wertetabelle(lauf: Lauf) -> str:
 
 
 @art("schreibtisch", "Schreibtischtest", "Programmieren", "Pseudocode von Hand ausführen: Wertetabelle, Ausgabe, Fehlersuche",
-     ("Schreibtischtest", "Kontrollstruktur", "Pseudocode", "Struktogramm", "Programmcode", "Trace-Tabelle"),
+     ("Schreibtischtest", "Kontrollstruktur", "Pseudocode", "Struktogramm", "Programmcode", "Trace-Tabelle", "Aktivitätsdiagramm"),
      formeln=FORMELN["schreibtisch"])
 def schreibtisch(rng):
     while True:
@@ -411,16 +550,20 @@ def schreibtisch(rng):
     weg = f"Wertetabelle, Werte am Ende jedes Durchlaufs:\n\n{_wertetabelle(lauf)}\n\nAusgabe: **{_liste(lauf.ausgabe)}**"
     firma = rng.choice(FIRMEN)
     namen = rng.sample(p["endwerte"], min(2, len(p["endwerte"]))) if variante == "endwerte" else []
-    bild = rng.random() < 0.3  # am Struktogramm; als Letztes gezogen, so bleiben alle übrigen Seeds dieselbe Aufgabe
-    if bild:
-        einleitung = (f"Ein Auszubildender der {firma} hat ein Programm als Struktogramm entworfen (siehe unten). "
+    # am Struktogramm oder am Aktivitätsdiagramm; als Letztes gezogen, so bleiben alle übrigen Seeds dieselbe Aufgabe. Die
+    # Wertetabelle einer Zählschleife nicht am Aktivitätsdiagramm: dort ist i am Ende des Durchlaufs schon um eins weiter
+    zufall = rng.random()
+    zaehlt = variante == "tabelle" and any(s[0] == "fuer" for _, s in zeilen(p["programm"]))
+    diagramm = "Struktogramm" if zufall < 0.3 else "Aktivitätsdiagramm" if zufall < 0.5 and not zaehlt else ""
+    if diagramm:
+        einleitung = (f"Ein Auszubildender der {firma} hat ein Programm als {diagramm} entworfen (siehe unten). "
                       f"Es soll {p['zweck']}.\n\n{NOTATION}\n\n")
         weg += f"\n\nDasselbe Programm in Pseudocode:\n\n{code(p['programm'])}"
     else:
         einleitung = (f"Ein Auszubildender der {firma} hat ein Programm geschrieben. Es soll {p['zweck']}.\n\n"
                       f"{code(p['programm'])}\n\n{NOTATION}\n\n")
-    bild = {"struktogramm": struktogramm(p["programm"])} if bild else {}
-    am = " am Struktogramm" if bild else " bestimmen"
+    bild = {"struktogramm": (struktogramm if diagramm == "Struktogramm" else aktivitaetsdiagramm)(p["programm"])} if diagramm else {}
+    am = f" am {diagramm}" if diagramm else " bestimmen"
     if variante == "ausgabe":
         feld = Feld("ausgabe", "Ausgabe", _liste(lauf.ausgabe), typ="liste") if len(lauf.ausgabe) > 1 \
             else Feld("ausgabe", "Ausgabe", lauf.ausgabe[0], stellen=0)

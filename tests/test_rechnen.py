@@ -356,10 +356,12 @@ def test_schreibtisch_wie_python_und_wie_beschrieben():
                                                                           sum(1 for i in range(int(a), int(b) + 1) if i % int(k))]),
     ]
     for seed, a in _alle("schreibtisch"):
-        # am Struktogramm steht derselbe Code erst im Rechenweg; das Struktogramm zeigt dieselben Zeilen
+        # am Struktogramm oder Aktivitätsdiagramm steht derselbe Code erst im Rechenweg; das Struktogramm zeigt dieselben Zeilen
+        # (das Aktivitätsdiagramm prüft test_uml)
         code = re.search(r"```\n(.*?)```", a.frage if not a.struktogramm else a.rechenweg, re.S)[1]
-        assert ("```" in a.frage) != bool(a.struktogramm) and a.titel.endswith("am Struktogramm") == bool(a.struktogramm)
-        for zeile in code.splitlines():
+        assert ("```" in a.frage) != bool(a.struktogramm)
+        assert a.titel.endswith(("am Struktogramm", "am Aktivitätsdiagramm")) == bool(a.struktogramm)
+        for zeile in code.splitlines() if not a.titel.endswith("am Aktivitätsdiagramm") else []:
             befehl = html.escape(re.sub(r"^\s*\d+  \s*", "", zeile), quote=False)
             assert befehl.startswith(("ENDE", "SONST")) or (befehl.removeprefix("WENN ").removesuffix(" DANN") in a.struktogramm) == bool(a.struktogramm)
         ausgabe, variablen = _pseudocode_ausfuehren(code)
