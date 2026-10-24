@@ -8,6 +8,7 @@ from flask import Blueprint, abort, make_response, render_template, request, url
 
 from saku.lernen import antwort, karten, tagesziel
 from saku.web import db
+from saku.web.routen.heute import datum_lang
 
 bp = Blueprint("keiko", __name__, url_prefix="/keiko")
 
@@ -302,6 +303,47 @@ def ueberspringen(t_id):
     zustand = _zustand()
     zustand["runde"].append(t_id)
     return _naechste_karte(db(), zustand)
+
+
+QUELLEN = {"selbst": "selbst", "sensei": "Sensei", "simulation": "Simulation", "stationstest": "Mini-Test"}
+VERLAUF_SEITE = 100
+
+
+@bp.get("/verlauf")
+def verlauf():
+    """Alle Bewertungen nach Tagen, neueste zuerst; Filter nach Ergebnis, ältere seitenweise."""
+    con = db()
+    ergebnis = request.args.get("ergebnis", type=int)
+    ergebnis = ergebnis if ergebnis in (1, 2, 3) else None
+    seite = max(0, request.args.get("seite", 0, type=int))
+    # v_teilaufgabe_alle: auch was gerade nicht im Umfang ist, gehört zum Verlauf; verlinkt wird nur, was Üben öffnen kann
+    zeilen = con.execute(
+        "SELECT b.teilaufgabe_id, b.ergebnis, b.punkte, b.quelle, date(b.zeitpunkt, 'localtime') AS tag, "
+        "strftime('%H:%M', b.zeitpunkt, 'localtime') AS uhrzeit, v.termin, v.aufgabe_nr, v.kennung, v.bereich, "
+        "v.punkte AS maximal, u.teilaufgabe_id IS NOT NULL AS im_umfang "
+        "FROM bewertung b JOIN v_teilaufgabe_alle v ON v.teilaufgabe_id = b.teilaufgabe_id "
+        "LEFT JOIN v_teilaufgabe u ON u.teilaufgabe_id = b.teilaufgabe_id "
+        "WHERE ?1 IS NULL OR b.ergebnis = ?1 ORDER BY b.zeitpunkt DESC, b.id DESC LIMIT ?2 OFFSET ?3",
+        (ergebnis, VERLAUF_SEITE + 1, seite * VERLAUF_SEITE)).fetchall()
+    weiter, zeilen = len(zeilen) > VERLAUF_SEITE, zeilen[:VERLAUF_SEITE]
+    tage = list(dict.fromkeys(z["tag"] for z in zeilen))
+    # Tageszusammenfassung immer über alle Bewertungen des Tages, auch wenn ein Filter gesetzt ist
+    summen = {z["tag"]: z for z in con.execute(
+        f"SELECT date(zeitpunkt, 'localtime') AS tag, COUNT(*) AS n, SUM(ergebnis = 3) AS gewusst, SUM(ergebnis = 2) AS teilweise, "
+        f"SUM(ergebnis = 1) AS falsch, COUNT(DISTINCT teilaufgabe_id) AS teilaufgaben, SUM(dauer_s) AS dauer_s "
+        f"FROM bewertung WHERE date(zeitpunkt, 'localtime') IN ({','.join('?' * len(tage))}) GROUP BY 1", tage)}
+    heute = date.today()
+    return render_template(
+        "keiko/verlauf.html", ergebnis=ergebnis, seite=seite, weiter=weiter, quellen=QUELLEN,
+        zahlen=con.execute("SELECT COUNT(*), SUM(ergebnis = 1), SUM(ergebnis = 2), SUM(ergebnis = 3) FROM bewertung").fetchone(),
+        tage=[{"name": _tagesname(date.fromisoformat(t), heute), "summe": summen[t], "zeilen": [z for z in zeilen if z["tag"] == t]}
+              for t in tage])
+
+
+def _tagesname(tag_: date, heute: date) -> str:
+    """„Heute“, „Gestern“, „Mittwoch, 22. Oktober“, in anderen Jahren mit Jahr."""
+    name = {0: "Heute", 1: "Gestern"}.get((heute - tag_).days, datum_lang(tag_))
+    return name if tag_.year == heute.year else f"{name} {tag_.year}"
 
 
 @bp.get("/grundwissen")

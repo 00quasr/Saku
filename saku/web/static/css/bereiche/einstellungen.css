@@ -28,8 +28,10 @@ input[type="range"] { accent-color: var(--shu); width: 160px; }
 .segment { display: inline-flex; gap: 2px; padding: 3px; background: var(--flaeche); border-radius: 9px; }
 .segment label { position: relative; }
 .segment input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
-.segment > span, .segment label > span { display: block; padding: 5px 12px; border-radius: 7px; font-size: 0.875rem; color: var(--sumi-mittel); white-space: nowrap; }
-.segment > span.aktiv, .segment input:checked + span { background: var(--washi-hell); color: var(--sumi); box-shadow: 0 1px 2px rgb(0 0 0 / .15); }
+.segment > span, .segment > a, .segment label > span { display: block; padding: 5px 12px; border-radius: 7px; font-size: 0.875rem; color: var(--sumi-mittel); white-space: nowrap; }
+.segment > span.aktiv, .segment > a[aria-current], .segment input:checked + span { background: var(--washi-hell); color: var(--sumi); box-shadow: 0 1px 2px rgb(0 0 0 / .15); }
+.segment > a { display: inline-flex; align-items: center; gap: 6px; text-decoration: none; }
+.segment > a:hover { color: var(--sumi); }
 .segment input:focus-visible + span { outline: 2px solid var(--shu); outline-offset: 1px; }
 .segment[aria-disabled="true"] { opacity: .7; }
 

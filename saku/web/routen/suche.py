@@ -22,6 +22,7 @@ BEFEHLE = [
     ("calendar", "Prüfungstermin setzen", "termin datum countdown ihk", ("kern.einstellungen", {"_anchor": "termin"})),
     ("sparkles", "Neue Teilaufgaben üben", "neu unbekannt", ("keiko.index", {"modus": "neu"})),
     ("star", "Markierte üben", "markiert gemerkt", ("keiko.index", {"modus": "markiert"})),
+    ("list-checks", "Verlauf", "bewertungen gemacht erledigt historie protokoll", ("keiko.verlauf", {})),
     ("messages-square", "Fachgespräch üben", "projekt mündlich präsentation prüfer", ("shiken.fachgespraech", {})),
     ("settings", "Einstellungen", "optionen sensei daten", ("kern.einstellungen", {})),
     ("briefcase", "Zu Anwendungsentwicklung wechseln", "ae fiae beruf umfang", ("einstellung", "beruf", "1201")),

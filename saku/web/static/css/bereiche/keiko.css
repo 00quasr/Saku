@@ -178,3 +178,12 @@
   .keiko-spalten--material { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 40px; align-items: start; }
   .keiko-material { position: sticky; top: 16px; max-height: calc(100dvh - 32px); overflow: auto; }
 }
+
+/* Verlauf: alle Bewertungen nach Tagen */
+.verlauf-filter { flex-wrap: wrap; }
+.verlauf-tag { display: grid; gap: 12px; margin-top: 40px; }
+.verlauf-kopf { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 16px; }
+.verlauf-tabelle td { vertical-align: top; }
+.verlauf-tabelle .verlauf-rechts { text-align: right; }
+.verlauf-bereich { display: block; }
+.verlauf-seiten { gap: 8px; }

@@ -262,3 +262,36 @@ def test_wann_und_tag():
     assert tag(sqlite_zeit(jetzt), jetzt.date()) == "heute"
     assert tag(sqlite_zeit(jetzt - timedelta(days=1)), jetzt.date()) == "gestern"
     assert tag(sqlite_zeit(jetzt - timedelta(days=2)), jetzt.date()) == "22.10."
+
+
+def test_verlauf_nach_tagen_mit_filter(client, con):
+    assert "Noch keine Bewertung" in client.get("/keiko/verlauf").get_data(as_text=True)
+    from datetime import datetime, timedelta, timezone
+
+    from saku.lernen import karten
+    jetzt = datetime.now(timezone.utc)
+    karten.bewerten(con, 1, 1, jetzt=jetzt - timedelta(days=1), dauer_s=120)
+    karten.bewerten(con, 1, 3, jetzt=jetzt, quelle="sensei", punkte=5)
+    karten.bewerten(con, 2, 2, jetzt=jetzt, quelle="simulation")
+    html = client.get("/keiko/verlauf").get_data(as_text=True)
+    assert 'id="tag-1">Heute</h2>' in html and 'id="tag-2">Gestern</h2>' in html
+    assert "2 Bewertungen · 2 Teilaufgaben" in html and "etwa 2 min" in html
+    assert 'href="/keiko/?teilaufgabe=1"' in html and "Sommer 2023 · Aufgabe 1 a" in html
+    assert "5 / 6" in html and "Sensei" in html and "Simulation" in html
+
+    falsch = client.get("/keiko/verlauf?ergebnis=1").get_data(as_text=True)
+    assert 'id="tag-1">Gestern</h2>' in falsch and 'aria-current="true"' in falsch
+    assert "Keine Bewertung mit diesem Ergebnis" in client.get("/keiko/verlauf?ergebnis=2&seite=1").get_data(as_text=True)
+
+    # Seiten: ältere Bewertungen auf der nächsten Seite
+    from saku.web.routen import keiko
+    keiko.VERLAUF_SEITE, alt = 2, keiko.VERLAUF_SEITE
+    try:
+        erste = client.get("/keiko/verlauf").get_data(as_text=True)
+        assert "?seite=1" in erste and "Gestern</h2>" not in erste
+        assert 'id="tag-1">Gestern</h2>' in client.get("/keiko/verlauf?seite=1").get_data(as_text=True)
+    finally:
+        keiko.VERLAUF_SEITE = alt
+
+    assert "Verlauf" in client.get("/suche/", query_string={"q": "verlauf"}).get_data(as_text=True)
+    assert 'href="/keiko/verlauf"' in client.get("/").get_data(as_text=True)

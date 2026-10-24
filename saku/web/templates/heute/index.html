@@ -144,7 +144,10 @@
 
   <section class="flaeche heute-kalender" aria-labelledby="kalender-titel">
     <header class="karte-kopf"><p class="etikett" id="kalender-titel">Lernkalender · 20 Wochen</p>
-      <span class="kalender-legende klein gedaempft" aria-hidden="true">weniger {% for s in range(5) %}<span class="kalender-tag stufe-{{ s }}"></span>{% endfor %} mehr</span></header>
+      <span class="zeile kalender-rechts">
+        <span class="kalender-legende klein gedaempft" aria-hidden="true">weniger {% for s in range(5) %}<span class="kalender-tag stufe-{{ s }}"></span>{% endfor %} mehr</span>
+        <a class="klein" href="{{ url_for('keiko.verlauf') }}">Verlauf ansehen</a>
+      </span></header>
     <div class="kalender-monate klein gedaempft" aria-hidden="true">
       {% for w in kalender %}<span>{% if loop.first or w[0].tag.month != kalender[loop.index0 - 1][0].tag.month %}{{ ['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'][w[0].tag.month - 1] }}{% endif %}</span>{% endfor %}
     </div>

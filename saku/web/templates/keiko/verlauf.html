@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% import "keiko/_bausteine.html" as k %}
+{% block titel %}Verlauf{% endblock %}
+{% block inhalt %}
+{{ m.kopf('keiko', '稽', 'Üben', 'Verlauf', schmal=True) }}
+<div class="seite eng verlauf">
+  {% if zahlen[0] %}
+  <nav class="segment verlauf-filter" aria-label="Nach Ergebnis filtern">
+    {% for wert, text, n in [(None, 'Alle', zahlen[0]), (1, 'Nicht gewusst', zahlen[1]), (2, 'Teilweise', zahlen[2]), (3, 'Gewusst', zahlen[3])] %}
+    <a href="{{ url_for('keiko.verlauf', ergebnis=wert) }}" data-taste="{{ wert or 0 }}" {{ 'aria-current="true"'|safe if wert == ergebnis }}>
+      {% if wert %}{{ k.ergebnis(wert) }} {% endif %}{{ text }} <span class="zahl gedaempft">{{ n or 0 }}</span></a>
+    {% endfor %}
+  </nav>
+  {% endif %}
+
+  {% for t in tage %}
+  {% set s = t.summe %}
+  <section class="abschnitt verlauf-tag" aria-labelledby="tag-{{ loop.index }}">
+    <header class="verlauf-kopf">
+      <h2 class="ueberschrift" id="tag-{{ loop.index }}">{{ t.name }}</h2>
+      <p class="klein gedaempft zahl">{{ s.n }} {{ 'Bewertung' if s.n == 1 else 'Bewertungen' }} · {{ s.teilaufgaben }} {{ 'Teilaufgabe' if s.teilaufgaben == 1 else 'Teilaufgaben' }}
+        · {{ k.ergebnis(3) }} {{ s.gewusst }} · {{ k.ergebnis(2) }} {{ s.teilweise }} · {{ k.ergebnis(1) }} {{ s.falsch }}{% if s.dauer_s %} · etwa {{ (s.dauer_s / 60)|round|int }} min{% endif %}</p>
+    </header>
+    <table class="table verlauf-tabelle">
+      <thead><tr><th>Uhrzeit</th><th>Teilaufgabe</th><th>Ergebnis</th><th class="verlauf-rechts">Punkte</th><th>Quelle</th></tr></thead>
+      <tbody>
+        {% for z in t.zeilen %}
+        <tr>
+          <td class="zahl gedaempft">{{ z.uhrzeit }}</td>
+          <td>
+            {% if z.im_umfang %}<a href="{{ url_for('keiko.index', teilaufgabe=z.teilaufgabe_id) }}">{{ k.kennung(z) }}</a>{% else %}{{ k.kennung(z) }}{% endif %}
+            <span class="klein gedaempft verlauf-bereich">{{ z.bereich }}</span>
+          </td>
+          <td>{{ k.ergebnis(z.ergebnis) }}</td>
+          <td class="zahl verlauf-rechts">{% if z.punkte is not none %}{{ k.punkte(z.punkte) }}{% if z.maximal %} / {{ k.punkte(z.maximal) }}{% endif %}{% else %}<span class="gedaempft">–</span>{% endif %}</td>
+          <td class="klein">{{ quellen[z.quelle] }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+  {% else %}
+  <p class="leer">{{ 'Noch keine Bewertung. Was du übst, steht hier Tag für Tag.' if not zahlen[0] else 'Keine Bewertung mit diesem Ergebnis.' }}</p>
+  {% endfor %}
+
+  {% if seite or weiter %}
+  <nav class="zeile abschnitt verlauf-seiten" aria-label="Seiten">
+    {% if seite %}<a class="btn" data-variant="outline" data-size="sm" href="{{ url_for('keiko.verlauf', ergebnis=ergebnis, seite=seite - 1 or None) }}">Neuere</a>{% endif %}
+    {% if weiter %}<a class="btn" data-variant="outline" data-size="sm" href="{{ url_for('keiko.verlauf', ergebnis=ergebnis, seite=seite + 1) }}">Ältere</a>{% endif %}
+  </nav>
+  {% endif %}
+</div>
+{% endblock %}

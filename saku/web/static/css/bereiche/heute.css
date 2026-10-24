@@ -112,6 +112,7 @@ a.flaeche:hover { border-color: var(--sumi-mittel); }
 .kalender-tag.stufe-4 { background: var(--shu); }
 .kalender-tag.zukunft { visibility: hidden; }
 .kalender-legende { display: inline-flex; align-items: center; gap: 4px; }
+.kalender-rechts { gap: 16px; }
 .kalender-legende .kalender-tag { width: 10px; height: 10px; }
 
 /* Tastenhinweis auf dunklem Primärknopf (Lernbereiche) */
