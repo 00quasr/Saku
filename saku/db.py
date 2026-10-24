@@ -65,10 +65,11 @@ def init(pfad: Path | None = None) -> bool:
             return True
         for ziel, befehle in sorted(MIGRATIONEN.items()):
             if version < ziel:
-                for befehl in befehle:
-                    con.execute(befehl)
-                con.execute(f"PRAGMA user_version = {ziel}")
-                con.commit()
+                with con:  # eine Migration ganz oder gar nicht: SQLite kann auch CREATE und ALTER zurückrollen
+                    con.execute("BEGIN")
+                    for befehl in befehle:
+                        con.execute(befehl)
+                    con.execute(f"PRAGMA user_version = {ziel}")
         return False
     finally:
         con.close()

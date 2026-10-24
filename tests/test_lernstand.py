@@ -104,3 +104,54 @@ def test_lernstand_befehl_und_download(tmp_path, monkeypatch, client, daten, cap
     assert "attachment; filename=saku-lernstand-" in antwort.headers["Content-Disposition"]
     assert antwort.get_json()["format"] == "saku-lernstand"
     assert 'href="/einstellungen/lernstand.json"' in client.get("/einstellungen").get_data(as_text=True)
+
+
+def test_import_prueft_einstellungen_wie_die_einstellungen(con, client):
+    """Die Datei kommt vom Nutzer: Werte, die die Einstellungen ablehnen würden, dürfen auch der Import nicht setzen,
+    sonst bricht Heute (Termin, Puffer) mit Fehler 500 ab."""
+    datei = lernstand.exportieren(con)
+    datei["einstellungen"] |= {"pruefungstermin": "bald", "puffer_tage": "viele", "farbschema": "lila",
+                               "niwa_stufen": "[1]", "einfuehrung": "gesehen", "teil": "AP2"}
+    zahlen = lernstand.importieren(con, datei)
+    assert client.get("/").status_code == 200 and client.get("/einstellungen").status_code == 200
+    assert client.get("/niwa/").status_code == 200
+    werte = dict(con.execute("SELECT schluessel, wert FROM einstellung").fetchall())
+    assert werte["pruefungstermin"] != "bald" and werte["puffer_tage"] == "7" and werte["farbschema"] != "lila"
+    assert zahlen["einstellungen"][1] >= 4
+
+
+@pytest.mark.parametrize("kaputt", [
+    {"einstellungen": ["keine", "Zuordnung"]},
+    {"bewertungen": [{"teilaufgabe": [2023, "Sommer", "AP2", "Planen eines Softwareproduktes", "1201", 1, "a"],
+                      "zeitpunkt": "2026-10-01 10:00:00", "ergebnis": 7, "quelle": "selbst", "dauer_s": None, "antwort": None, "punkte": None}]},
+    {"karten": "nicht einmal eine Liste"},
+])
+def test_kaputte_datei_bricht_ohne_aenderung_ab(daten, monkeypatch, tmp_path, kaputt):
+    monkeypatch.setattr(config, "DATEN", daten)
+    from saku.__main__ import lernstand_datei
+    con = db.verbinden(config.db_pfad(daten))
+    vorher = _vergleichbar(con)
+    datei = tmp_path / "kaputt.json"
+    datei.write_text(json.dumps({"format": "saku-lernstand", "version": 1} | kaputt), encoding="utf-8")
+    with pytest.raises(SystemExit, match="nichts geändert"):
+        lernstand_datei("import", datei)
+    assert _vergleichbar(con) == vorher
+    con.close()
+
+
+def test_import_ueberspringt_falsche_typen(con, client):
+    """Eine von Hand bearbeitete Datei: Zeitpunkte, Zahlen und JSON in falscher Form übernimmt der Import nicht, sonst brachen
+    danach Heute (Lerntage), Rechnen (letzter Versuch) oder das Bewerten (Serie) ab."""
+    karten.bewerten(con, 1, 3)
+    datei = lernstand.exportieren(con)
+    gut = datei["bewertungen"][0]
+    datei["bewertungen"] = [gut | {"zeitpunkt": "gestern"}, gut | {"zeitpunkt": "2026-10-01 10:00:00", "punkte": "viele"}]
+    datei["karten"] = [datei["karten"][0] | {"serie": "x", "geaendert_am": "2099-01-01 00:00:00"},
+                       datei["karten"][0] | {"fsrs": "{kaputt", "geaendert_am": "2099-01-01 00:00:00"}]
+    datei["rechenuebungen"] = [{"art": "subnetz", "seed": 1, "richtig": 1, "felder_richtig": 1, "felder_gesamt": 1,
+                                "dauer_s": None, "zeitpunkt": "kaputt"}]
+    zahlen = lernstand.importieren(con, datei)
+    assert zahlen["bewertungen"] == [0, 2] and zahlen["karten"] == [0, 2] and zahlen["rechenuebungen"] == [0, 1]
+    for url in ("/", "/keiko/verlauf", "/rechnen/", "/fahrplan"):
+        assert client.get(url).status_code == 200, url
+    assert client.post("/keiko/1/bewerten", data={"ergebnis": "3"}, headers={"HX-Request": "true"}).status_code == 200
