@@ -1,10 +1,10 @@
 # Saku 咲く – Konzept
 
-> **咲く (saku)** heißt „erblühen“. Saku ist ein persönlicher Trainer für die IHK-Abschlussprüfung Teil 2 (AP2): die Systematik einer Fahrschul-App, die Ruhe japanischer Gestaltung und ein KI-Tutor, der jede Aufgabe kennt.
+> **咲く (saku)** heißt „erblühen“. Saku ist ein persönlicher Trainer für die IHK-Abschlussprüfung der Fachinformatiker/-innen (AP1 und AP2): die Systematik einer Fahrschul-App, die Ruhe japanischer Gestaltung und ein KI-Tutor, der jede Aufgabe kennt.
 
 ## Die Idee
 
-Wer für die AP2 lernt, sitzt vor einem Stapel alter Prüfungen und weiß nicht, wo er anfangen soll. Fahrschul-Apps haben dieses Problem längst gelöst: Es gibt einen festen Fragenkatalog, jede Frage hat einen Lernstand, und eine Anzeige sagt ehrlich, ob man bereit ist. Saku überträgt dieses Prinzip auf die AP2, und zwar mit den echten Prüfungen, die man gekauft hat.
+Wer für die Abschlussprüfung lernt, sitzt vor einem Stapel alter Prüfungen und weiß nicht, wo er anfangen soll. Fahrschul-Apps haben dieses Problem längst gelöst: Es gibt einen festen Fragenkatalog, jede Frage hat einen Lernstand, und eine Anzeige sagt ehrlich, ob man bereit ist. Saku überträgt dieses Prinzip auf AP1 und AP2, und zwar mit den echten Prüfungen, die man gekauft hat.
 
 Aus den PDFs wird ein Aufgabenkatalog, aus der Themenliste ein Lernpfad. Jede Teilaufgabe wird gelernt, bis sie sitzt. Wissen wächst dabei wie ein Garten: Themen keimen, knospen und blühen auf, bis zur vollen Blüte, 満開 (*mankai*). Das ist der Moment, in dem man prüfungsreif ist.
 
@@ -12,10 +12,10 @@ Aus den PDFs wird ein Aufgabenkatalog, aus der Themenliste ein Lernpfad. Jede Te
 
 | | |
 |---|---|
-| **Für wen** | Azubis vor der AP2, zuerst für den eigenen Gebrauch. Beruf und Prüfungsbereiche ergeben sich aus den Prüfungs-PDFs. |
+| **Für wen** | Azubis vor AP1 oder AP2, Anwendungsentwicklung (1201) und Systemintegration (1202), zuerst für den eigenen Gebrauch. Umschalten in der Seitenleiste. |
 | **Wo** | Nur lokal auf dem eigenen Rechner, ohne Konto und ohne Server im Internet |
 | **Inhalte** | Selbst gekaufte IHK-Prüfungen samt Lösungshinweisen, ausschließlich privat genutzt |
-| **KI** | Claude-API für Analyse und Tutor. Aufgabentexte werden dafür an die API übertragen. |
+| **KI** | Claude für Analyse (Erstlauf über Claude Code) und Tutor (API). Aufgabentexte werden dafür übertragen. Rechnen, Stichpunkt-Abgleich und die automatische Auswertung kommen ohne KI aus. |
 | **Entstehung** | Projekt im Python-Kurs |
 
 ## Leitsätze
@@ -30,10 +30,11 @@ Aus den PDFs wird ein Aufgabenkatalog, aus der Themenliste ein Lernpfad. Jede Te
 
 | | Name | Bedeutung | Was dort passiert |
 |---|---|---|---|
-| 今日 | **Heute** | heute | Startseite: Tagesziel, fällige Wiederholungen, Countdown, Prüfungsreife |
+| 今日 | **Heute** | heute | Startseite: Tagesziel, fällige Wiederholungen, Countdown, Prüfungsreife, Wochenrückblick; dazu der Fahrplan bis zur Prüfung |
 | 道 | **Michi** | Weg | Der Lernpfad: Stationen in sinnvoller Reihenfolge, jede mit Einführung, Übungen und Mini-Test |
-| 稽古 | **Keiko** | Übung | Der Fokusmodus: Aufgabe lesen, Lösung aufdecken, sich selbst bewerten |
-| 試験 | **Shiken** | Prüfung | Prüfungssimulation mit Timer, Punkte-Hochrechnung, Note und Stempel |
+| 稽古 | **Keiko** | Übung | Der Fokusmodus: Aufgabe lösen, prüfen oder Lösung aufdecken, bewerten; dazu Verlauf und Grundwissen |
+| 算 | **Rechnen** | rechnen | Unbegrenzt neue Rechenaufgaben wie in der Prüfung, ohne KI und exakt geprüft |
+| 試験 | **Shiken** | Prüfung | Prüfungssimulation mit Timer, Note und Stempel, Hochrechnung der Gesamtnote, Fachgespräch üben |
 | 庭 | **Niwa** | Garten | Der Knowledge Graph: alle Themen als Garten, der mit dem Wissen aufblüht |
 | 先生 | **Sensei** | Lehrer | Der KI-Tutor, überall erreichbar: Tipps, Erklärungen, Antworten prüfen, Übungsvarianten |
 | 分析 | **Bunseki** | Analyse | Auswertung aller Prüfungen: Inventar, Themen-Heatmap, Dauerbrenner, Lücken |
@@ -47,11 +48,19 @@ Die kleinste Lerneinheit ist die **Teilaufgabe**, zum Beispiel Aufgabe 3 b. Sie 
 
 ### Ablauf in Keiko
 
-1. Die Teilaufgabe erscheint als Bildausschnitt aus dem Original-PDF. Tabellen und Diagramme bleiben so erhalten.
-2. Man überlegt sich die Antwort oder tippt sie ein.
-3. Die **Leertaste** deckt den Lösungshinweis auf.
-4. Man bewertet sich selbst: **1** Nicht gewusst · **2** Teilweise · **3** Gewusst. Alternativ prüft Sensei die getippte Antwort und schlägt eine Bewertung vor.
+1. Die Teilaufgabe erscheint als Text, einmal aus den PDF-Ausschnitten neu aufgebaut (Tabellen, Code, Abbildungen); das Original ist einen Klick entfernt.
+2. Man antwortet: anklickbar (Auswahl, Reihenfolge, Zuordnung, Zahl), als SQL in der Sandbox oder frei im Kopf oder getippt.
+3. **↵** prüft Anklickbares und SQL sofort, die **Leertaste** deckt den Lösungshinweis auf; bei freien Antworten zeigt der Stichpunkt-Abgleich, welche Punkte der Lösung die eigene Antwort trifft.
+4. Man bewertet sich: **1** Nicht gewusst · **2** Teilweise · **3** Gewusst. Nach dem Prüfen schlägt Saku die Bewertung vor, auf Wunsch auch Sensei.
 5. Die nächste Teilaufgabe erscheint. Darunter steht, wo es eine ähnliche Aufgabe schon einmal gab.
+
+### Automatisch prüfen, wo es exakt geht
+
+Saku bewertet nur selbst, was sich eindeutig prüfen lässt: die gewählten Optionen, eine Zahl mit kleiner Toleranz, das Ergebnis einer SQL-Anweisung auf erfundenen Beispieldaten. Alles andere bleibt Selbstbewertung nach dem Lösungshinweis. Auch in Simulation und Mini-Test sind solche Punkte nur vorbelegt und lassen sich ändern.
+
+### Stichpunkt-Abgleich
+
+Bei freien Antworten zerlegt Saku den Lösungshinweis in erwartete Punkte und markiert, welche die eigene Antwort enthält, ganz ohne KI. Das ist eine Hilfe zur Selbstbewertung, keine Note: Ein Satz kann richtig sein, ohne die Wörter der Musterlösung zu benutzen.
 
 ### Lernstand
 
@@ -73,6 +82,8 @@ Zusätzlich gibt es wie in der Fahrschul-App:
 - **Fehlerkorb:** alle roten Teilaufgaben zum gezielten Nacharbeiten
 - **Markiert:** Teilaufgaben, die man sich merken will
 - **Freies Üben:** jedes Thema jederzeit, unabhängig vom Lernpfad
+- **Verlauf:** jede Bewertung nach Tagen, filterbar nach Ergebnis
+- **Grundwissen:** Fachbegriffe als Karten mit eigener Wiederholung, auch umgekehrt: Saku zeigt die Definition (ohne den Namen) und man wählt unter vier ähnlichen Begriffen.
 
 ## Lernpfad (Michi 道)
 
@@ -84,9 +95,17 @@ Eine Station besteht aus drei Teilen:
 2. **Übungen:** die echten Teilaufgaben des Themas, nach dem Fahrschul-Prinzip.
 3. **Mini-Test:** fünf Teilaufgaben aus dem Thema. Ab 80 % der Punkte ist die Station geschafft, und die nächste wird freigeschaltet. Anklickbare Teilaufgaben und SQL mit Sandbox prüft Saku selbst (die Punkte sind vorbelegt und bleiben änderbar), den Rest bewertet man nach dem Lösungshinweis selbst.
 
-Die **Reihenfolge** entsteht bei der Analyse. Grundlagen kommen vor den Themen, die darauf aufbauen; die Abhängigkeiten schlägt die KI vor. Unter den möglichen nächsten Themen kommt zuerst das, was in den Prüfungen die meisten Punkte bringt. Die Reihenfolge lässt sich jederzeit von Hand anpassen.
+Die **Reihenfolge** entsteht bei der Analyse. Grundlagen kommen vor den Themen, die darauf aufbauen; die Abhängigkeiten schlägt die KI vor. Unter den möglichen nächsten Themen kommt zuerst das, was in den Prüfungen die meisten Punkte bringt. Von Hand gesetzte Stationen und Voraussetzungen (Quelle „manuell“ in der Datenbank) überschreibt die Pipeline nicht; eine Oberfläche dafür gibt es noch nicht.
 
-Gesperrt ist nur der Pfad selbst. In Keiko kann jedes Thema jederzeit geübt werden.
+Gesperrt ist nur der Pfad selbst. In Keiko kann jedes Thema jederzeit geübt werden. Gibt es zu den Themen einer Station passende Rechenarten, zeigt die Station sie mit den letzten Versuchen an.
+
+## Rechnen (算)
+
+Rechenaufgaben übt man am besten oft und mit immer neuen Zahlen. Saku erzeugt sie deshalb selbst, ohne KI und ohne Prüfungstexte: Jede Art (Subnetting, Kalkulation, Netzplan, Sortieren …) baut aus einem Seed immer dieselbe Aufgabe mit exakter Lösung und Rechenweg. **↵** prüft sofort, danach steht der Rechenweg da.
+
+- **Fällig nach Leitner:** Eine Art ist dran, wenn sie noch nie gerechnet wurde, in den letzten fünf Versuchen unter 80 % lag oder seit über sieben Tagen ruht. „Gemischt üben“ nimmt fällige Arten des eigenen Lernpfads zuerst.
+- **Tagesziel:** Eine kleine Zahl Rechenaufgaben am Tag (Standard 5), getrennt vom Tagesziel der Teilaufgaben; gerechnete Tage zählen für die Lernserie.
+- **Sprint:** fünf Aufgaben in 15 Minuten mit Punkten und Note wie in der Prüfung. Dazu eine Formelsammlung zum Drucken.
 
 ## Heute (今日)
 
@@ -112,7 +131,7 @@ Ist das Tagesziel geschafft, geht es mit „Weiter üben“ in eine Extra-Runde 
 
 ### Fahrplan (日程)
 
-Countdown, Prüfungsreife und ⌘K führen zum Blick nach vorn (`/fahrplan`): *Schaffe ich bis zur Prüfung alles?*
+Heute sagt, was heute zu tun ist; der Fahrplan schaut nach vorn: *Schaffe ich bis zur Prüfung alles?* Countdown, Prüfungsreife und ⌘K führen hin (`/fahrplan`).
 
 - **Prognose:** Säulen für die nächsten 14 oder 30 Tage. Heute zählt, was das Tagesziel noch offen hat; danach die schon geplanten Wiederholungen (`karte.faellig_am`) und die neuen, die das Tagesziel an jenem Tag verlangen wird.
 - **Tempo:** neue Teilaufgaben am Tag im Schnitt der letzten 7 Lerntage vor heute. Daraus das Datum, an dem alle einmal gesehen sind, verglichen mit dem Termin; reicht es nicht bis zum letzten Lerntag vor dem Puffer, steht dabei, wie viele am Tag es bräuchte.
@@ -163,10 +182,10 @@ Ab 50 Punkten gilt die Simulation als bestanden, und ein roter Stempel 合格 (*
 
 Der Knowledge Graph zeigt alle Themen als Garten:
 
-- **Jeder Knoten ist ein Thema.** Seine Größe zeigt, wie viele Punkte das Thema in den Prüfungen gebracht hat.
+- **Knoten sind Themen**, dazu Lernfelder und die häufigsten Fachbegriffe. Die Größe eines Themas zeigt, wie viele Punkte es in den Prüfungen gebracht hat.
 - **Die Farbe zeigt den Lernstand**, von Rot über Gelb bis Grün.
 - **Wachstumsstufen:** 種 Samen (0 %), 芽 Keim (bis 39 %), 蕾 Knospe (bis 79 %), 花 Blüte (ab 80 %)
-- **Linien** verbinden Themen, die oft gemeinsam in einer Aufgabe vorkommen. Pfeile zeigen Voraussetzungen.
+- **Linien** zeigen die Gliederung der Themenliste, die Lernfelder und bei jedem Begriff das Thema, in dem er am häufigsten vorkommt. Pfeile zeigen Voraussetzungen.
 - **Ein Klick auf ein Thema** öffnet eine Seitenleiste mit allen Teilaufgaben, dem Lernstand und den Knöpfen „Üben“ und „Sensei erklärt“.
 
 Wer lernt, sieht den Garten Woche für Woche aufblühen.
@@ -181,6 +200,8 @@ Das Ergebnis der Dokumentenanalyse, jederzeit abrufbar:
 - **Lange nicht dran:** Themen, deren letzter Auftritt mehr als drei Termine zurückliegt (ein Hinweis, keine Vorhersage)
 - **Nie geprüft:** Themen aus der Liste ohne eine einzige Aufgabe
 - **Ohne Thema:** Teilaufgaben, die zu keinem Thema passen, ein Zeichen für Lücken in der Themenliste
+- **Katalog:** die Themenliste als Checkliste, je Punkt wie oft er drankam und wie gut er sitzt
+- **Kontrolle:** unsichere Zuordnungen der KI zum Korrigieren; eigene Korrekturen überschreibt die Pipeline nie
 - **KI-Nutzung:** Anzahl der Anfragen und verbrauchte Tokens
 
 ## Suche (⌘K)
