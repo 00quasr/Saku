@@ -23,6 +23,7 @@ FORMELN = {
 - § 4 BUrlG: voller Anspruch erst nach 6 Monaten (Wartezeit); wer ab 2. Juli eintritt, erfüllt sie im Jahr nicht
 - § 5 BUrlG: 1/12 je vollem Beschäftigungsmonat, wenn die Wartezeit im Jahr nicht erfüllt ist oder man in der ersten Jahreshälfte ausscheidet; wer nach erfüllter Wartezeit in der zweiten Hälfte ausscheidet, behält den vollen Urlaub
 - § 5 Abs. 2 BUrlG: Bruchteile ab einem halben Tag werden auf volle Tage aufgerundet
+- *Typische Fehler:* Werktage nicht in Arbeitstage umgerechnet oder durch 7 statt 6 geteilt, das im Jahr erreichte Alter statt des Alters am 1. Januar, angefangene Monate mitgezählt, nicht aufgerundet
 
 *Beispiel:* 30 Tage Jahresurlaub, Eintritt 1. August: 5 volle Monate → 30 · 5 : 12 = 12,5 → 13 Tage""",
 }
@@ -254,7 +255,12 @@ def _umrechnung(rng):
              f"Arbeitstage sind das bei ihrer {woche}-Tage-Woche? (zwei Nachkommastellen)")
     weg = schritte(f"Alter zu Beginn des Jahres {jahr} (1. Januar): {alter} Jahre", regel,
                    f"Werktage sind Montag bis Samstag; umrechnen: {werktage} : 6 · {woche} = **{de(tage)} Arbeitstage**")
-    felder = [Feld("werktage", "Urlaub in Werktagen", werktage, stellen=0), Feld("tage", f"Urlaub bei {woche}-Tage-Woche", tage, "Tage")]
+    felder = [Feld("werktage", "Urlaub in Werktagen", werktage, stellen=0, typisch=(
+                  (jugend_werktage(geburt.replace(year=geburt.year - 1), jahr)[1],
+                   "Maßgeblich ist das Alter zu Beginn des Kalenderjahres, nicht das, das sie im Jahr erreicht."),)),
+              Feld("tage", f"Urlaub bei {woche}-Tage-Woche", tage, "Tage", typisch=(
+                  (werktage, f"Das sind Werktage (Montag bis Samstag); für die {woche}-Tage-Woche umrechnen."),
+                  (werktage * woche / 7, "Die Woche hat 6 Werktage (Montag bis Samstag), nicht 7.")))]
     return Aufgabe(frage, felder, weg, titel="Werktage umrechnen")
 
 
@@ -265,6 +271,14 @@ def _anteil(jahresurlaub: int, monate: int) -> float | None:
 
 
 OPTIONEN = ["Voller Jahresurlaub", "Anteilig, 1/12 je vollem Monat"]
+
+
+def _anteil_typisch(jahresurlaub: int, monate: int) -> list:
+    """Anteiliger Urlaub: nicht oder falsch gerundet, den angefangenen Monat mitgezählt."""
+    genau = jahresurlaub * monate / 12
+    rundung = "Bruchteile ab einem halben Tag werden aufgerundet (§ 5 Abs. 2 BUrlG)."
+    return [(genau, rundung), (math.floor(genau), rundung),
+            (aufrunden(jahresurlaub * (monate + 1) / 12), "Es zählen nur volle Beschäftigungsmonate.")]
 
 
 def _eintritt_im_jahr(rng):
@@ -290,8 +304,15 @@ def _eintritt_im_jahr(rng):
                        f"{jahresurlaub} · {monate} : 12 = {de(jahresurlaub * monate / 12)}"
                        + (" → ab einem halben Tag aufrunden (§ 5 Abs. 2)" if anspruch != jahresurlaub * monate / 12 else "")
                        + f" → **{de(anspruch)} Tage**")
-    felder = [Feld("anspruch", f"Urlaub {jahr}", anspruch, "Tage"),
-              Feld("art", "Voll oder anteilig?", OPTIONEN[0 if voll else 1], typ="text", optionen=OPTIONEN)]
+    if voll:
+        warum = "Die Wartezeit von 6 Monaten ist noch in diesem Jahr erfüllt; damit entsteht der volle Urlaub."
+        falsch = [(aufrunden(jahresurlaub * monate / 12), warum)]
+    else:
+        warum = "Die Wartezeit von 6 Monaten ist in diesem Jahr nicht erfüllt; es gibt 1/12 je vollem Monat."
+        falsch = [(jahresurlaub, warum)] + _anteil_typisch(jahresurlaub, monate)
+    felder = [Feld("anspruch", f"Urlaub {jahr}", anspruch, "Tage", typisch=tuple(falsch)),
+              Feld("art", "Voll oder anteilig?", OPTIONEN[0 if voll else 1], typ="text", optionen=OPTIONEN,
+                   typisch=((OPTIONEN[1 if voll else 0], warum),))]
     return Aufgabe(frage, felder, weg, titel="Eintritt im Laufe des Jahres")
 
 
@@ -317,6 +338,13 @@ def _austritt(rng):
         weg = schritte("Wartezeit erfüllt und Austritt in der zweiten Jahreshälfte",
                        f"§ 5 Abs. 1 c BUrlG greift nicht: **voller Jahresurlaub, {jahresurlaub} Tage** (gesetzlich mindestens der "
                        "Mindesturlaub; vertraglicher Mehrurlaub kann anders geregelt sein, hier nicht)")
-    felder = [Feld("anspruch", f"Urlaub {jahr}", anspruch, "Tage"),
-              Feld("art", "Voll oder anteilig?", OPTIONEN[1 if erste_haelfte else 0], typ="text", optionen=OPTIONEN)]
+    if erste_haelfte:
+        warum = "Wer in der ersten Jahreshälfte ausscheidet, bekommt nur 1/12 je vollem Monat (§ 5 Abs. 1 c BUrlG)."
+        falsch = [(jahresurlaub, warum)] + _anteil_typisch(jahresurlaub, monate)
+    else:
+        warum = "Nach erfüllter Wartezeit bleibt bei Austritt in der zweiten Jahreshälfte der volle Urlaub."
+        falsch = [(aufrunden(jahresurlaub * monate / 12), warum)]
+    felder = [Feld("anspruch", f"Urlaub {jahr}", anspruch, "Tage", typisch=tuple(falsch)),
+              Feld("art", "Voll oder anteilig?", OPTIONEN[1 if erste_haelfte else 0], typ="text", optionen=OPTIONEN,
+                   typisch=((OPTIONEN[0 if erste_haelfte else 1], warum),))]
     return Aufgabe(frage, felder, weg, titel="Austritt im Laufe des Jahres")

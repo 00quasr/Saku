@@ -13,7 +13,7 @@ from saku.lernen.rechnen.basis import Art, de
 HTMX = {"HX-Request": "true"}
 # Arten mit typischen Fehlern; jede Variante soll mindestens einen haben
 MIT_DIAGNOSE = ["subnetz", "uebertragung", "datenmenge", "speicher", "zahlensystem", "energie", "raid", "verfuegbarkeit", "backup",
-                "kalkulation", "vergleich", "netzplan", "passwort", "schluessel", "verzug", "kuendigung"]
+                "kalkulation", "vergleich", "netzplan", "passwort", "schluessel", "verzug", "kuendigung", "urlaub", "monitor", "bandbreite"]
 
 
 def _getippt(f: Feld, wert) -> str:
