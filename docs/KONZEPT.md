@@ -82,7 +82,7 @@ Eine Station besteht aus drei Teilen:
 
 1. **Einführung:** Sensei erklärt das Thema kurz und verständlich, abgestimmt auf das, was in den Prüfungen tatsächlich gefragt wurde.
 2. **Übungen:** die echten Teilaufgaben des Themas, nach dem Fahrschul-Prinzip.
-3. **Mini-Test:** fünf Teilaufgaben aus dem Thema. Ab 80 % der Punkte ist die Station geschafft, und die nächste wird freigeschaltet.
+3. **Mini-Test:** fünf Teilaufgaben aus dem Thema. Ab 80 % der Punkte ist die Station geschafft, und die nächste wird freigeschaltet. Anklickbare Teilaufgaben und SQL mit Sandbox prüft Saku selbst (die Punkte sind vorbelegt und bleiben änderbar), den Rest bewertet man nach dem Lösungshinweis selbst.
 
 Die **Reihenfolge** entsteht bei der Analyse. Grundlagen kommen vor den Themen, die darauf aufbauen; die Abhängigkeiten schlägt die KI vor. Unter den möglichen nächsten Themen kommt zuerst das, was in den Prüfungen die meisten Punkte bringt. Die Reihenfolge lässt sich jederzeit von Hand anpassen.
 
@@ -141,8 +141,8 @@ Dargestellt wird sie als **Ensō** (円相), der Zen-Kreis aus einem einzigen Pi
 Saku stellt aus Aufgaben verschiedener Jahrgänge eine neue, vollständige Prüfung zusammen, also eine Prüfung, die es so nie gab. Aufbau, Punkte und Bearbeitungszeit übernimmt Saku aus den Deckblättern der echten Prüfungen. Bevorzugt werden Aufgaben, die noch nicht sitzen.
 
 - Während der Simulation läuft ein Timer, und Sensei ist pausiert, wie im Prüfungsraum.
-- Antworten werden in Textfelder getippt.
-- Nach Ablauf der Zeit erscheinen die Lösungshinweise. Die Punkte je Teilaufgabe vergibt man selbst oder lässt sie von Sensei vorschlagen.
+- Antworten werden in Textfelder getippt; anklickbare Teilaufgaben (Auswahl, Reihenfolge, Zuordnung, Zahl) werden angeklickt.
+- Nach Ablauf der Zeit erscheinen die Lösungshinweise. Anklickbare Teilaufgaben und SQL mit Sandbox (verglichen mit der Musterlösung, mit Kurzhinweis wie „2 Zeilen fehlen“; läuft die Anweisung nicht, 0 Punkte mit der Meldung) bewertet Saku selbst vor. Die übrigen Punkte vergibt man selbst oder lässt sie von Sensei vorschlagen; jeder Vorschlag bleibt änderbar.
 - Die Summe wird auf 100 Punkte umgerechnet und nach dem IHK-Notenschlüssel bewertet.
 
 | Punkte | Note |
