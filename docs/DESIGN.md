@@ -150,11 +150,12 @@ Makro: `{{ m.kopf('heute', '今日', 'Heute', 'Titel') }}` in `templates/_makros
 ## Layout und Abstände
 
 - **Zwei Breiten:** Lesebreite 47,5 rem (Keiko, Michi, Verlauf, Texte von Sensei) und weit bis 110 rem, so breit wie das Bildband (Heute, Bunseki, Niwa), jeweils linksbündig neben der Seitenleiste; beide wachsen mit der Schrift
-- **Navigation:** eine Seitenleiste links (232 px) mit Logo, dem Schalter für Beruf und Prüfungsteil, den Bereichen als Kanji und Wort und unten Sensei, Suche, Einstellungen und Tastenkürzel. Unter 1100 px bleiben nur die Zeichen (64 px), die Beschriftung steht im Tooltip.
+- **Navigation:** eine Seitenleiste links (232 px) mit Logo, dem Schalter für Beruf und Prüfungsteil, den Bereichen als Kanji und Wort und unten Sensei, Suche, Alle Seiten, Einstellungen und Tastenkürzel. Unter dem aktiven Bereich stehen seine Unterseiten eingerückt an einer Linie (z. B. Rechnen: Sprint, Probeprüfung, Formelsammlung), die aktuelle mit einem Strich in Zinnoberrot. Die Liste steht einmal in `SEITEN` (`saku/web/__init__.py`) und speist Seitenleiste, „Alle Seiten“ (`/seiten`, je Seite ein Satz) und ⌘K. Unter 1100 px bleiben nur die Zeichen (64 px), die Beschriftung steht im Tooltip, Unterseiten über „Alle Seiten“.
+- **Handy (unter 720 px):** statt der Seitenleiste eine Tab-Leiste unten mit Heute, Üben, Rechnen, Prüfung und „Mehr“. „Mehr“ öffnet ein Blatt von unten mit allen Bereichen und Unterseiten, Sensei, Suche, Einstellungen und dem Umfang; Esc, daneben tippen und Zurück schließen es. Tippflächen mindestens 44 px, die Leiste hält Abstand zu `env(safe-area-inset-*)`, das Bildband ist niedriger. Auf Touch-Geräten ohne Maus verschwinden Tastenhinweise (`.taste`, ganze Sätze mit `.nur-tastatur`).
 - **Sensei:** ein Seitenpanel rechts (400 px), das über den Inhalt gleitet
 - **Abstände:** nur aus der Reihe 4 · 8 · 12 · 16 · 24 · 32 · 48 · 64 · 96 px
 - **Flächen:** 1 px Linien in `--linie`, Ecken mit 6 px Radius, keine Schatten. Einzige Ausnahme sind schwebende Ebenen wie Suche und Sensei-Panel mit einem sehr weichen Schatten.
-- **Zielgröße:** ein Desktop-Fenster ab 1024 px Breite. Bis 360 px bleibt alles bedienbar, optimiert wird dafür aber nicht.
+- **Zielgröße:** ein Desktop-Fenster ab 1024 px Breite und das Handy ab 360 px. Was mobil noch zu breit ist, schneidet der Rahmen ab, statt die Seite seitlich scrollen zu lassen.
 
 ## Komponenten
 

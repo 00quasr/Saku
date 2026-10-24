@@ -18,6 +18,6 @@
     <button type="button" class="btn" data-size="sm" data-taste="Enter"
             hx-post="{{ url_for('keiko.bewerten', t_id=t_id) }}" hx-vals='{{ {"ergebnis": wert, "punkte": b.punkte, "quelle": "sensei"}|tojson }}' hx-include="#karte"
             hx-target="#karte" hx-swap="outerHTML">Übernehmen {{ m.taste('↵') }}</button>
-    <span class="klein gedaempft">oder selbst mit {{ m.taste('1') }} {{ m.taste('2') }} {{ m.taste('3') }}</span>
+    <span class="klein gedaempft nur-tastatur">oder selbst mit {{ m.taste('1') }} {{ m.taste('2') }} {{ m.taste('3') }}</span>
   </div>
 </article>

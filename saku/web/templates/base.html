@@ -2,14 +2,14 @@
 <html lang="de" class="{{ 'dark' if farbschema == 'dunkel' }}{{ ' app-fenster' if config.FENSTER }}">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="color-scheme" content="{{ 'dark' if farbschema == 'dunkel' else 'light' if farbschema == 'hell' else 'light dark' }}">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%23C2452D'/%3E%3Ctext x='32' y='44' font-size='34' text-anchor='middle' fill='%23F6F4EF' font-family='serif'%3E%E5%92%B2%3C/text%3E%3C/svg%3E">
   <title>{% block titel %}Saku{% endblock %} · 咲く</title>
   {% if farbschema == 'system' %}<script>document.documentElement.classList.toggle("dark", matchMedia("(prefers-color-scheme: dark)").matches)</script>{% endif %}
   <link rel="stylesheet" href="{{ url_for('static', filename='vendor/basecoat.cdn.min.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/saku.css') }}">
-  {% for b in ['heute', 'michi', 'keiko', 'rechnen', 'shiken', 'niwa', 'sensei', 'bunseki', 'suche', 'willkommen', 'einstellungen'] %}
+  {% for b in ['heute', 'michi', 'keiko', 'rechnen', 'shiken', 'niwa', 'sensei', 'bunseki', 'suche', 'willkommen', 'einstellungen', 'seiten'] %}
   <link rel="stylesheet" href="{{ url_for('static', filename='css/bereiche/' ~ b ~ '.css') }}">
   {% endfor %}
   <script src="{{ url_for('static', filename='vendor/htmx.min.js') }}" defer></script>
@@ -30,10 +30,31 @@
     </defs>
   </svg>
 
+  {# Bereiche mit Unterseiten: in der Seitenleiste nur beim aktiven Bereich, im Blatt „Mehr“ alle #}
+  {% macro nav_bereiche(alle) %}
+      {% for endpunkt, kanji, wort in BEREICHE %}
+      {% set aktiv = bereich == endpunkt.split('.')[0] %}
+      <a href="{{ url_for(endpunkt) }}" title="{{ wort }}" {% if aktiv %}aria-current="{{ 'true' if unterseite else 'page' }}"{% endif %}
+         {% if endpunkt in ('michi.index', 'niwa.index', 'bunseki.index') %}class="nav-neben"{% endif %}>
+        <span class="nav-zeichen" lang="ja" aria-hidden="true">{{ kanji }}</span>
+        <span class="seitenleiste-text">{{ wort }}</span>
+        {% if endpunkt == 'keiko.index' and faellig %}<span class="nav-zahl" aria-label="{{ faellig }} fällig">{{ faellig }}</span>{% endif %}
+      </a>
+      {% if SEITEN[endpunkt][1:] and (alle or aktiv) %}
+      <div class="nav-unter" role="group" aria-label="{{ wort }}">
+        {% for name, ziel, argumente, _ in SEITEN[endpunkt][1:] %}
+        <a href="{{ url_for(ziel, **argumente) }}" {% if (name, ziel, argumente, _) == unterseite %}aria-current="page"{% endif %}>{{ name }}</a>
+        {% endfor %}
+      </div>
+      {% endif %}
+      {% endfor %}
+  {% endmacro %}
+
   <div class="app">
   {% block leiste %}
-  {# Nur der Inhalt wechselt: die Leiste bleibt stehen, #nav kommt für die Markierung mit (hx-select-oob) #}
-  <aside class="seitenleiste" hx-boost="true" hx-target="#inhalt" hx-select="#inhalt" hx-select-oob="#nav,#fuss,#umfang"
+  {# Nur der Inhalt wechselt: die Leiste bleibt stehen, #nav kommt für die Markierung mit (hx-select-oob).
+     Mobil wird sie zur Tab-Leiste unten; „Mehr“ öffnet das Blatt mit allem Übrigen. #}
+  <aside class="seitenleiste" hx-boost="true" hx-target="#inhalt" hx-select="#inhalt" hx-select-oob="#nav,#fuss,#umfang,#mehr"
          hx-swap="outerHTML show:window:top">
     <a class="logo" href="{{ url_for('heute.index') }}" aria-label="Saku, zur Startseite">
       <span lang="ja" aria-hidden="true">咲</span><span class="seitenleiste-text">Saku</span>
@@ -55,13 +76,11 @@
       </form>
     </details>
     <nav id="nav" class="nav" aria-label="Bereiche">
-      {% for endpunkt, kanji, wort in BEREICHE %}
-      <a href="{{ url_for(endpunkt) }}" title="{{ wort }}" {% if bereich == endpunkt.split('.')[0] %}aria-current="page"{% endif %}>
-        <span class="nav-zeichen" lang="ja" aria-hidden="true">{{ kanji }}</span>
-        <span class="seitenleiste-text">{{ wort }}</span>
-        {% if endpunkt == 'keiko.index' and faellig %}<span class="nav-zahl" aria-label="{{ faellig }} fällig">{{ faellig }}</span>{% endif %}
-      </a>
-      {% endfor %}
+      {{ nav_bereiche(False) }}
+      <button type="button" class="nav-mehr{{ ' nav-mehr--aktiv' if bereich not in ('heute', 'keiko', 'rechnen', 'shiken') }}"
+              onclick="saku.mehr()" aria-haspopup="dialog" aria-controls="mehr">
+        <span class="nav-zeichen">{{ m.icon('ellipsis') }}</span><span class="seitenleiste-text">Mehr</span>
+      </button>
     </nav>
     <div id="fuss" class="seitenleiste-fuss">
       <button type="button" id="sensei-knopf" data-taste="s" onclick="saku.sensei()" aria-controls="sensei-panel" title="Sensei (S)">
@@ -70,6 +89,9 @@
       <button type="button" onclick="saku.oeffne('suche-dialog')" title="Suche (⌘K)">
         <span class="nav-zeichen">{{ m.icon('search') }}</span><span class="seitenleiste-text">Suche</span>{{ m.taste('⌘K') }}
       </button>
+      <a href="{{ url_for('kern.seiten') }}" title="Alle Seiten" {% if request.endpoint == 'kern.seiten' %}aria-current="page"{% endif %}>
+        <span class="nav-zeichen">{{ m.icon('layout-grid') }}</span><span class="seitenleiste-text">Alle Seiten</span>
+      </a>
       <a href="{{ url_for('kern.einstellungen') }}" title="Einstellungen" {% if request.endpoint == 'kern.einstellungen' %}aria-current="page"{% endif %}>
         <span class="nav-zeichen">{{ m.icon('settings') }}</span><span class="seitenleiste-text">Einstellungen</span>
       </a>
@@ -77,6 +99,37 @@
         <span class="nav-zeichen">{{ m.icon('keyboard') }}</span><span class="seitenleiste-text">Tastenkürzel</span>{{ m.taste('?') }}
       </button>
     </div>
+
+    {# Blatt „Mehr“ (mobil): Links darin ersetzen den Verlaufseintrag des Blatts (hx-replace-url, siehe saku.js) #}
+    <dialog id="mehr" class="mehr" aria-labelledby="mehr-titel" hx-replace-url="true" onclick="if (event.target === this) this.close()">
+      <header class="mehr-kopf">
+        <h2 id="mehr-titel" class="ueberschrift">Alle Bereiche</h2>
+        <button type="button" class="btn" data-variant="ghost" data-size="icon" aria-label="Schließen" onclick="this.closest('dialog').close()">{{ m.icon('x') }}</button>
+      </header>
+      <div class="mehr-werkzeuge">
+        <button type="button" onclick="this.closest('dialog').close(); saku.sensei()"><span lang="ja" aria-hidden="true">先</span> Sensei</button>
+        <button type="button" onclick="this.closest('dialog').close(); saku.oeffne('suche-dialog')">{{ m.icon('search') }} Suche</button>
+        <a href="{{ url_for('kern.einstellungen') }}" {% if request.endpoint == 'kern.einstellungen' %}aria-current="page"{% endif %}>{{ m.icon('settings') }} Einstellungen</a>
+      </div>
+      <form class="mehr-umfang" method="post" action="{{ url_for('kern.umfang') }}">
+        <div class="segment" role="group" aria-label="Ausbildung">
+          {% for nr, name in BERUFE.items() %}
+          <button name="beruf" value="{{ nr }}" aria-pressed="{{ 'true' if umfang.beruf == nr else 'false' }}">{{ name }}</button>
+          {% endfor %}
+        </div>
+        <div class="segment" role="group" aria-label="Prüfung">
+          {% for teil in ('AP1', 'AP2') %}
+          <button name="teil" value="{{ teil }}" aria-pressed="{{ 'true' if umfang.teil == teil else 'false' }}">{{ teil }}</button>
+          {% endfor %}
+        </div>
+      </form>
+      <nav class="mehr-nav" aria-label="Alle Bereiche">
+        {{ nav_bereiche(True) }}
+        <a href="{{ url_for('kern.seiten') }}" {% if request.endpoint == 'kern.seiten' %}aria-current="page"{% endif %}>
+          <span class="nav-zeichen">{{ m.icon('layout-grid') }}</span><span>Alle Seiten</span>
+        </a>
+      </nav>
+    </dialog>
   </aside>
   {% endblock %}
 

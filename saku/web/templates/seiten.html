@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block titel %}Alle Seiten{% endblock %}
+{% block inhalt %}
+{{ m.kopf('willkommen', '咲', 'Saku', 'Alle Seiten', schmal=True) }}
+<div class="seite weit">
+  <p class="gedaempft seiten-einleitung">Jede Seite von Saku nach Bereich. Die Suche <span class="nur-tastatur">({{ m.taste('⌘K') }})</span> findet sie auch unter ihrem Namen.</p>
+  <div class="seiten-raster">
+    {% for endpunkt, kanji, wort in BEREICHE %}
+    <section aria-labelledby="seiten-{{ loop.index }}">
+      <h2 class="ueberschrift" id="seiten-{{ loop.index }}"><span lang="ja" aria-hidden="true">{{ kanji }}</span> {{ wort }}</h2>
+      <ul class="seiten-liste">
+        {% for name, ziel, argumente, satz in SEITEN[endpunkt] %}
+        <li><a href="{{ url_for(ziel, **argumente) }}"><span class="seiten-name">{{ name }}</span> <span class="klein gedaempft">{{ satz }}</span></a></li>
+        {% endfor %}
+      </ul>
+    </section>
+    {% endfor %}
+    <section aria-labelledby="seiten-allgemein">
+      <h2 class="ueberschrift" id="seiten-allgemein">Allgemein</h2>
+      <ul class="seiten-liste">
+        {% for name, ziel, argumente, satz in ALLGEMEIN %}
+        <li><a href="{{ url_for(ziel, **argumente) }}"><span class="seiten-name">{{ name }}</span> <span class="klein gedaempft">{{ satz }}</span></a></li>
+        {% endfor %}
+      </ul>
+    </section>
+  </div>
+</div>
+{% endblock %}

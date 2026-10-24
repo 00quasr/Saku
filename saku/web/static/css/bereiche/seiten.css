@@ -1,0 +1,10 @@
+/* Alle Seiten – je Bereich die Seiten mit einem Satz */
+
+.seiten-einleitung { max-width: 68ch; }
+.seiten-raster { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 1fr)); gap: 48px 40px; margin-top: 32px; }
+.seiten-raster .ueberschrift [lang="ja"] { color: var(--shu); margin-right: 0.25em; }
+.seiten-liste { display: grid; gap: 4px; margin-top: 12px; padding-top: 8px; border-top: 1px solid var(--linie); }
+/* der ganze Eintrag ist der Link: auf dem Handy eine große Tippfläche */
+.seiten-liste a { display: grid; gap: 2px; margin-inline: -8px; padding: 6px 8px; border-radius: 8px; text-decoration: none; }
+.seiten-liste a:hover { background: var(--flaeche); }
+.seiten-name { font-weight: 500; }

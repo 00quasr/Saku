@@ -1,4 +1,4 @@
-"""Bereichsübergreifend: Bildausschnitte aus data/aufgaben und Einstellungen."""
+"""Bereichsübergreifend: Bildausschnitte aus data/aufgaben, Einstellungen und „Alle Seiten“."""
 
 import json
 import sqlite3
@@ -128,3 +128,9 @@ def umfang():
             setze_einstellung(con, schluessel, wert)
     zurueck = request.referrer or ""
     return redirect(zurueck if zurueck.startswith(request.host_url) else url_for("heute.index"))
+
+
+@bp.get("/seiten")
+def seiten():
+    """Alle Seiten nach Bereich, je mit einem Satz; erreichbar aus der Seitenleiste, dem Blatt „Mehr“ und mit ⌘K."""
+    return render_template("seiten.html")

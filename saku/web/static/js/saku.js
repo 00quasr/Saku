@@ -8,6 +8,11 @@ window.saku = {
     // ins Eingabefeld, sonst auf „Schließen“ (nicht auf die scrollbare Fläche, die der Browser sonst nimmt)
     (dialog.querySelector("input, textarea") || dialog.querySelector("[aria-label='Schließen']"))?.focus();
   },
+  // Mobil: Blatt „Mehr“ mit allen Bereichen; der Eintrag im Verlauf lässt Zurück (Wischgeste, Browser) es schließen
+  mehr() {
+    saku.oeffne("mehr");
+    history.pushState({ mehr: true }, "");
+  },
   sensei() {
     document.body.classList.toggle("sensei-offen");
     document.dispatchEvent(new CustomEvent("sensei:umschalten"));
@@ -275,6 +280,29 @@ window.saku = {
 
 // Antwort mit HX-Trigger: gespeichert
 document.addEventListener("gespeichert", () => saku.melden("Gespeichert"));
+
+// Blatt „Mehr“: Schließen (Esc, Knopf, daneben tippen) nimmt seinen Eintrag wieder aus dem Verlauf, Zurück schließt es.
+// htmx darf dabei nichts aus dem Verlauf neu aufbauen: dieser Listener läuft vor htmx' onpopstate (gesetzt erst beim Laden)
+let mehrZurueck = false;
+document.addEventListener("close", (e) => {
+  if (e.target.id !== "mehr" || !history.state?.mehr) return;
+  mehrZurueck = true;
+  history.back();
+}, true);
+addEventListener("popstate", (e) => {
+  const blatt = document.getElementById("mehr");
+  if (!mehrZurueck && !blatt?.open) return;
+  e.stopImmediatePropagation();
+  mehrZurueck = false;
+  blatt?.close();
+});
+// Ein Link oder Formular im Blatt: dessen Eintrag wird zur neuen Seite (hx-replace-url am Blatt), nicht zurückgenommen
+document.addEventListener("htmx:beforeRequest", (e) => {
+  const blatt = e.target.closest?.("#mehr");
+  if (!blatt?.open) return;
+  history.replaceState(null, "");
+  blatt.close();
+});
 
 // Bereichsbilder einmal vorab dekodieren, damit sie beim Wechsel nicht nachträglich aufploppen
 addEventListener("load", () => {
