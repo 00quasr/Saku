@@ -96,7 +96,10 @@
 .sg-rumpf { margin-left: 1.75rem; border-top: 1px solid var(--sg-linie); border-left: 1px solid var(--sg-linie); }
 .rechnen-weg + .struktogramm, .rechnen-frage + .struktogramm { margin-top: -4px; }
 
-/* Diagramme als SVG (svg.py): Linien und Schrift in currentColor, Flächen aus den Tokens; schmaler als das Bild wird es kleiner */
+/* Diagramme als SVG (svg.py): Linien und Schrift in currentColor, Flächen aus den Tokens. Breiter als die Spalte wird das Bild
+   kleiner, in schmalen Fenstern bleibt es lesbar groß und scrollt waagrecht */
+.uml-bild { overflow-x: auto; }
+@media (max-width: 720px) { .uml-bild > .uml { max-width: none; } }
 .uml {
   display: block; max-width: 100%; height: auto; color: var(--sumi); background: var(--washi-hell);
   border: 1px solid var(--linie); border-radius: 10px; font-family: var(--schrift-code); font-size: 12px;
@@ -109,7 +112,7 @@
 .uml .uml-kursiv { font-style: italic; }
 .uml .uml-fett { font-weight: 600; }
 .uml .uml-unterstrichen { text-decoration: underline; }
-.rechnen-frage + .uml { margin-top: -4px; }
+.rechnen-frage + .uml-bild { margin-top: -4px; }
 
 /* Eingabetabelle (Wertetabelle, Array): die Grundform kommt aus Üben (.tabelle-eingabe) */
 .rechnen-tabelle { max-width: max-content; }

@@ -69,7 +69,9 @@ def svg_pruefen(bild) -> ET.Element:
     """Gültiges XML mit role="img" und Beschreibung, keine festen Farben; Flächen überlappen nicht (außer dem Systemrahmen, der
     andere umschließt), Text steht ganz in einer Fläche oder frei, Beschriftungen überdecken sich nicht, Linien laufen durch keine
     Fläche und keinen Text."""
-    svg = ET.fromstring(str(bild))
+    huelle = ET.fromstring(str(bild))
+    assert huelle.tag == "div" and huelle.get("class") == "uml-bild" and len(huelle) == 1  # scrollt in schmalen Fenstern
+    svg = huelle[0]
     assert svg.tag == "svg" and svg.get("role") == "img" and len(svg.get("aria-label", "")) > 20
     for e in svg.iter():
         assert not {"fill", "stroke", "style", "color"} & set(e.attrib), (e.tag, e.attrib)
@@ -345,7 +347,7 @@ def _darf(akteure: dict, nutzt: dict, akteur: str) -> set[str]:
 def _system(a) -> dict:
     """Das System der Aufgabe, am Namen in der Textfassung erkannt (für das vollständige Bild)."""
     from saku.lernen.rechnen import uml
-    name = re.search(r"System (\w+)\.", ET.fromstring(str(a.struktogramm)).get("aria-label", ""))[1]
+    name = re.search(r"System (\w+)\.", ET.fromstring(str(a.struktogramm))[0].get("aria-label", ""))[1]
     return next(s for s in uml.SYSTEME if s["system"] == name)
 
 

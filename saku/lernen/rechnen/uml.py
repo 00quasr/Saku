@@ -307,18 +307,22 @@ def zustand(rng):
         ziel = nachspielen(a, richtig)[-1][3]
         if ziel == start:
             continue
-        falsche = []
-        for _ in range(300):
+        je_ende = {}  # falsche Folgen nach ihrem Endzustand
+        for _ in range(200):
             kandidat = list(richtig)
             if rng.random() < 0.5:
                 i, j = rng.sample(range(len(kandidat)), 2)
                 kandidat[i], kandidat[j] = kandidat[j], kandidat[i]
             else:
                 kandidat[rng.randrange(len(kandidat))] = rng.choice(sorted({u[1] for u in a["uebergaenge"]}))
-            if nachspielen(a, kandidat)[-1][3] != ziel and kandidat not in falsche:
-                falsche.append(kandidat)
-            if len(falsche) == 3:
-                break
+            ende = nachspielen(a, kandidat)[-1][3]
+            if ende != ziel and kandidat not in je_ende.get(ende, []):
+                je_ende.setdefault(ende, []).append(kandidat)
+        # möglichst verschiedene Endzustände: enden alle falschen gleich, fällt die richtige als einzige aus der Reihe
+        falsche = [rng.choice(f) for f in je_ende.values()]
+        rng.shuffle(falsche)
+        rest = [k for f in je_ende.values() for k in f if k not in falsche]
+        falsche = falsche[:3] + rng.sample(rest, max(min(3 - len(falsche), len(rest)), 0))
         if len(falsche) >= 2:
             break
     folgen = [richtig, *falsche]

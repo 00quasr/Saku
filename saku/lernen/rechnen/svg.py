@@ -173,11 +173,12 @@ class Bild:
         self.offen = []
 
     def svg(self, klasse: str, beschreibung: str) -> Markup:
-        """Das fertige Bild; beschreibung ist die Textfassung für Screenreader (aria-label)."""
+        """Das fertige Bild in einem Rahmen, der in schmalen Fenstern waagrecht scrollt (sonst würde die Schrift winzig);
+        beschreibung ist die Textfassung für Screenreader (aria-label)."""
         self._setzen()
         x0, y0 = self.rahmen[0] - RAND, self.rahmen[1] - RAND
         b, h = self.rahmen[2] - self.rahmen[0] + 2 * RAND, self.rahmen[3] - self.rahmen[1] + 2 * RAND
         inhalt = "".join(svg for _, svg in sorted(self.teile, key=lambda t: t[0]))
-        return Markup(f'<svg class="uml {klasse}" viewBox="{_z(x0)} {_z(y0)} {_z(b)} {_z(h)}" width="{_z(b)}" height="{_z(h)}" '
-                      f'role="img" aria-label="{escape(beschreibung)}" font-family="JetBrains Mono, monospace" '
-                      f'font-size="{SCHRIFT}">{inhalt}</svg>')
+        return Markup(f'<div class="uml-bild"><svg class="uml {klasse}" viewBox="{_z(x0)} {_z(y0)} {_z(b)} {_z(h)}" width="{_z(b)}" '
+                      f'height="{_z(h)}" role="img" aria-label="{escape(beschreibung)}" font-family="JetBrains Mono, monospace" '
+                      f'font-size="{SCHRIFT}">{inhalt}</svg></div>')
