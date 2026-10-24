@@ -37,6 +37,8 @@ def test_falten_und_maskieren():
     assert all(len(z) <= 75 for z in gefaltet.split(b"\r\n")) and b"\r\n " in gefaltet
     assert gefaltet.decode().replace("\r\n ", "") == lang  # entfaltet wie vorher, kein Umlaut zerteilt
     assert kalender.text("a,b;c\\d\ne") == "a\\,b\\;c\\\\d\\ne"
+    # Zeilenumbrüche jeder Art werden \n, andere Steuerzeichen fallen weg: ein Titel schmuggelt keine Zeile ein
+    assert kalender.text("a\r\nb\rEND:VEVENT\x0bc") == "a\\nb\\nEND:VEVENTc"
     assert kalender.falten("kurz") == "kurz"
 
 

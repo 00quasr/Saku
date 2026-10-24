@@ -1,13 +1,15 @@
 """Fahrplan als Kalenderdatei (iCalendar, RFC 5545), nur mit der Standardbibliothek: ganztägige Termine aus
 fahrplan.meilensteine und auf Wunsch ein täglicher Lern-Termin mit Erinnerung bis zur Prüfung."""
 
+import re
 from datetime import date, datetime, time, timedelta, timezone
 
 PRODID = "-//Saku//Fahrplan//DE"
 
 
 def text(wert: str) -> str:
-    """TEXT-Wert maskieren (RFC 5545, 3.3.11)."""
+    """TEXT-Wert maskieren (RFC 5545, 3.3.11): auch \\r wird \\n, andere Steuerzeichen außer Tab sind im Text verboten."""
+    wert = re.sub(r"[\x00-\x08\x0b-\x1f\x7f]", "", re.sub(r"\r\n?", "\n", wert))
     return wert.replace("\\", "\\\\").replace(";", "\\;").replace(",", "\\,").replace("\n", "\\n")
 
 
