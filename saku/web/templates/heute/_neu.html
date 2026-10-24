@@ -10,6 +10,7 @@
     <li><a href="{{ url_for('heute.fahrplan') }}">Fahrplan</a>: Wiederholungen der nächsten Tage, dein Tempo bis zur Prüfung und wo die meisten Punkte noch fehlen.</li>
     <li><a href="{{ url_for('keiko.verlauf') }}">Verlauf</a>: jede Bewertung nach Tagen, oben der Rückblick auf die Woche (auch hier auf Heute).</li>
     <li>SQL in <a href="{{ url_for('keiko.index') }}">Üben</a>: Anweisungen auf Beispieldaten ausführen und mit der Musterlösung vergleichen.</li>
+    <li>Stichpunkt-Abgleich: Schreibst du in <a href="{{ url_for('keiko.index') }}">Üben</a> eine freie Antwort, zeigt Saku beim Aufdecken, welche Punkte der Musterlösung drinstehen, mit einem Vorschlag; ohne KI, bewerten tust du selbst. Auch in Simulation und Mini-Test.</li>
     <li><a href="{{ url_for('shiken.index') }}">Simulation</a> und <a href="{{ url_for('michi.index') }}">Mini-Test</a> werten Ankreuzaufgaben, Zahlen und SQL selbst aus; die Punkte kannst du ändern.</li>
     <li><a href="{{ url_for('keiko.grundwissen', modus='umgekehrt') }}">Grundwissen umgekehrt</a>: die Definition lesen, den Begriff wählen.</li>
     <li>Saku sichert die Datenbank einmal am Tag; den Lernstand nimmst du in den <a href="{{ url_for('kern.einstellungen', _anchor='daten') }}">Einstellungen</a> als Datei mit.</li>
