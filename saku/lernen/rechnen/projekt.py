@@ -52,7 +52,7 @@ def kritische_pfade(vorgaenge: list[dict]) -> list[str]:
 
 
 @art("netzplan", "Netzplan", "Projekt", "Vorgänge mit Dauer und Vorgängern: Projektdauer, Puffer, kritischer Pfad",
-     ("Netzplan", "Gantt", "Kritischer Pfad", "Vorgangsknoten"))
+     ("Netzplan", "Gantt", "Kritischer Pfad", "Projektplanung", "Zeitplanung"))
 def netzplan(rng):
     while True:
         vorgaenge = plan(rng)

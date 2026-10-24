@@ -8,7 +8,7 @@ PREISE = [0.28, 0.30, 0.32, 0.34, 0.35, 0.38, 0.40]  # €/kWh
 
 
 @art("energie", "Energie und Strom", "Strom & Hardware", "Stromkosten, Einsparung und Amortisation, P = U · I, USV",
-     ("Energie", "Strom", "Leistungsaufnahme", "Elektrische", "USV", "Unterbrechungsfreie"))
+     ("Energiekosten", "Energieeffizien", "Stromkosten", "Stromverbrauch", "Elektrische Größe", "USV", "Unterbrechungsfrei"))
 def energie(rng):
     return rng.choice([_kosten, _einsparung, _elektrisch, _usv])(rng)
 

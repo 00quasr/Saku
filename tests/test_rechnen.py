@@ -174,15 +174,32 @@ def test_text_ip_pfad_und_zahlensysteme():
 
 
 def test_passende_art_zu_themen():
-    def slug(*texte):
-        a = rechnen.passend(texte)
-        return a.slug if a else None
-    assert slug("IP-Konfiguration am Client") == "subnetz" and slug("Netzplan Puffer, kritischer Pfad") == "netzplan"
-    assert slug("IPv6-Adressierung") == "ipv6" and slug("Speichereinheiten und Präfixe") == "speicher"
-    assert slug("Wirtschaftlichkeit Amortisation, Nutzwertanalyse") == "nutzwert" and slug("RAID und Datensicherung") == "raid"
-    assert slug("Angebotsvergleich") == "kalkulation" and slug("Kauf, Leasing oder Miete") == "vergleich"
-    assert slug("Energiekosten und Energieeffizienz") == "energie" and slug("Übertragungszeiten") == "uebertragung"
-    assert slug("Namensauflösung", "Prinzip der Datensparsamkeit", "Bytecode", None) is None
+    """Erfundene, aber typisch formulierte Themennamen; nur der Name zählt, Teilwörter auch mitten im Wort."""
+    passt = {
+        "subnetz": ["Subnetze planen", "IPv4-Adressvergabe im Firmennetz", "IP-Adressierung im LAN", "IP-Konfiguration eines Druckers"],
+        "uebertragung": ["Übertragungszeit im WAN", "Restoredauer einer Sicherung"],
+        "ipv6": ["Adressierung mit IPv6"],
+        "datenmenge": ["Datenmenge von Scans und Fotos", "Farbtiefe und Auflösung"],
+        "speicher": ["Speichereinheiten (SI und IEC)", "Speichergrößen umrechnen", "Kapazitätsplanung für Fileserver"],
+        "zahlensystem": ["Zahlensysteme umrechnen", "Hexadezimalzahlen"],
+        "energie": ["Stromkosten am Arbeitsplatz", "Energieeffizienz von Servern", "Elektrische Größen am Netzteil", "USV-Auswahl"],
+        "raid": ["RAID-Level vergleichen"],
+        "kalkulation": ["Angebotskalkulation für Kunden", "Quantitativer Angebotsvergleich", "Handelskalkulation"],
+        "vergleich": ["Leasing oder Kauf", "Kostenarten im IT-Betrieb", "Amortisation einer Investition"],
+        "nutzwert": ["Nutzwertanalyse bei der Lieferantenwahl", "Entscheidungsmatrix"],
+        "netzplan": ["Netzplantechnik", "Gantt-Diagramm erstellen", "Projektplanung und Termine"],
+    }
+    for slug, namen in passt.items():
+        for name in namen:
+            art = rechnen.passend([name])
+            assert art and art.slug == slug, name
+    # früher zu breit: „Binär“, „Bandbreite“, „Übertragung“, „Strom“, „Speicher“, „Netz“, „Elektrische“, „IP-Adresse“
+    for name in ["Binärbäume und Graphen", "Binäre Suche", "Bandbreitenmanagement mit QoS", "Übertragungsmedien im Gebäude",
+                 "Datenstrom-Verarbeitung", "Speicherverwaltung im Betriebssystem", "Netzwerkmonitoring", "Elektrische Sicherheit prüfen",
+                 "Energielabel und Gütesiegel", "NAT mit privaten Adressen", "Vertragsarten im Kaufrecht", "Laufzeit und Speicherbedarf", None]:
+        assert rechnen.passend([name]) is None, name
+    # mehrere Themen: das erste passende (Keiko sortiert nach Gewicht)
+    assert rechnen.passend(["Scrum", "Netzplantechnik", "RAID-Level"]).slug == "netzplan"
 
 
 def test_gemischt_bevorzugt_schwaches():
@@ -224,6 +241,7 @@ def test_aufgabe_hat_feste_adresse(client):
 
 
 def test_pruefen_speichert_den_versuch(client, con):
+    assert "Heute gerechnet" not in client.get("/").get_data(as_text=True)  # erst, wenn heute gerechnet wurde
     a = rechnen.erzeugen("subnetz", 7)
     n, erstes = len(a.felder), a.felder[0]
     richtig = {f"feld-{f.name}": f.anzeige for f in a.felder}
@@ -239,6 +257,8 @@ def test_pruefen_speichert_den_versuch(client, con):
     zeilen = [tuple(z) for z in con.execute("SELECT art, seed, richtig, felder_richtig, felder_gesamt FROM rechenuebung ORDER BY id")]
     assert zeilen == [("subnetz", 7, 1, n, n), ("subnetz", 7, 0, n - 1, n), ("subnetz", 7, 0, 0, n)]
     assert "1 von 3 zuletzt · 3 gerechnet" in client.get("/rechnen/").get_data(as_text=True)
+    heute = client.get("/").get_data(as_text=True)
+    assert 'Heute gerechnet: <span class="zahl">3 · 33 %</span>' in heute and 'href="/rechnen/"' in heute
     assert client.post("/rechnen/subnetz/pruefen", data={}).status_code == 400
 
 
@@ -252,7 +272,8 @@ def test_einbindung_suche_ueben_themen(client, con):
         return con.execute("SELECT id FROM teilaufgabe WHERE text LIKE ?", (f"%{text}%",)).fetchone()[0]
     netzplan = client.get(f"/keiko/?teilaufgabe={teilaufgabe('kritischen Pfad')}").get_data(as_text=True)
     assert 'Ähnliches rechnen, mit immer neuen Zahlen: <a href="/rechnen/netzplan">Netzplan →</a>' in netzplan
-    assert 'href="/rechnen/nutzwert"' in client.get(f"/keiko/?teilaufgabe={teilaufgabe('Nutzwertanalyse')}").get_data(as_text=True)
+    # nur der Themenname zählt: „Wirtschaftlichkeit“ (Stichworte Amortisation, Nutzwertanalyse) führt zu Kauf/Leasing/Miete
+    assert 'href="/rechnen/vergleich"' in client.get(f"/keiko/?teilaufgabe={teilaufgabe('Nutzwertanalyse')}").get_data(as_text=True)
     assert "Ähnliches rechnen" not in client.get(f"/keiko/?teilaufgabe={teilaufgabe('Bubblesort')}").get_data(as_text=True)
 
     thema = con.execute("SELECT id FROM thema WHERE name = 'Netzplan'").fetchone()[0]

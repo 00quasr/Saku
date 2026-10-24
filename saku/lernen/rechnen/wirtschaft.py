@@ -18,7 +18,7 @@ def _prozent(p: Decimal) -> str:
 
 
 @art("kalkulation", "Kalkulation", "Wirtschaft", "Bezugs- und Angebotskalkulation, Angebotsvergleich",
-     ("Kalkulation", "Angebotsvergleich", "Bezugspreis", "Handlungskosten", "Selbstkosten", "Skonto"))
+     ("Kalkulation", "Angebotsvergleich", "Bezugspreis"))
 def kalkulation(rng):
     return rng.choice([_vorwaerts, _vorwaerts, _angebotsvergleich])(rng)
 
@@ -138,7 +138,7 @@ def _modelle(rng):
 
 
 @art("vergleich", "Kauf, Leasing, Miete", "Wirtschaft", "Gesamtkosten über die Laufzeit und ab wann sich der Kauf lohnt",
-     ("Leasing", "Miete", "Mietkauf", "Finanzierung"))
+     ("Leasing", "Miete", "Kostenarten", "Kostenvergleich", "Wirtschaftlichkeit", "Amortisation"))
 def vergleich(rng):
     return rng.choice([_gesamtkosten, _ab_wann])(rng)
 

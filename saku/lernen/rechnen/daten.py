@@ -27,7 +27,7 @@ def _praefix_hinweis(einheit: str) -> str:
 
 
 @art("datenmenge", "Datenmenge", "Daten & Medien", "Bilder, Scans, Audio und Video: wie groß wird die Datei?",
-     ("Datenmenge", "Speicherbedarf", "Farbtiefe", "Abtastrate", "Bildgröße"))
+     ("Datenmenge", "Farbtiefe", "Abtastrate", "Dateigröße"))
 def datenmenge(rng):
     return rng.choice([_bild, _scan, _audio, _video, _fotos_auf_karte])(rng)
 
@@ -140,7 +140,7 @@ def _fotos_auf_karte(rng):
 # --- Speichereinheiten ---------------------------------------------------
 
 @art("speicher", "Speichereinheiten", "Daten & Medien", "kB/KiB, GB/GiB, TB/TiB umrechnen: was zeigt das Betriebssystem?",
-     ("Speichereinheit", "Binärpräfix", "Speicherkapazität"))
+     ("Speichereinheit", "Speichergröße", "Binärpräfix", "Kapazitätsplanung"))
 def speicher(rng):
     return rng.choice([_anzeige, _umrechnen, _dateien_auf_stick])(rng)
 
@@ -228,7 +228,7 @@ def _nibbles(bits: str) -> str:
 
 
 @art("zahlensystem", "Zahlensysteme", "Daten & Medien", "Dezimal, binär, hexadezimal und Zweierkomplement",
-     ("Zahlensystem", "Binär", "Hexadezimal", "Dualzahl", "Zweierkomplement"))
+     ("Zahlensystem", "Binärzahl", "Dualzahl", "Hexadezimal", "Zweierkomplement"))
 def zahlensystem(rng):
     return rng.choice([_dez_bin, _bin_dez, _hex_dez, _zweierkomplement])(rng)
 

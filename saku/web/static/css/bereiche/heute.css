@@ -46,6 +46,9 @@ a.flaeche:hover { border-color: var(--sumi-mittel); }
 .plan-zahl { font-weight: 300; font-size: 2.5rem; line-height: 1; letter-spacing: -0.02em; }
 .plan-balken { height: 4px; }
 .plan-balken > span { background: var(--shu); }
+.heute-rechnen { justify-self: start; color: var(--sumi-mittel); text-decoration: none; }
+.heute-rechnen:hover { color: var(--sumi); }
+.heute-rechnen [lang="ja"] { color: var(--shu); margin-right: 2px; }
 
 .reife-inhalt { display: flex; align-items: center; gap: 22px; }
 .heute-enso { display: grid; place-items: center; flex: none; }

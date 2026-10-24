@@ -27,6 +27,12 @@ def _stand(con) -> dict[str, dict]:
     return stand
 
 
+def heute_gerechnet(con) -> tuple[int, int]:
+    """(Aufgaben, davon richtig) seit heute früh, Ortszeit."""
+    return tuple(con.execute("SELECT COUNT(*), COALESCE(SUM(richtig), 0) FROM rechenuebung "
+                             "WHERE date(zeitpunkt, 'localtime') = date('now', 'localtime')").fetchone())
+
+
 def _art_oder_404(art: str) -> rechnen.Art:
     if art not in rechnen.ARTEN:
         abort(404)
@@ -44,10 +50,8 @@ def _kontext(art: str, seed: int, gemischt: bool, eingaben: dict | None = None, 
 @bp.get("/")
 def index():
     con = db()
-    heute = con.execute("SELECT COUNT(*), COALESCE(SUM(richtig), 0) FROM rechenuebung "
-                        "WHERE date(zeitpunkt, 'localtime') = date('now', 'localtime')").fetchone()
     gruppen = [(g, [a for a in rechnen.ARTEN.values() if a.gruppe == g]) for g in rechnen.GRUPPEN]
-    return render_template("rechnen/index.html", gruppen=gruppen, stand=_stand(con), heute=heute)
+    return render_template("rechnen/index.html", gruppen=gruppen, stand=_stand(con), heute=heute_gerechnet(con))
 
 
 @bp.get("/gemischt")

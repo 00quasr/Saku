@@ -54,11 +54,12 @@ def pruefen(aufgabe: Aufgabe, eingaben: dict[str, str]) -> dict[str, bool]:
     return {f.name: stimmt(f, eingaben.get(f.name, ""), aufgabe.toleranz) for f in aufgabe.felder}
 
 
-def passend(texte) -> Art | None:
-    """Die erste Rechenart, deren Stichworte in einem der Texte (Themennamen und -stichworte) als Wortanfang vorkommen."""
-    for text in texte:
+def passend(namen) -> Art | None:
+    """Die erste Rechenart, deren Stichwort in einem der Themennamen steckt (auch mitten im Wort: „Angebotskalkulation“).
+    Nur Namen: die Stichwort-Spalte der Themen nennt Begriffe wie „Leasing“ oder „binäre Suche“ auch dort, wo nichts zu rechnen ist."""
+    for name in namen:
         for a in ARTEN.values():
-            if any(re.search(rf"\b{re.escape(s)}", text or "", re.I) for s in a.themen):
+            if any(s.casefold() in (name or "").casefold() for s in a.themen):
                 return a
     return None
 
