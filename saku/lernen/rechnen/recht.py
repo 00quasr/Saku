@@ -52,6 +52,7 @@ FORMELN = {
 - Verzugszinssatz (§ 288): **Basiszinssatz + 5 Prozentpunkte**, wenn ein Verbraucher beteiligt ist (Abs. 1); **+ 9 Prozentpunkte** zwischen Unternehmern (Abs. 2); der Basiszinssatz (§ 247) ändert sich zum 1. Januar und 1. Juli und steht in der Aufgabe
 - Zwischen Unternehmern zusätzlich **40 € Pauschale** (§ 288 Abs. 5), nicht gegenüber Verbrauchern
 - Zinsen = Betrag · Zinssatz · Tage : 365. Konvention hier: Zinstage vom ersten Verzugstag bis einschließlich zum Zahlungstag, taggenau, das Jahr mit 365 Tagen, am Ende auf Cent gerundet (Zinsrechner und Gerichte zählen teils anders); nach einer Mahnung laufen die Zinsen ab dem Tag nach ihrem Zugang
+- *Typische Fehler:* 5 und 9 Prozentpunkte verwechselt, mit 360 statt 365 Tagen gerechnet, Verzug schon am Termin statt am Tag danach, die Pauschale auch gegenüber Verbrauchern
 
 *Beispiel:* 2.000 € zwischen Unternehmern, Basiszinssatz 1,27 %, 30 Zinstage: 10,27 % → 2.000 · 0,1027 · 30 : 365 = 16,88 € und 40 € Pauschale""",
     "lizenz": """- **OEM-Lizenz**: zusammen mit neuer Hardware verkauft, günstig, laut Lizenzbedingungen an das Gerät gebunden
@@ -608,6 +609,9 @@ def verzug(rng):
     return rng.choice([_verzugsbeginn, _verzugszinsen])(rng)
 
 
+DREISSIG = "Verzug beginnt erst am Tag nach den 30 Tagen; der Tag des Zugangs zählt nicht mit."
+
+
 def _verzugsbeginn(rng):
     fall = rng.choice(["termin", "termin", "unternehmer", "hinweis", "mahnung", "frueh"])
     verbraucher = fall in ("hinweis", "mahnung") or fall == "termin" and rng.random() < 0.5
@@ -641,8 +645,13 @@ def _verzugsbeginn(rng):
     frage = (f"{text} Gezahlt ist bis heute nicht.\n\nWodurch kommt {wer} in Verzug, ab welchem Tag, und war {wer} am "
              f"**{lang(stichtag)}** schon in Verzug? (Datum als TT.MM.JJJJ)")
     grund = {"termin": 1, "unternehmer": 2, "hinweis": 2, "mahnung": 0, "frueh": 0}[fall]
+    typisch = {"termin": [(termin, "Am vereinbarten Termin darf noch gezahlt werden; Verzug beginnt am Tag danach.")],
+               "unternehmer": [(frist, DREISSIG)], "hinweis": [(frist, DREISSIG)],
+               "mahnung": [(frist + timedelta(days=1), "Gegenüber einem Verbraucher gilt die 30-Tage-Regel nur mit Hinweis in der "
+                                                       "Rechnung.")],
+               "frueh": [(frist + timedelta(days=1), "Die Mahnung wirkt früher; die 30 Tage gelten nur „spätestens“.")]}[fall]
     felder = [Feld("grund", "Verzug durch", GRUENDE[grund], typ="text", optionen=GRUENDE),
-              Feld("ab", "Verzug ab", kurz(ab), typ="datum"),
+              Feld("ab", "Verzug ab", kurz(ab), typ="datum", typisch=tuple((kurz(d), h) for d, h in typisch)),
               Feld("stichtag", f"Am {kurz(stichtag)} in Verzug?", JA_NEIN[0 if stichtag >= ab else 1], typ="text", optionen=JA_NEIN)]
     dreissig = [f"Fristbeginn am Tag nach dem Zugang: {kurz(zugang)} + 30 Tage = {kurz(frist)} (§§ 187, 188 BGB), ein Werktag",
                 f"Verzug ab dem Tag danach: **{kurz(ab)}**"]
@@ -687,8 +696,20 @@ def _verzugszinsen(rng):
              f"ganzen Zeitraum einen Basiszinssatz von **{de(float(basis))} %** an.\n\nBerechnen Sie den Verzugszinssatz, die Zinstage, "
              "die Verzugszinsen und die Pauschale nach § 288 BGB. Zinstage zählen vom ersten Verzugstag bis einschließlich zum "
              "Zahlungstag, taggenau mit 365 Tagen im Jahr; runden Sie auf Cent.")
-    felder = [Feld("satz", "Verzugszinssatz", float(satz), "%"), Feld("tage", "Zinstage", tage, "Tage", stellen=0),
-              Feld("zinsen", "Verzugszinsen", float(zinsen), "€"), Feld("pauschale", "Pauschale", float(pauschale), "€")]
+    punkte = ("Ohne Verbraucher sind es 9 Prozentpunkte über dem Basiszinssatz, nicht 5." if unternehmer else
+              "Ist ein Verbraucher beteiligt, sind es nur 5 Prozentpunkte über dem Basiszinssatz, nicht 9.")
+    pauschale_falsch = ((0.0, "Ist der Schuldner kein Verbraucher, kommen 40 € Pauschale dazu (§ 288 Abs. 5).") if unternehmer else
+                        (40.0, "Die Pauschale von 40 € gibt es nur, wenn der Schuldner kein Verbraucher ist."))
+    andere = basis + (5 if unternehmer else 9)
+    falsch_satz = [(andere, punkte), (satz - basis, "Du hast den Basiszinssatz vergessen; der Verzugszins liegt um die Prozentpunkte darüber.")]
+    felder = [Feld("satz", "Verzugszinssatz", float(satz), "%", typisch=tuple((float(x), h) for x, h in falsch_satz)),
+              Feld("tage", "Zinstage", tage, "Tage", stellen=0, typisch=(
+                  (tage - 1, "Du hast einen Tag zu wenig; erster Verzugstag und Zahlungstag zählen beide mit."),
+                  (tage + 1, "Du hast ab dem letzten Tag der Frist gezählt; Verzug beginnt erst am Tag danach."))),
+              Feld("zinsen", "Verzugszinsen", float(zinsen), "€", typisch=(
+                  (float(cent(Decimal(betrag) * satz / 100 * tage / 360)), "Du hast mit 360 Tagen gerechnet; hier zählt das Jahr 365 Tage."),
+                  *((float(verzugszinsen(betrag, x, tage)), h) for x, h in falsch_satz))),
+              Feld("pauschale", "Pauschale", float(pauschale), "€", typisch=(pauschale_falsch,))]
     weg = schritte(
         (f"Zahlungstermin {kurz(letzter)} im Vertrag vereinbart (§ 286 Abs. 2 Nr. 1 BGB)" if termin else
          f"§ 286 Abs. 3 BGB: {kurz(zugang)} + 30 Tage = {kurz(letzter)}" + ("" if unternehmer else ", gegenüber dem Verbraucher "

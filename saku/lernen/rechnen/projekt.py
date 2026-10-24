@@ -10,6 +10,7 @@ FORMELN = {
 - Gesamtpuffer GP = SAZ − FAZ = SEZ − FEZ
 - Freier Puffer FP = kleinster FAZ der Nachfolger − FEZ
 - Kritischer Pfad: alle Vorgänge mit GP = 0, vom Start bis zum Ende
+- *Typische Fehler:* alle Dauern addiert statt den längsten Weg genommen, FAZ aus dem kleinsten FEZ, Gesamt- und freien Puffer verwechselt, SEZ − FAZ statt SAZ − FAZ
 
 *Beispiel:* A (3 Tage) → B (2 Tage): FAZ B = FEZ A = 3, FEZ B = 5""",
 }
@@ -76,18 +77,31 @@ def netzplan(rng):
             break
     x = rng.choice(mit_puffer)
     pfad = pfade[0]
-    projektdauer = Feld("dauer", "Projektdauer", dauer, "Tage", stellen=0)
+    projektdauer = Feld("dauer", "Projektdauer", dauer, "Tage", stellen=0, typisch=(
+        (sum(v["dauer"] for v in vorgaenge), "Du hast alle Dauern addiert; parallele Vorgänge laufen gleichzeitig, es zählt der längste Weg."),))
+    gp = Feld("gp", f"Gesamtpuffer {x['id']}", x["gp"], "Tage", stellen=0, typisch=(
+        (-x["gp"], "Du hast FAZ und SAZ vertauscht; GP = SAZ − FAZ."),
+        (x["fp"], "Das ist der freie Puffer; der Gesamtpuffer ist SAZ − FAZ."),
+        (x["gp"] + x["dauer"], "Du hast SEZ − FAZ gerechnet, da steckt die Dauer mit drin; GP = SAZ − FAZ.")))
     variante = rng.choice(["puffer", "zeiten", "frei"])
     if variante == "puffer":
-        felder = [projektdauer, Feld("gp", f"Gesamtpuffer {x['id']}", x["gp"], "Tage", stellen=0),
-                  Feld("pfad", "Kritischer Pfad", pfad, typ="pfad")]
+        felder = [projektdauer, gp, Feld("pfad", "Kritischer Pfad", pfad, typ="pfad")]
         auftrag = f"die Projektdauer, den Gesamtpuffer von Vorgang {x['id']} und den kritischen Pfad (z. B. „A-B-D“)"
     elif variante == "zeiten":
-        felder = [Feld(k, f"{k.upper()} {x['id']}", x[k], stellen=0) for k in ("faz", "fez", "saz", "sez")] + [projektdauer]
+        # FAZ aus dem kleinsten FEZ der Vorgänger, SEZ aus dem größten SAZ der Nachfolger
+        faz = min((vorgaenge[i]["fez"] for i in x["vor"]), default=0)
+        sez = max((w["saz"] for w in vorgaenge if vorgaenge.index(x) in w["vor"]), default=dauer)
+        frueh = "Ein Vorgang beginnt erst, wenn alle Vorgänger fertig sind: FAZ = größter FEZ der Vorgänger."
+        spaet = "SEZ = kleinster SAZ der Nachfolger, nicht der größte: sonst käme ein Nachfolger zu spät."
+        typisch = {"faz": [(faz, frueh)], "fez": [(faz + x["dauer"], frueh)], "saz": [(sez - x["dauer"], spaet)], "sez": [(sez, spaet)]}
+        felder = [Feld(k, f"{k.upper()} {x['id']}", x[k], stellen=0, typisch=tuple(typisch[k])) for k in ("faz", "fez", "saz", "sez")]
+        felder.append(projektdauer)
         auftrag = f"für Vorgang {x['id']} den frühesten und spätesten Anfangs- und Endzeitpunkt (FAZ, FEZ, SAZ, SEZ) sowie die Projektdauer"
     else:
-        felder = [Feld("gp", f"Gesamtpuffer {x['id']}", x["gp"], "Tage", stellen=0),
-                  Feld("fp", f"Freier Puffer {x['id']}", x["fp"], "Tage", stellen=0), Feld("pfad", "Kritischer Pfad", pfad, typ="pfad")]
+        felder = [gp, Feld("fp", f"Freier Puffer {x['id']}", x["fp"], "Tage", stellen=0, typisch=(
+                      (x["gp"], "Das ist der Gesamtpuffer; der freie Puffer reicht nur bis zum frühesten Start eines Nachfolgers."),
+                      (x["fp"] + x["dauer"], "Du hast vom FAZ statt vom FEZ gerechnet; FP = kleinster FAZ der Nachfolger − FEZ."))),
+                  Feld("pfad", "Kritischer Pfad", pfad, typ="pfad")]
         auftrag = f"den Gesamtpuffer und den freien Puffer von Vorgang {x['id']} sowie den kritischen Pfad (z. B. „A-B-D“)"
     zeilen = [[v["id"], v["name"], v["dauer"], ", ".join(vorgaenge[i]["id"] for i in v["vor"]) or "–"] for v in vorgaenge]
     frage = (f"Die {rng.choice(FIRMEN)} plant {rng.choice(PROJEKTE)}. Die Vorgänge:\n\n"

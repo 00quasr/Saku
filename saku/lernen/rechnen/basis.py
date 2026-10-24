@@ -13,6 +13,16 @@ ABTEILUNGEN = ["Buchhaltung", "Vertrieb", "Entwicklung", "Lager", "Personal", "M
 # Byte je Einheit: Dezimalpräfixe (SI) und Binärpräfixe (IEC)
 BYTE = {"kB": 10 ** 3, "MB": 10 ** 6, "GB": 10 ** 9, "TB": 10 ** 12, "KiB": 2 ** 10, "MiB": 2 ** 20, "GiB": 2 ** 30, "TiB": 2 ** 40}
 FAKTOR = {"kB": "10³", "MB": "10⁶", "GB": "10⁹", "TB": "10¹²", "KiB": "1.024", "MiB": "1.024²", "GiB": "1.024³", "TiB": "1.024⁴"}
+# dieselbe Stufe im anderen System (MB ↔ MiB) und Hinweise zu typischen Fehlern mit Einheiten, siehe Feld.typisch
+ANDERS = {"kB": "KiB", "MB": "MiB", "GB": "GiB", "TB": "TiB"}
+ANDERS |= {b: d for d, b in ANDERS.items()}
+BIT_BYTE = "Du hast vermutlich Bit und Byte verwechselt: 1 Byte = 8 Bit."
+
+
+def praefix_fehler(einheit: str) -> str:
+    """Hinweis, wenn mit dem Faktor des anderen Systems gerechnet wurde (MB wie MiB oder umgekehrt)."""
+    return (f"Du hast vermutlich mit 1.000 statt 1.024 gerechnet: {einheit} ist ein Binärpräfix." if "i" in einheit
+            else f"Du hast vermutlich mit 1.024 statt 1.000 gerechnet: {einheit} ist ein Dezimalpräfix.")
 
 
 @dataclass
@@ -25,7 +35,9 @@ class Feld:
     sql (SQL-Anweisung, ausgeführt in der Sandbox der Aufgabe: Ergebnis bzw. Tabellen wie nach der Musterlösung);
     code (Pseudocode, ausgeführt mit den Testfällen der Aufgabe: dasselbe Ergebnis wie die Musterlösung).
     Lösung "" heißt: das Feld bleibt leer.
-    optionen: Auswahl statt Eingabe. auch: weitere richtige Antworten eines Textfelds (SSH auch als SFTP)."""
+    optionen: Auswahl statt Eingabe. auch: weitere richtige Antworten eines Textfelds (SSH auch als SFTP).
+    typisch: falsche Werte aus typischen Denkfehlern mit einem Hinweis, der die Lösung nicht verrät, z. B.
+    (2 ** 6, "Du hast vermutlich Netz-ID und Broadcast mitgezählt."); passt eine falsche Eingabe dazu, steht der Hinweis am Feld."""
     name: str
     label: str
     loesung: float | str
@@ -34,6 +46,7 @@ class Feld:
     stellen: int = 2  # so genau steht die Lösung da; wer auf diese Stellen rundet, liegt immer richtig
     optionen: list[str] = field(default_factory=list)
     auch: tuple[str, ...] = ()
+    typisch: tuple[tuple[float | str, str], ...] = ()
 
     @property
     def anzeige(self) -> str:

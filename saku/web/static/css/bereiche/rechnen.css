@@ -48,6 +48,7 @@
 .rechnen-feld--richtig .rechnen-marke { color: var(--matcha); }
 .rechnen-feld--falsch .rechnen-marke > [aria-label] { color: var(--beni); }
 .rechnen-marke strong { font-family: var(--schrift-code); font-weight: 600; }
+.rechnen-denkfehler { display: block; font-weight: 400; font-size: 0.875rem; }  /* typischer Fehler unter „richtig: …“ */
 
 /* SQL-Aufgabe: Editor, Ausführen und Beispieldaten wie in Üben (.editor, .sql-*), darunter ✓ oder ✕ */
 .rechnen-sql { display: grid; gap: 8px; }

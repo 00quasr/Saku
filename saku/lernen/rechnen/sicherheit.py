@@ -16,6 +16,7 @@ FORMELN = {
 - Dauer = Kombinationen : Versuche pro Sekunde; hier 1 Jahr = 365 Tage = 31.536.000 s
 - Entropie = L · log₂ N Bit (log₂ N = ln N : ln 2), gilt nur für zufällig gewählte Zeichen; echte Wörter fallen viel schneller (Wörterbuchangriff)
 - Mindestlänge für E Bit: E : log₂ N, immer aufrunden; ein Bit mehr verdoppelt die Kombinationen, Länge schlägt Zeichenvielfalt
+- *Typische Fehler:* Länge hoch Zeichenvorrat statt umgekehrt, Mittel und schlimmsten Fall verwechselt, log₁₀ statt log₂, die Mindestlänge abgerundet
 
 *Beispiel:* 8 Zeichen aus a–z, A–Z, 0–9: N = 62, 62⁸ ≈ 2,18 · 10¹⁴; bei 10⁹ Versuchen pro Sekunde höchstens 218.340 s ≈ 60,65 Stunden, im Mittel 30,33 Stunden; Entropie 8 · 5,95 = 47,63 Bit""",
     "schluessel": """- Symmetrisch: jedes Paar teilt einen geheimen Schlüssel → n · (n − 1) : 2 Schlüssel
@@ -24,6 +25,7 @@ FORMELN = {
 - Verschlüsseln mit dem **öffentlichen Schlüssel des Empfängers**, entschlüsseln mit seinem **privaten**
 - Signieren (den Hashwert der Nachricht) mit dem **privaten Schlüssel des Absenders**, prüfen mit seinem **öffentlichen**
 - Hybrid: den Text symmetrisch mit einem zufälligen Sitzungsschlüssel (schnell), den Sitzungsschlüssel asymmetrisch mit dem öffentlichen Schlüssel des Empfängers
+- *Typische Fehler:* n² oder n · (n − 1) ohne : 2, asymmetrisch nur die n Schlüsselpaare statt 2n Schlüssel gezählt
 
 *Beispiel:* 10 Teilnehmer: symmetrisch 10 · 9 : 2 = 45 Schlüssel, asymmetrisch 2 · 10 = 20 Schlüssel""",
     "schutzbedarf": """- Grundwerte: **Vertraulichkeit** (nur Befugte erhalten Kenntnis), **Integrität** (Daten sind korrekt und unverändert), **Verfügbarkeit** (nutzbar, wenn sie gebraucht werden)
@@ -124,14 +126,23 @@ def _brute_force(rng):
              f"Ein Angreifer probiert {wie} **{rate} Passwörter pro Sekunde**.\n\nBerechnen Sie den Zeichenvorrat, die Anzahl der "
              f"möglichen Passwörter (ausgeschrieben, als Potenz wie 10^4 oder gerundet wie 1,23 · 10^9) und die Dauer des Brute-Force-Angriffs in {in_einheit} im "
              "schlimmsten Fall und im Mittel (zwei Nachkommastellen; 1 Jahr = 365 Tage).")
-    felder = [Feld("vorrat", "Zeichenvorrat", n, "Zeichen", stellen=0), Feld("kombinationen", "Mögliche Passwörter", kombinationen, stellen=0),
-              Feld("max", "Dauer im schlimmsten Fall", dauer, einheit), Feld("mittel", "Dauer im Mittel", dauer / 2, einheit)]
+    felder = [Feld("vorrat", "Zeichenvorrat", n, "Zeichen", stellen=0),
+              Feld("kombinationen", "Mögliche Passwörter", kombinationen, stellen=0, typisch=(
+                  (laenge ** n, "Du hast Basis und Exponent vertauscht: Zeichenvorrat hoch Länge."),
+                  (n * laenge, "Du hast multipliziert; jede weitere Stelle vervielfacht die Möglichkeiten: Zeichenvorrat hoch Länge."))),
+              Feld("max", "Dauer im schlimmsten Fall", dauer, einheit,
+                   typisch=((dauer / 2, "Das ist der Mittelwert; im schlimmsten Fall wird jede Kombination probiert."),)),
+              Feld("mittel", "Dauer im Mittel", dauer / 2, einheit,
+                   typisch=((dauer, "Das ist der schlimmste Fall; im Mittel ist das Passwort nach der Hälfte gefunden."),))]
     weg = [_vorrat_weg(anzahl),
            f"Kombinationen bei {laenge} Zeichen: {n}{hoch(laenge)} = **{de(kombinationen, 0)}** ≈ {_zehner(kombinationen)}",
            f"Schlimmster Fall, alle Kombinationen: {de(kombinationen, 0)} : 10{hoch(exponent)} pro Sekunde = {de(sekunden)} s",
            f"In {in_einheit}: {de(sekunden)} s : {faktor_text} = **{de(dauer)} {einheit}**",
            f"Im Mittel (Konvention: gefunden nach der Hälfte aller Kombinationen): {de(dauer)} : 2 = **{de(dauer / 2)} {einheit}**"]
     return Aufgabe(frage, felder, schritte(*weg), toleranz=0.005, titel="Brute-Force-Dauer")
+
+
+LOG10 = "Du hast den Zehnerlogarithmus genommen; Entropie rechnet mit log₂ (ln N : ln 2)."
 
 
 def _entropie(rng):
@@ -145,8 +156,11 @@ def _entropie(rng):
     frage = (f"Ein Passwortmanager der {rng.choice(FIRMEN)} erzeugt zufällige Passwörter aus {text}.{_umlaute(anzahl)} Bisher sind sie **{laenge} Zeichen** "
              f"lang; künftig sollen sie mindestens **{ziel} Bit** Entropie haben.\n\nBerechnen Sie den Zeichenvorrat, die Entropie je "
              "Zeichen und die des bisherigen Passworts in Bit (zwei Nachkommastellen) sowie die nötige Mindestlänge.")
-    felder = [Feld("vorrat", "Zeichenvorrat", n, "Zeichen", stellen=0), Feld("je", "Entropie je Zeichen", je, "Bit"),
-              Feld("bisher", "Entropie bisher", laenge * je, "Bit"), Feld("mindest", "Mindestlänge", mindest, "Zeichen", stellen=0)]
+    felder = [Feld("vorrat", "Zeichenvorrat", n, "Zeichen", stellen=0),
+              Feld("je", "Entropie je Zeichen", je, "Bit", typisch=((math.log10(n), LOG10),)),
+              Feld("bisher", "Entropie bisher", laenge * je, "Bit", typisch=((laenge * math.log10(n), LOG10),)),
+              Feld("mindest", "Mindestlänge", mindest, "Zeichen", stellen=0,
+                   typisch=((mindest - 1, "Du hast abgerundet; mit einem Zeichen weniger reicht die Entropie nicht."),))]
     weg = schritte(_vorrat_weg(anzahl),
                    f"Entropie je Zeichen: log₂ {n} = ln {n} : ln 2 = **{de(je)} Bit**",
                    f"Bisher: {laenge} · {de(je, 4)} = **{de(laenge * je)} Bit**, weniger als {ziel} Bit",
@@ -167,7 +181,8 @@ def _regeln(rng):
              f"- **Regel A:** {la} Zeichen aus {text_a}\n- **Regel B:** {lb} Zeichen aus {text_b}\n\n"
              "Umlaute und ß sind nicht erlaubt. Berechnen Sie die Entropie beider Regeln in Bit (zwei Nachkommastellen) und geben Sie an, "
              "welche Regel stärker ist.")
-    felder = [Feld("a", "Entropie Regel A", ea, "Bit"), Feld("b", "Entropie Regel B", eb, "Bit"),
+    felder = [Feld("a", "Entropie Regel A", ea, "Bit", typisch=((la * math.log10(sum(anz_a)), LOG10),)),
+              Feld("b", "Entropie Regel B", eb, "Bit", typisch=((lb * math.log10(sum(anz_b)), LOG10),)),
               Feld("staerker", "Stärkere Regel", staerker, typ="text", optionen=["Regel A", "Regel B"])]
     faktor = 2 ** mehr
     weg = schritte(f"Regel A: N = {_summe(anz_a)} → {la} · log₂ {sum(anz_a)} = {la} · "
@@ -196,11 +211,32 @@ HYBRID = [("Nachrichtentext verschlüsseln", 4, "der große Text geht symmetrisc
           *SIGNIEREN]
 
 
+# typische Verwechslungen je Schritt (Feld.typisch): Index in SCHLUESSEL, Hinweis
+VERWECHSELT = {
+    "Nachricht verschlüsseln": [(0, "Mit seinem eigenen öffentlichen Schlüssel sperrt der Absender den Empfänger aus; verschlüsselt "
+                                    "wird für den Empfänger."),
+                                (1, "Mit dem privaten Schlüssel des Absenders wird signiert; entschlüsseln könnte das jeder.")],
+    "Nachricht entschlüsseln": [(2, "Der öffentliche Schlüssel verschlüsselt nur; entschlüsselt wird mit dem passenden privaten.")],
+    "Sitzungsschlüssel entschlüsseln": [(2, "Der öffentliche Schlüssel verschlüsselt nur; entschlüsselt wird mit dem passenden privaten.")],
+    "Nachricht signieren (ihren Hashwert)": [(0, "Den öffentlichen Schlüssel kennt jeder; eine Signatur damit belegt nicht, wer sie erstellt hat.")],
+    "Signatur prüfen": [(1, "Den privaten Schlüssel des Absenders hat nur er; geprüft wird mit dem Gegenstück, das jeder kennt."),
+                        (2, "Geprüft wird mit einem Schlüssel dessen, der signiert hat, nicht des Empfängers.")],
+}
+
+
 TEAMS = [a for a in ABTEILUNGEN if a != "Geschäftsleitung"]  # „die Abteilung Geschäftsleitung“ klingt schief
 
 
 def _symmetrisch(n: int) -> int:
     return n * (n - 1) // 2
+
+
+def _symmetrisch_typisch(n: int) -> tuple:
+    return ((n * n, "Du hast n² gerechnet; jedes Paar braucht nur einen Schlüssel, und niemand einen mit sich selbst."),
+            (n * (n - 1), "Du hast nicht durch 2 geteilt; A–B und B–A teilen sich denselben Schlüssel."))
+
+
+PAARE = "Du hast die Schlüsselpaare gezählt; jedes Paar besteht aus zwei Schlüsseln, einem öffentlichen und einem privaten."
 
 
 @art("schluessel", "Schlüssel und Verschlüsselung", "IT-Sicherheit",
@@ -216,8 +252,9 @@ def _zaehlen(rng):
     frage = (f"In der Abteilung {rng.choice(TEAMS)} der {rng.choice(FIRMEN)} arbeiten **{n} Personen**. Jede soll mit jeder anderen "
              "vertraulich kommunizieren können, ohne dass Dritte mitlesen.\n\nWie viele Schlüssel sind dafür mit einem symmetrischen "
              "Verfahren nötig, und wie viele Schlüssel (öffentliche und private zusammen) mit einem asymmetrischen?")
-    felder = [Feld("symmetrisch", "Symmetrisch", _symmetrisch(n), "Schlüssel", stellen=0),
-              Feld("asymmetrisch", "Asymmetrisch", 2 * n, "Schlüssel", stellen=0)]
+    felder = [Feld("symmetrisch", "Symmetrisch", _symmetrisch(n), "Schlüssel", stellen=0, typisch=_symmetrisch_typisch(n)),
+              Feld("asymmetrisch", "Asymmetrisch", 2 * n, "Schlüssel", stellen=0, typisch=(
+                  (n, PAARE), (_symmetrisch(n), "Asymmetrisch braucht nicht jedes Paar einen Schlüssel; jeder hat ein Schlüsselpaar.")))]
     weg = schritte(f"Symmetrisch braucht jedes Paar einen eigenen geheimen Schlüssel: n · (n − 1) : 2 = {n} · {n - 1} : 2 = "
                    f"**{de(_symmetrisch(n))}**",
                    f"Asymmetrisch hat jede Person ein Schlüsselpaar: 2 · n = 2 · {n} = **{2 * n}** ({n} öffentliche und {n} private)")
@@ -232,9 +269,12 @@ def _neue(rng):
              "Wie viele Schlüssel kommen bei einem symmetrischen Verfahren hinzu, wie viele sind es danach insgesamt, und wie viele "
              "Schlüssel kommen bei einem asymmetrischen Verfahren (je Standort ein Schlüsselpaar) hinzu?")
     vorher, nachher = _symmetrisch(n), _symmetrisch(n + k)
-    felder = [Feld("dazu", "Symmetrisch hinzu", nachher - vorher, "Schlüssel", stellen=0),
-              Feld("gesamt", "Symmetrisch insgesamt", nachher, "Schlüssel", stellen=0),
-              Feld("asymmetrisch", "Asymmetrisch hinzu", 2 * k, "Schlüssel", stellen=0)]
+    felder = [Feld("dazu", "Symmetrisch hinzu", nachher - vorher, "Schlüssel", stellen=0, typisch=(
+                  (k * n, "Du hast die Verbindungen der neuen Standorte untereinander vergessen."),
+                  ((n + k) ** 2 - n ** 2, _symmetrisch_typisch(n)[0][1]))),
+              Feld("gesamt", "Symmetrisch insgesamt", nachher, "Schlüssel", stellen=0, typisch=_symmetrisch_typisch(n + k)),
+              Feld("asymmetrisch", "Asymmetrisch hinzu", 2 * k, "Schlüssel", stellen=0, typisch=(
+                  (k, PAARE), (2 * (n + k), "Gefragt ist nur, was hinzukommt; die bisherigen Schlüsselpaare bleiben.")))]
     weg = schritte(f"Vorher symmetrisch: {n} · {n - 1} : 2 = {de(vorher)}",
                    f"Nachher: {n + k} · {n + k - 1} : 2 = **{de(nachher)}**",
                    f"Hinzu: {de(nachher)} − {de(vorher)} = **{de(nachher - vorher)}** (Probe: jeder Neue mit allen {n} Bisherigen, "
@@ -253,7 +293,8 @@ def _welcher(rng):
              f"Angebot per E-Mail. Beide haben ein Schlüsselpaar, und jede Seite kennt den öffentlichen Schlüssel der anderen. {verfahren} "
              "Außerdem wird die E-Mail digital signiert.\n\nWelcher Schlüssel wird für den jeweiligen Schritt verwendet?")
     optionen = SCHLUESSEL if hybrid else SCHLUESSEL[:4]
-    felder = [Feld(f"s{i}", text, SCHLUESSEL[j], typ="text", optionen=optionen) for i, (text, j, _) in enumerate(schritte_)]
+    felder = [Feld(f"s{i}", text, SCHLUESSEL[j], typ="text", optionen=optionen,
+                   typisch=tuple((SCHLUESSEL[k], h) for k, h in VERWECHSELT.get(text, ()))) for i, (text, j, _) in enumerate(schritte_)]
     weg = schritte(*(f"{text}: **{SCHLUESSEL[j]}**, {warum}" for text, j, warum in schritte_))
     return Aufgabe(frage, felder, weg, titel="Welcher Schlüssel?")
 

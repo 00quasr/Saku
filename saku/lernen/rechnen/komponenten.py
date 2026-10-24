@@ -2,7 +2,7 @@
 
 import math
 
-from saku.lernen.rechnen.basis import FIRMEN, Aufgabe, Feld, art, de, schritte
+from saku.lernen.rechnen.basis import BIT_BYTE, FIRMEN, Aufgabe, Feld, art, de, schritte
 
 FORMELN = {
     "monitor": """- Pixel auf der Diagonale: √(Breite² + Höhe²) nach Pythagoras
@@ -10,6 +10,7 @@ FORMELN = {
 - Seitenverhältnis: Breite und Höhe durch ihren größten gemeinsamen Teiler (1920 × 1080 → 16 : 9)
 - Bildschirmbreite = Diagonale · a : √(a² + b²), Höhe = Diagonale · b : √(a² + b²) bei a : b; 1 Zoll = 2,54 cm
 - Druck: Pixel = Länge in Zoll · dpi = Länge in cm : 2,54 · dpi
+- *Typische Fehler:* Breite + Höhe statt Pythagoras, Zoll und cm nicht oder falsch herum umgerechnet, die gerundete Handelsbezeichnung (16:9) statt des exakten Verhältnisses
 
 *Beispiel:* 1920 × 1080 auf 24 Zoll: √(1920² + 1080²) ≈ 2.202,9 Pixel : 24 ≈ 91,8 PPI""",
     "bandbreite": """- Arbeitsspeicher: Bandbreite = effektive Transferrate (MT/s) · Busbreite (64 Bit) : 8, je Kanal; mehrere Kanäle multiplizieren
@@ -17,6 +18,7 @@ FORMELN = {
 - PCIe je Lane und Richtung: Transferrate (GT/s) · Leitungscode : 8; bis 2.0 8b/10b, ab 3.0 128b/130b
   (1.0: 0,25 · 2.0: 0,5 · 3.0: 0,985 · 4.0: 1,969 · 5.0: 3,938 GB/s); x4 = vier Lanes
 - SATA III: 6 Gbit/s · 8/10 : 8 = 600 MB/s; Übertragungszeit = Datenmenge : Datenrate
+- *Typische Fehler:* den realen DDR-Takt nicht verdoppelt (oder DDR4-3200 noch einmal), Bit nicht durch 8 geteilt, Kanäle oder Lanes vergessen, die Leitungscodierung vergessen
 
 *Beispiel:* DDR4-3200 im Dual-Channel: 3.200 MT/s · 64 Bit : 8 = 25.600 MB/s je Kanal, zusammen 51,2 GB/s""",
 }
@@ -39,7 +41,9 @@ def _ppi(rng):
              "Wie viele Pixel liegen auf der Diagonale, und wie hoch ist die Pixeldichte in PPI? (eine Nachkommastelle)")
     weg = schritte(f"Pixel auf der Diagonale: √({de(b)}² + {de(h)}²) = √{de(b * b + h * h)} = **{de(diagonale, 1)}**",
                    f"PPI = {de(diagonale, 1)} : {de(d)} Zoll = **{de(diagonale / d, 1)} PPI**")
-    felder = [Feld("diagonale", "Pixel auf der Diagonale", diagonale, stellen=1), Feld("ppi", "Pixeldichte", diagonale / d, "PPI", stellen=1)]
+    pythagoras = "Die Diagonale kommt aus Pythagoras: √(Breite² + Höhe²)."
+    felder = [Feld("diagonale", "Pixel auf der Diagonale", diagonale, stellen=1, typisch=((b + h, pythagoras),)),
+              Feld("ppi", "Pixeldichte", diagonale / d, "PPI", stellen=1, typisch=((b / d, pythagoras), ((b + h) / d, pythagoras)))]
     return Aufgabe(frage, felder, weg, toleranz=0.002, titel="Pixeldichte")
 
 
@@ -54,7 +58,10 @@ def _seitenverhaeltnis(rng):
                       (683, 384): " (im Handel als 16:9 bezeichnet, das ist aber gerundet)",
                       (8, 5): " (gleichwertig und üblicher: 16:10)"}.get((b // t, h // t), ""),
                    f"Pixel: {de(b)} · {de(h)} = **{de(b * h)}**")
-    felder = [Feld("verhaeltnis", "Seitenverhältnis", f"{b // t}:{h // t}", typ="verhaeltnis"), Feld("pixel", "Pixel", b * h, stellen=0)]
+    gerundet = {(43, 18): "21:9", (683, 384): "16:9"}.get((b // t, h // t))
+    felder = [Feld("verhaeltnis", "Seitenverhältnis", f"{b // t}:{h // t}", typ="verhaeltnis",
+                   typisch=((gerundet, "Das ist die gerundete Handelsbezeichnung; exakt gekürzt kommt etwas anderes heraus."),) if gerundet else ()),
+              Feld("pixel", "Pixel", b * h, stellen=0)]
     return Aufgabe(frage, felder, weg, titel="Seitenverhältnis")
 
 
@@ -67,7 +74,10 @@ def _masse(rng):
     weg = schritte(f"Diagonale im Verhältnis: √({a}² + {b}²) = {de(wurzel, 3)}",
                    f"Breite: {de(d)} · {a} : {de(wurzel, 3)} = {de(d * a / wurzel, 2)} Zoll · 2,54 = **{de(breite, 1)} cm**",
                    f"Höhe: {de(d)} · {b} : {de(wurzel, 3)} = {de(d * b / wurzel, 2)} Zoll · 2,54 = **{de(hoehe, 1)} cm**")
-    felder = [Feld("breite", "Breite", breite, "cm", stellen=1), Feld("hoehe", "Höhe", hoehe, "cm", stellen=1)]
+    zoll = "Das sind Zoll; mal 2,54 ergibt cm."
+    geteilt = "Du hast durch 2,54 geteilt; von Zoll nach cm wird mit 2,54 multipliziert."
+    felder = [Feld("breite", "Breite", breite, "cm", stellen=1, typisch=((breite / 2.54, zoll), (breite / 2.54 ** 2, geteilt))),
+              Feld("hoehe", "Höhe", hoehe, "cm", stellen=1, typisch=((hoehe / 2.54, zoll), (hoehe / 2.54 ** 2, geteilt)))]
     return Aufgabe(frage, felder, weg, toleranz=0.003, titel="Breite und Höhe")
 
 
@@ -81,7 +91,10 @@ def _druck(rng):
     weg = schritte(f"Breite: {de(b_cm)} cm : 2,54 = {de(b_cm / 2.54, 3)} Zoll · {dpi} dpi = **{de(b_px)} Pixel**",
                    f"Höhe: {de(h_cm)} cm : 2,54 = {de(h_cm / 2.54, 3)} Zoll · {dpi} dpi = **{de(h_px)} Pixel**",
                    f"Zusammen {de(b_px * h_px / 1e6, 1)} Megapixel")
-    felder = [Feld("breite", "Breite", b_px, "Pixel", stellen=0), Feld("hoehe", "Höhe", h_px, "Pixel", stellen=0)]
+    cm = "Du hast cm wie Zoll genommen; erst durch 2,54 teilen."
+    mal = "Du hast mit 2,54 multipliziert; von cm nach Zoll wird durch 2,54 geteilt."
+    felder = [Feld("breite", "Breite", b_px, "Pixel", stellen=0, typisch=((b_cm * dpi, cm), (round(b_cm * 2.54 * dpi), mal))),
+              Feld("hoehe", "Höhe", h_px, "Pixel", stellen=0, typisch=((h_cm * dpi, cm), (round(h_cm * 2.54 * dpi), mal)))]
     return Aufgabe(frage, felder, weg, toleranz=0.002, titel="Druck: Pixel aus dpi")
 
 
@@ -120,8 +133,16 @@ def _ram(rng):
                    f"**{de(effektiv)} MT/s** (zwei Transfers je Takt)",
                    f"Je Kanal: {de(effektiv)} MT/s · 64 Bit : 8 = **{de(je_kanal)} MB/s**",
                    f"Gesamt: {kanaele} · {de(je_kanal)} MB/s = {de(kanaele * je_kanal)} MB/s = **{de(kanaele * je_kanal / 1000, 1)} GB/s**")
-    felder = [Feld("effektiv", "Effektive Transferrate", effektiv, "MT/s", stellen=0), Feld("kanal", "Je Kanal", je_kanal, "MB/s", stellen=0),
-              Feld("gesamt", "Gesamt", kanaele * je_kanal / 1000, "GB/s", stellen=1)]
+    if angabe_real:
+        ddr = [(real, "DDR überträgt zweimal je Takt: effektiv = 2 · realer Takt.")]
+    else:
+        ddr = [(2 * effektiv, f"{typ}-{effektiv} nennt schon die effektive Transferrate; nicht noch einmal verdoppeln.")]
+    kanal = [(e * 64 / 8, h) for e, h in ddr] + [(je_kanal * 8, BIT_BYTE)]
+    felder = [Feld("effektiv", "Effektive Transferrate", effektiv, "MT/s", stellen=0, typisch=tuple(ddr)),
+              Feld("kanal", "Je Kanal", je_kanal, "MB/s", stellen=0, typisch=tuple(kanal)),
+              Feld("gesamt", "Gesamt", kanaele * je_kanal / 1000, "GB/s", stellen=1, typisch=(
+                  (je_kanal / 1000, f"Du hast nur einen Kanal gerechnet; es sind {kanaele}."),
+                  *((k * kanaele / 1000, h) for k, h in kanal)))]
     return Aufgabe(frage, felder, weg, toleranz=0.002, titel="Arbeitsspeicher")
 
 
@@ -135,7 +156,13 @@ def _pcie(rng):
     weg = schritte(f"Nutzanteil der Codierung: {'8 von 10 Bit' if code == 0.8 else '128 von 130 Bit'} = {de(code, 4)}",
                    f"Je Lane: {de(gt)} GT/s · {de(code, 4)} : 8 = **{de(lane, 3)} GB/s**",
                    f"x{lanes}: {lanes} · {de(lane, 3)} GB/s = **{de(lane * lanes, 3)} GB/s** (in jeder Richtung, PCIe ist vollduplex)")
-    felder = [Feld("lane", "Je Lane", lane, "GB/s", stellen=3), Feld("gesamt", f"x{lanes} gesamt", lane * lanes, "GB/s", stellen=3)]
+    codierung = f"Du hast die Leitungscodierung vergessen; nur {'8 von 10' if code == 0.8 else '128 von 130'} Bit sind Nutzdaten."
+    falsch = [(gt / 8, codierung), (gt * code, BIT_BYTE)]
+    felder = [Feld("lane", "Je Lane", lane, "GB/s", stellen=3, typisch=tuple(falsch)),
+              Feld("gesamt", f"x{lanes} gesamt", lane * lanes, "GB/s", stellen=3, typisch=(
+                  (lane, f"Das ist eine Lane; der Steckplatz hat {lanes}."),
+                  (lane * lanes * 2, "Gefragt ist eine Richtung; PCIe überträgt in beiden Richtungen gleichzeitig."),
+                  *((w * lanes, h) for w, h in falsch)))]
     return Aufgabe(frage, felder, weg, toleranz=0.002, titel="PCIe-Lanes")
 
 
@@ -151,6 +178,10 @@ def _ssd(rng):
                    f"**{de(t_nvme, 1)} s**",
                    f"Faktor: {de(t_sata, 1)} : {de(t_nvme, 1)} ≈ **{de(t_sata / t_nvme, 1)}** (echte SSDs liegen darunter, die Schnittstelle "
                    "ist die Obergrenze)")
-    felder = [Feld("sata", "SATA III", t_sata, "s", stellen=1), Feld("nvme", f"NVMe PCIe {gen}.0 x4", t_nvme, "s", stellen=1),
-              Feld("faktor", "NVMe ist schneller um den Faktor", t_sata / t_nvme, stellen=1)]
+    felder = [Feld("sata", "SATA III", t_sata, "s", stellen=1,
+                   typisch=((groesse * 1000 / 750, "SATA III verliert durch die 8b/10b-Codierung 20 %: 600 MB/s, nicht 750."),)),
+              Feld("nvme", f"NVMe PCIe {gen}.0 x4", t_nvme, "s", stellen=1,
+                   typisch=((t_nvme * 4, "Das ist eine Lane; die M.2-SSD nutzt vier."),)),
+              Feld("faktor", "NVMe ist schneller um den Faktor", t_sata / t_nvme, stellen=1,
+                   typisch=((t_nvme / t_sata, "Du hast den Faktor falsch herum gebildet: lange Zeit durch kurze."),))]
     return Aufgabe(frage, felder, weg, toleranz=0.005, titel="SATA gegen NVMe")
