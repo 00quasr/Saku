@@ -160,6 +160,7 @@ a.flaeche:hover { border-color: var(--sumi-mittel); }
 
 .fahrplan-satz { font-size: 0.9375rem; }
 .fahrplan-balken--gross { height: 10px; border-radius: 5px; }
+.fahrplan .heute-raster { align-items: start; }  /* Karten nur so hoch wie ihr Inhalt */
 .fahrplan-bereiche { display: grid; }
 .fahrplan-bereich { border-top: 1px solid var(--linie); }
 .fahrplan-bereich > summary { display: grid; gap: 6px; padding: 10px 0; cursor: pointer; list-style: none; }
@@ -172,7 +173,7 @@ a.flaeche:hover { border-color: var(--sumi-mittel); }
 .fahrplan-gewinn li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 12px; padding: 6px 8px; border-radius: 8px; }
 .fahrplan-gewinn li:hover { background: var(--flaeche); }
 .fahrplan-gewinn-text { display: grid; min-width: 0; }
-.fahrplan-gewinn-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fahrplan-gewinn-name { font-weight: 500; line-height: 1.35; text-wrap: pretty; }  /* Themennamen sind lang: umbrechen statt abschneiden */
 .fahrplan-gewinn-punkte { font-size: 0.875rem; color: var(--shu); }
 
 /* Heute: Countdown führt zum Fahrplan */
