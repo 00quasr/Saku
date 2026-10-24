@@ -162,3 +162,69 @@ def test_svg_pruefen_findet_fehler():
             svg_pruefen(bild(*kaputt))
     with pytest.raises(AssertionError):
         svg_pruefen(str(bild(lambda b: b.kasten(0, 0, 50, 30))).replace('class="uml-kasten"', 'fill="#fff" class="uml-kasten"'))
+
+
+# --- Zustandsdiagramm ------------------------------------------------------------------------
+
+def _automat(svg: ET.Element) -> tuple[str, list[tuple]]:
+    """Startzustand und Übergänge aus der Textfassung des Diagramms (aria-label)."""
+    text = svg.get("aria-label", "")
+    return re.search(r"Startzustand „(.+?)“", text)[1], re.findall(
+        r"von „(.+?)“ nach „(.+?)“ bei (\S+)(?: \[\w+ ([<=]) (\d+)\])?(?: / \w+ ← ([^;]+))?(?:;|$)", text)
+
+
+def _simulieren(start: str, uebergaenge: list[tuple], folge: list[str]) -> tuple[str, int]:
+    zustand, n = start, 0
+    for e in folge:
+        for von, nach, ereignis, op, zahl, wirkung in uebergaenge:
+            if von == zustand and ereignis == e and (not op or (n < int(zahl) if op == "<" else n == int(zahl))):
+                zustand, n = nach, n + 1 if wirkung.endswith("+ 1") else 0 if wirkung == "0" else n
+                break
+    return zustand, n
+
+
+def test_zustandsdiagramm_selbst_nachgespielt():
+    titel = set()
+    for seed, a in _alle("zustand"):
+        svg = svg_pruefen(a.struktogramm)
+        start, uebergaenge = _automat(svg)
+        zustaende = {u[0] for u in uebergaenge} | {u[1] for u in uebergaenge}
+        assert zustaende <= set(_texte(svg)) and {u[2] for u in uebergaenge} <= {t.split()[0] for t in _texte(svg)}
+        # je Zustand und Ereignis schaltet höchstens ein Übergang, für jeden Zählerstand
+        for (von, e), n in itertools.product({(u[0], u[2]) for u in uebergaenge}, range(8)):
+            assert sum(1 for u in uebergaenge if (u[0], u[2]) == (von, e) and (not u[3] or (n < int(u[4]) if u[3] == "<" else n == int(u[4])))) <= 1
+        titel.add(a.titel)
+        felder = {f.name: f for f in a.felder}
+        if a.titel == "Ereignisfolge nachspielen":
+            folge = re.search(r"Ereignisfolge ab dem Startzustand: `(.*?)`", a.frage)[1].split(", ")
+            zustand, n = _simulieren(start, uebergaenge, folge)
+            assert a.loesung["zustand"] == zustand and a.loesung.get("zaehler", n) == n, seed
+            falsch = next(z for z in felder["zustand"].optionen if z != zustand)
+            assert not rechnen.pruefen(a, {"zustand": falsch, "zaehler": str(n)})["zustand"]
+            if "zaehler" in felder:
+                assert not rechnen.pruefen(a, {"zaehler": str(n + 1)})["zaehler"]
+        else:
+            ziel = re.search(r"in den Zustand \*\*„(.+?)“\*\*", a.frage)[1]
+            treffer = [o for o in felder["folge"].optionen if _simulieren(start, uebergaenge, o.split(", "))[0] == ziel]
+            assert treffer == [a.loesung["folge"]] and len(felder["folge"].optionen) >= 3, seed
+    assert titel == {"Ereignisfolge nachspielen", "Ereignisfolge finden"}
+
+
+def test_zustandsdiagramm_alle_automaten():
+    from saku.lernen.rechnen import uml
+    namen = set()
+    for automat, seed in itertools.product(uml.AUTOMATEN, range(4)):
+        a = automat(random.Random(seed))
+        svg_pruefen(uml.zustandsdiagramm(a))
+        namen.add(a["name"])
+        # Selbstübergänge nur oben oder unten im Raster, alle anderen in derselben Zeile oder Spalte
+        zeilen = max(r for r, _ in a["zustaende"].values())
+        for von, _, _, nach, _ in a["uebergaenge"]:
+            (r1, s1), (r2, s2) = a["zustaende"][von], a["zustaende"][nach]
+            assert r1 in (0, zeilen) if von == nach else (r1 == r2) != (s1 == s2)
+    assert len(namen) == len(uml.AUTOMATEN)
+    # verfallende Ereignisse und Zähler: dreimal falsch sperrt, danach verfällt das richtige Passwort
+    konto = uml._konto(random.Random(0))
+    n = int(re.search(r"nach (\d) falschen", konto["text"])[1])
+    spur = uml.nachspielen(konto, ["passwortFalsch"] * n + ["passwortRichtig"])
+    assert [s[3] for s in spur] == ["Abgemeldet"] * (n - 1) + ["Gesperrt", "Gesperrt"] and spur[-1][2] is None

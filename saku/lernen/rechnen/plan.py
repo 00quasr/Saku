@@ -15,9 +15,12 @@ from saku.lernen.rechnen.basis import ARTEN, GRUPPEN
 #   (Netzwerk, Strom & Hardware), Daten, Wirtschaft; WiSo prüfen alle. Datenbanken nicht: SQL schreiben oder normalisieren
 #   prüft die AP2 Systemintegration kaum, das bleibt bei der AP1.
 # IT-Sicherheit und Datenschutz verlangt die Verordnung von 2020 in der AP1 und in der AP2 beider Berufe.
+# UML (Klassen-, Zustands-, Use-Case- und Sequenzdiagramm) gehört zum Softwareentwurf der Anwendungsentwicklung (Lernfelder 10a bis
+#   12a, AP2 „Planen eines Softwareproduktes“); die AP1 verlangt Programmabläufe darstellen und lesen, das Aktivitätsdiagramm steht
+#   deshalb beim Schreibtischtest (Programmieren) und ist in der AP1 und AP2 Anwendungsentwicklung dabei.
 UMFANG = {
-    "AP1": [g for g in GRUPPEN if g != "Algorithmen"],
-    "AP2-1201": ["Programmieren", "Algorithmen", "Datenbanken", "Wirtschaft", "Projekt", "WiSo", "Daten & Medien", "IT-Sicherheit"],
+    "AP1": [g for g in GRUPPEN if g not in ("Algorithmen", "UML")],
+    "AP2-1201": ["Programmieren", "Algorithmen", "Datenbanken", "Wirtschaft", "Projekt", "WiSo", "Daten & Medien", "IT-Sicherheit", "UML"],
     "AP2-1202": ["Netzwerk", "Strom & Hardware", "Daten & Medien", "Wirtschaft", "WiSo", "IT-Sicherheit"],
 }
 

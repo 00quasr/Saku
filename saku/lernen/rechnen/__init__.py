@@ -9,7 +9,7 @@ from datetime import date
 from saku.lernen import sql
 from saku.lernen.antwort import zahl
 # melden ihre Arten an; die Reihenfolge hier ist die Reihenfolge der Arten (nach Nutzen für die AP1)
-from saku.lernen.rechnen import netzwerk, daten, hardware, komponenten, sicherheit, wirtschaft, wiso, projekt, programmieren, pseudocode, algorithmen, datenbanken  # noqa: F401, I001
+from saku.lernen.rechnen import netzwerk, daten, hardware, komponenten, sicherheit, wirtschaft, wiso, projekt, programmieren, pseudocode, algorithmen, datenbanken, uml  # noqa: F401, I001
 from saku.lernen.rechnen.plan import faellig, im_umfang
 from saku.lernen.rechnen.basis import ARTEN, GRUPPEN, Art, Aufgabe, Feld
 
