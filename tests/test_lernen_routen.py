@@ -247,7 +247,8 @@ def test_karte_zeigt_verlauf_und_wann_sie_wiederkommt(client, con):
     assert "Wiederholung · zuletzt" in karte and "gewusst</span> heute" in karte and "noch 1× „Gewusst“ bis sicher" in karte
     assert "direkt geöffnet" in karte  # gelb und noch nicht fällig: steht heute nicht an
 
-    con.execute("UPDATE karte SET faellig_am = datetime('now', '-1 hour') WHERE teilaufgabe_id = ?", (t_id,))
+    # seit Mitternacht Ortszeit fällig (eine Stunde zurück wäre kurz nach Mitternacht „gestern“)
+    con.execute("UPDATE karte SET faellig_am = datetime('now', 'localtime', 'start of day', 'utc') WHERE teilaufgabe_id = ?", (t_id,))
     con.execute("DELETE FROM bewertung")  # sonst gilt sie als heute schon wiederholt
     con.commit()
     assert "fällig seit heute" in client.get(f"/keiko/?teilaufgabe={t_id}").get_data(as_text=True)
