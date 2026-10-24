@@ -13,8 +13,11 @@ def pruefbar(antwort: dict | None) -> bool:
 def zahl(text: str | None) -> float | None:
     """Eingetippte Zahl, deutsch geschrieben: „1,5“, „1.024“ (= 1024), „1 024“, „1.234,5“, „2^16“; Einheit dahinter egal."""
     text = (text or "").replace("\u2212", "-").replace("\xa0", " ").replace("\u202f", " ")
-    if potenz := re.match(r"\s*(\d+)\s*\^\s*(\d{1,3})", text):
-        return float(int(potenz[1]) ** int(potenz[2]))
+    if potenz := re.match(r"\s*(\d{1,6})\s*\^\s*(\d{1,2})\b", text):
+        try:
+            return float(int(potenz[1]) ** int(potenz[2]))
+        except OverflowError:  # z. B. 999999^99 passt in kein float
+            return None
     treffer = re.search(r"-?\d[\d.,\s]*", text)
     if not treffer:
         return None

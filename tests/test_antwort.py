@@ -39,6 +39,7 @@ def test_zahl_deutsch_geschrieben():
                        ("−3", -3), ("-2,5 °C", -2.5), ("2^16", 65536), ("12.500 €", 12500), ("1\u202f000", 1000)]:
         assert antwort.zahl(text) == wert, text
     assert antwort.zahl("") is None and antwort.zahl("keine") is None and antwort.zahl(None) is None
+    assert antwort.zahl("999999^99") is None  # zu groß für float: kein Absturz
 
 
 def test_pruefbar_und_tabelle():
