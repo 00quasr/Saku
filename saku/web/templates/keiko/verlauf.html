@@ -3,7 +3,7 @@
 {% block titel %}Verlauf{% endblock %}
 {% block inhalt %}
 {{ m.kopf('keiko', '稽', 'Üben', 'Verlauf', schmal=True) }}
-<div class="seite eng verlauf">
+<div class="seite eng verlauf-seite">
   {% if zahlen[0] %}
   <nav class="segment verlauf-filter" aria-label="Nach Ergebnis filtern">
     {% for wert, text, n in [(None, 'Alle', zahlen[0]), (1, 'Nicht gewusst', zahlen[1]), (2, 'Teilweise', zahlen[2]), (3, 'Gewusst', zahlen[3])] %}
