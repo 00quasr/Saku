@@ -811,6 +811,14 @@ def test_backup_nachgerechnet():
     assert not any(rechnen.stimmt(tage_feld, t) for t in ["Do, Mo", "Montag", "Mo, Di, Do", ""])
 
 
+def test_backup_saetze_vollstaendig():
+    for seed, a in _alle("backup"):
+        if a.titel.startswith("Datenmenge"):  # „Inkrementell sichert, was sich seit der letzten Sicherung geändert hat, …“
+            assert re.match(r"1\. \w+ sichert, was sich seit der letzten (Voll)?[Ss]icherung geändert hat, also", a.rechenweg), a.rechenweg
+        elif a.titel == "Großvater-Vater-Sohn":
+            assert "wie viele Daten stehen höchstens auf allen Bändern zusammen?" in a.frage
+
+
 def test_wochentage_mit_endung_und_ohne_artikel():
     """„Montags“ und „Dienstagabend“ beginnen mit einem Wochentag und zählen; „die“ und „mit“ sind keine Abkürzungen."""
     feld = Feld("t", "Tage", "Montag, Donnerstag", typ="wochentage")

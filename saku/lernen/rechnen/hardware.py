@@ -348,8 +348,8 @@ def _backup_menge(rng):
              f"eine **{art_}e** Sicherung. Täglich ändern sich jeweils andere Dateien mit zusammen **{taeglich} GB**.\n\n"
              f"Wie viele Daten sichert der {TAGE[tag]}, und wie viele Daten werden von Montag bis Freitag insgesamt gesichert?")
     zeilen = [f"{TAGE[k]}: {'Vollsicherung' if k == 0 else art_}, {de(m)} GB" for k, m in enumerate(mengen)]
-    regel = ("seit der letzten Sicherung, also jeden Tag nur die Änderungen eines Tages" if art_ == "inkrementell"
-             else "seit der letzten Vollsicherung, also jeden Tag mehr: k · " + f"{taeglich} GB")
+    regel = ("seit der letzten Sicherung geändert hat, also jeden Tag nur die Änderungen eines Tages" if art_ == "inkrementell"
+             else "seit der letzten Vollsicherung geändert hat, also jeden Tag mehr: k · " + f"{taeglich} GB")
     weg = schritte(f"{art_.capitalize()} sichert, was sich {regel}", *zeilen,
                    f"{TAGE[tag]}: **{de(mengen[tag])} GB**; zusammen: {' + '.join(de(m) for m in mengen)} = **{de(sum(mengen))} GB**")
     felder = [Feld("tag", f"Sicherung am {TAGE[tag]}", mengen[tag], "GB", stellen=0),
@@ -389,7 +389,7 @@ def _generationen(rng):
              f"- Vater: am letzten Arbeitstag der Woche eine Wochensicherung, aufbewahrt {wochen} Wochen\n"
              f"- Großvater: am Monatsende eine Monatssicherung, aufbewahrt {monate} Monate\n\n"
              f"Jede Sicherung ist eine Vollsicherung mit {de(gesamt_gb)} GB, ein Band fasst {de(band)} TB. Wie viele Bänder braucht man "
-             "mindestens, und wie viel Speicher stehen auf allen Bändern zusammen höchstens?")
+             "mindestens, und wie viele Daten stehen höchstens auf allen Bändern zusammen?")
     weg = schritte(f"Söhne: {soehne} (eins je Tagessicherung, die Woche wiederholt sich)",
                    f"Väter: {wochen} (so viele Wochensicherungen werden aufbewahrt)",
                    f"Großväter: {monate}", f"Bänder: {soehne} + {wochen} + {monate} = **{medien}**",
