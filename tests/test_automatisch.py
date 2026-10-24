@@ -48,7 +48,9 @@ def test_mini_test_prueft_anklickbar(client, con):
     geprueft = client.post("/michi/1/test/1/pruefen", data={"antwort-1-wahl": "B"}, headers=HTMX).get_data(as_text=True)
     assert re.search(r'id="punkte-1"[^>]*value="6"', geprueft) and "automatisch bewertet" in geprueft
     assert "wahl-option--richtig" in geprueft and "<html" not in geprueft
-    assert client.post("/michi/1/test/3/pruefen", data={}, headers=HTMX).status_code == 400  # frei: nichts zu prüfen
+    # frei: nichts automatisch zu prüfen; Vergleichen zeigt die Lösung, die Punkte bleiben leer
+    frei = client.post("/michi/1/test/3/pruefen", data={}, headers=HTMX).get_data(as_text=True)
+    assert 'class="michi-loesung" open' in frei and not re.search(r'id="punkte-3"[^>]*value=', frei)
 
     # 1 a nicht geprüft: Saku wertet beim Auswerten selbst aus (6); 1 b geprüft, falsch, aber selbst auf 2 gesetzt; 1 c selbst 8
     client.post("/michi/1/test", data={"teilaufgabe": ["1", "2", "3"], "antwort-1-wahl": "B", "punkte-2": "2", "punkte-3": "8"},

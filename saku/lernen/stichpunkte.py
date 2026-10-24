@@ -164,3 +164,15 @@ def _hervorheben(text: str, treffer: list[str]) -> list[tuple[str, bool]]:
         teile += [(text[pos:m.start()], False), (m.group(), True)]
         pos = m.end()
     return [t for t in teile + [(text[pos:], False)] if t[0]]
+
+
+def fuer_teilaufgabe(t: dict, eigene: str | None) -> dict | None:
+    """Abgleich für eine Freitext-Teilaufgabe (Üben, Simulation, Mini-Test), dazu ein Punktevorschlag anteilig auf halbe
+    Punkte. Bewusst nicht in antwort.vorschlag: dessen Punkte werden vorbelegt, bei Freitext vergibt sie der Nutzer.
+    None bei anklickbaren und anderen festen Formaten, ohne eigene Antwort oder ohne zerlegbare Lösung."""
+    if t["antwort"] and t["antwort"]["art"] != "frei":
+        return None
+    a = abgleichen(eigene or "", t["loesung_inhalt"] or t["loesung_text"] or "", t["inhalt"] or t["text"] or "")
+    if a and t["punkte"]:
+        a["punkte_vorschlag"] = round(t["punkte"] * a["anteil"] * 2) / 2
+    return a

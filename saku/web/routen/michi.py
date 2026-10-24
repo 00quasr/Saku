@@ -5,7 +5,7 @@ import math
 from flask import Blueprint, abort, redirect, render_template, request, url_for
 
 from saku.db import einstellung
-from saku.lernen import antwort, karten, pfad, rechnen
+from saku.lernen import antwort, karten, pfad, rechnen, stichpunkte
 from saku.web import db, seite_oder_fragment
 from saku.web.routen.rechnen import stand
 
@@ -94,10 +94,15 @@ def _eigene(t: dict) -> tuple[dict | None, str | None]:
 
 @bp.post("/<int:station_id>/test/<int:t_id>/pruefen")
 def test_pruefen(station_id, t_id):
-    """Eine Teilaufgabe im Mini-Test prüfen: Ergebnis, Lösung und vorbelegte Punkte, die änderbar bleiben."""
+    """Eine Teilaufgabe im Mini-Test prüfen: Ergebnis, Lösung und vorbelegte Punkte, die änderbar bleiben.
+    Freitext: Lösung und Stichpunkt-Abgleich als Hinweis, die Punkte bleiben leer."""
     con = db()
     station, _ = _station_oder_404(con, station_id)
     t = next(iter(karten.lade(con, [t_id])), None) or abort(404)
     eingabe, eigene = _eigene(t)
-    v = antwort.vorschlag(con, t, eingabe, eigene) or abort(400)
-    return render_template("michi/_testaufgabe.html", t=t, v=v, eingabe=eingabe, eigene=eigene, station=station)
+    v = antwort.vorschlag(con, t, eingabe, eigene)
+    frei = not v and not antwort.pruefbar(t["antwort"]) and not t["loesung_sql"]
+    if not (v or frei):
+        abort(400)
+    return render_template("michi/_testaufgabe.html", t=t, v=v, eingabe=eingabe, eigene=eigene, station=station,
+                           verglichen=frei, hinweis=stichpunkte.fuer_teilaufgabe(t, eigene) if frei else None)

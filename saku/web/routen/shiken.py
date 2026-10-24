@@ -12,7 +12,7 @@ import pymupdf
 from flask import Blueprint, abort, current_app, redirect, render_template, request, url_for
 from werkzeug.datastructures import MultiDict
 
-from saku.lernen import antwort, hochrechnung, karten, simulation
+from saku.lernen import antwort, hochrechnung, karten, simulation, stichpunkte
 from saku.web import db
 
 bp = Blueprint("shiken", __name__, url_prefix="/shiken")
@@ -148,6 +148,8 @@ def auswertung(sim_id):
     teilaufgaben = _teilaufgaben(con, sim_id)
     for t in teilaufgaben:  # anklickbare Teilaufgaben und SQL mit Sandbox prüft Saku selbst; die Punkte stehen dann schon im Feld
         t["auto"] = antwort.vorschlag(con, t, t["eingabe"], t["eigene"])
+        # Freitext: nur ein Hinweis aus dem Stichpunkt-Abgleich, die Punkte vergibt der Nutzer
+        t["stichpunkte"] = None if t["auto"] else stichpunkte.fuer_teilaufgabe(t, t["eigene"])
     return render_template(
         "shiken/auswertung.html", sim=sim, teilaufgaben=teilaufgaben, punkte_100=punkte_100,
         noten=simulation.NOTEN, kosten=simulation.kosten(con, sim_id) if sim["note"] is not None else [])

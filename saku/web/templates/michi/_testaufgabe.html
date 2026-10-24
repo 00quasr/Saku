@@ -1,7 +1,9 @@
 {# Antwort und Punkte einer Teilaufgabe im Mini-Test. Anklickbar oder SQL mit Sandbox: erst „Prüfen“, danach sind die
-   Punkte vorbelegt (v aus antwort.vorschlag) und bleiben änderbar; sonst Lösung aufdecken und selbst bewerten #}
+   Punkte vorbelegt (v aus antwort.vorschlag) und bleiben änderbar; sonst Lösung aufdecken und selbst bewerten.
+   Freitext: wer will, schreibt eine Antwort und vergleicht sie; der Stichpunkt-Abgleich ist nur ein Hinweis (verglichen, hinweis) #}
 {% import "_makros.html" as m %}
 {% import "keiko/_bausteine.html" as k %}
+{% import "keiko/_stichpunkte.html" as sp %}
 {% set klick = pruefbar(t.antwort) %}
 <div id="test-{{ t.id }}" class="stapel">
   {% if (klick or (t.loesung_sql and t.sandbox)) and not v %}
@@ -24,8 +26,19 @@
   {% if not klick %}<div id="sql-{{ t.id }}" class="sql-ergebnis" aria-live="polite"></div>{% endif %}
   {% else %}
   {% if v and v.werte is not none %}{{ k.antwortfeld(t, eingabe, v.werte, praefix='antwort-' ~ t.id ~ '-') }}
-  {% elif v %}<p class="etikett">Deine SQL-Anweisung</p><pre class="shiken-antwort">{{ eigene or '–' }}</pre>{% endif %}
-  <details class="michi-loesung" {{ 'open' if v }}>
+  {% elif v %}<p class="etikett">Deine SQL-Anweisung</p><pre class="shiken-antwort">{{ eigene or '–' }}</pre>
+  {% elif verglichen %}<p class="etikett">Deine Antwort</p><p class="shiken-antwort">{{ eigene or '–' }}</p>
+  {% elif not t.antwort or t.antwort.art == 'frei' %}
+  <label class="etikett" for="antwort-{{ t.id }}">Deine Antwort, wenn du willst</label>
+  <textarea class="textarea" id="antwort-{{ t.id }}" name="antwort-{{ t.id }}" rows="3"
+            placeholder="Stichpunkte reichen. Esc verlässt das Feld." onkeydown="if (event.key === 'Escape') this.blur()"></textarea>
+  <p class="zeile">
+    <button type="button" class="btn" data-variant="outline" hx-post="{{ url_for('michi.test_pruefen', station_id=station.id, t_id=t.id) }}"
+            hx-target="#test-{{ t.id }}" hx-swap="outerHTML">Mit der Lösung vergleichen</button>
+    <span class="klein gedaempft">Saku gleicht Stichpunkte ab, die Punkte vergibst du.</span>
+  </p>
+  {% endif %}
+  <details class="michi-loesung" {{ 'open' if v or verglichen }}>
     <summary>{{ 'Lösung' if v else 'Lösung aufdecken' }}</summary>
     <div class="tusche">{{ k.loesung(t) }}</div>
   </details>
@@ -35,7 +48,7 @@
            min="0" max="{{ t.punkte }}" step="0.5" required inputmode="decimal"
            {% if v %}value="{{ '%g' % v.punkte }}" aria-describedby="auto-{{ t.id }}" autofocus{% endif %}>
     <span class="gedaempft">von {{ k.punkte(t.punkte) }}</span>
-    {% if v %}{{ k.auto_hinweis(v, 'auto-' ~ t.id) }}{% endif %}
+    {% if v %}{{ k.auto_hinweis(v, 'auto-' ~ t.id) }}{% elif hinweis %}{{ sp.kompakt(hinweis, 'stichpunkte-' ~ t.id) }}{% endif %}
   </p>
   {% endif %}
 </div>

@@ -218,7 +218,10 @@
 .stichpunkte-liste .stichpunkt--erkannt { color: var(--sumi); }
 .stichpunkt-marke { flex: none; width: 1em; font-weight: 600; text-align: center; }
 .stichpunkt--erkannt .stichpunkt-marke { color: var(--matcha); }
-.stichpunkte mark { background: color-mix(in oklab, var(--ai) 22%, transparent); color: inherit; border-radius: 3px; padding: 0 2px; }
+.stichpunkte-kompakt > summary { cursor: pointer; color: var(--ai); }
+.stichpunkte-kompakt[open] { flex-basis: 100%; }  /* in der Punktezeile (flex) aufgeklappt auf eigene Zeile */
+.stichpunkte-kompakt .stichpunkte-liste { margin: 6px 0 4px; }
+:is(.stichpunkte, .stichpunkte-kompakt) mark { background: color-mix(in oklab, var(--ai) 22%, transparent); color: inherit; border-radius: 3px; padding: 0 2px; }
 :is(.keiko-loesung:has([data-stichpunkt-vorschlag="1"]) [data-taste="1"],
     .keiko-loesung:has([data-stichpunkt-vorschlag="2"]) [data-taste="2"],
     .keiko-loesung:has([data-stichpunkt-vorschlag="3"]) [data-taste="3"]) { border-color: var(--ai); box-shadow: inset 0 0 0 1px var(--ai); }
