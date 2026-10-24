@@ -39,7 +39,7 @@
   </p>
   {% endif %}
   <details class="michi-loesung" {{ 'open' if v or verglichen }}>
-    <summary>{{ 'Lösung' if v else 'Lösung aufdecken' }}</summary>
+    <summary>{{ 'Lösung' if v or verglichen else 'Lösung aufdecken' }}</summary>
     <div class="tusche">{{ k.loesung(t) }}</div>
   </details>
   <p class="zeile michi-punkte">

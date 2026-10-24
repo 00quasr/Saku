@@ -142,5 +142,6 @@ def test_mini_test_vergleicht_freitext(client, con):
     teil = " ".join(teil.split())
     assert "Stichpunkte: 1 von 2 erkannt · Vorschlag 3 P." in teil and "Anweisungsüberdeckung und Pfadüberdeckung" in teil
     assert 'class="michi-loesung" open' in teil and not re.search(rf'id="punkte-{t_id}"[^>]*value=', teil)
+    assert "<summary>Lösung</summary>" in teil
     leer = client.post(f"/michi/{station}/test/{t_id}/pruefen", data={}, headers=htmx).get_data(as_text=True)
     assert "Stichpunkte" not in leer and 'class="michi-loesung" open' in leer  # ohne Antwort nur die Lösung
