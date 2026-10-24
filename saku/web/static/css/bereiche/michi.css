@@ -3,7 +3,6 @@
 .michi-stand { margin-top: 6px; }
 .michi-stand [lang="ja"] { margin-right: 2px; }
 .michi-fuss { margin-top: 48px; }
-.michi-fuss a, .michi-station .hinweis a { text-decoration: underline; }
 
 /* Der Pfad: Stein, Nummer, Titel, Stand; darunter die Zahlen */
 .pfad-station {
@@ -48,7 +47,8 @@
 }
 .michi-uebungen a:hover { background: var(--flaeche); }
 .michi-uebung { display: grid; min-width: 0; }
-.michi-test > * + * { margin-top: 16px; }
+.michi-station .abschnitt > * + * { margin-top: 16px; }  /* auch die Einführung bekommt Luft unter der Überschrift */
+.michi-hinweis { margin-top: 24px; }
 
 /* Mini-Test */
 .michi-testform > p:first-child { margin-top: 24px; }

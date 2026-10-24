@@ -2,7 +2,6 @@
 
 .shiken-motto { margin-top: 8px; }
 .shiken-hinweis { margin-bottom: 48px; }
-.shiken-hinweis a { text-decoration: underline; }
 .shiken-erklaerung { max-width: 68ch; margin-top: 8px; }
 
 .shiken-bereiche { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-top: 24px; }
@@ -30,6 +29,7 @@
 
 /* Auswertung */
 .shiken-auswertung > .shiken-erklaerung { max-width: none; }
+.shiken-auswertung > form { margin-top: 40px; }  /* die erste Teilaufgabe klebte sonst am Ergebnis bzw. an der Erklärung */
 .shiken-ergebnis {
   display: flex; flex-wrap: wrap; gap: 32px; align-items: flex-start;
   padding-bottom: 48px; border-bottom: 1px solid var(--linie);

@@ -1,8 +1,9 @@
 /* bunseki – Reiter, Heatmap in Tuschestufen, Tabellen, Korrektur der Zuordnung */
 
 .bunseki-tabs { margin-top: 24px; gap: 24px; }
-.bunseki-tabs > [role="tablist"] { max-width: 100%; overflow-x: auto; scrollbar-width: none; justify-content: flex-start; }
-.bunseki-tabs [role="tab"] { gap: 6px; white-space: nowrap; }
+/* schmal (1024 px) eine zweite Zeile, statt die letzten Reiter unsichtbar wegzuscrollen */
+.bunseki-tabs > [role="tablist"] { max-width: 100%; height: auto; flex-wrap: wrap; justify-content: flex-start; }
+.bunseki-tabs [role="tab"] { flex: none; gap: 6px; white-space: nowrap; }
 .bunseki-reiter > * + * { margin-top: 16px; }
 
 .bunseki-block { display: block; }

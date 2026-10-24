@@ -16,7 +16,7 @@
       <span class="linie-fortschritt" aria-hidden="true"><span style="width: {{ [100, 100 * heute[0] / ziel]|min }}%"></span></span>
       {{ '✓' if heute[0] >= ziel }}</span>
     {% endif %}
-    <p class="klein gedaempft">Fällig ist, was du noch nie, zuletzt unsicher oder seit über einer Woche nicht gerechnet hast; „Gemischt“ nimmt das zuerst.</p>
+    <p class="klein gedaempft">Fällig ist, was zu deiner Prüfung gehört und noch nie, zuletzt unsicher oder seit über einer Woche nicht gerechnet wurde; „Gemischt“ nimmt das zuerst.</p>
   </div>
 
   {% for gruppe, arten in gruppen %}

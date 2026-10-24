@@ -380,7 +380,9 @@ def _tagesname(tag_: date, heute: date) -> str:
 
 def _begriff_karte(con, runde: list[int], umgekehrt: bool, **kontext) -> dict:
     """Nächste Begriffs-Karte; umgekehrt mit Definition ohne Namen und Begriffen zur Wahl."""
-    kontext |= karten.begriffe(con, runde) | {"runde": runde, "umgekehrt": umgekehrt}
+    b = karten.begriffe(con, runde)
+    # nicht „faellig“: so heißt im Seitenkontext schon die Zahl fälliger Teilaufgaben an „Üben“ in der Seitenleiste
+    kontext |= {"karte": b["karte"], "begriffe_faellig": b["faellig"], "neu": b["neu"], "runde": runde, "umgekehrt": umgekehrt}
     return kontext | (karten.auswahl(con, kontext["karte"]) if umgekehrt and kontext["karte"] else {})
 
 

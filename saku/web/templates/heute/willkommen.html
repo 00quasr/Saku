@@ -30,8 +30,8 @@
 
 {% call szene(1, 'bunseki', '頻出', 'Dauerbrenner') %}
 <h2 class="titel" id="szene-1" tabindex="-1">Das kam am häufigsten dran.</h2>
-<p class="einfuehrung-text">Diese Themen standen in fast jedem der {{ zahlen.termine }} Termine und bringen die meisten Punkte. Mit ihnen fängt dein Lernpfad an.</p>
 {% if themen %}
+<p class="einfuehrung-text">Diese Themen standen in fast jedem der {{ zahlen.termine }} Termine und bringen die meisten Punkte. Mit ihnen fängt dein Lernpfad an.</p>
 <ol class="einfuehrung-themen">
   {% for t in themen %}
   <li style="--anteil: {{ (100 * t.punkte / themen[0].punkte)|round(1) }}%; --i: {{ loop.index0 }}">
@@ -41,6 +41,8 @@
   </li>
   {% endfor %}
 </ol>
+{% else %}
+<p class="einfuehrung-text">Noch kam kein Thema in fast jedem der {{ zahlen.termine }} Termine dran. Mit mehr Prüfungen stehen hier die Dauerbrenner.</p>
 {% endif %}
 <p class="klein gedaempft">Alle Zahlen stehen unter <span lang="ja">析</span> Analyse.</p>
 {% endcall %}

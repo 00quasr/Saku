@@ -1,5 +1,5 @@
 {# Begriffs-Karte: Vorderseite der Begriff, Rückseite die Definition. Umgekehrt: die Definition (ohne den Namen) und
-   Begriffe zur Wahl. Kontext: karte, faellig, neu, runde, umgekehrt; umgekehrt dazu definition, optionen, rueckmeldung #}
+   Begriffe zur Wahl. Kontext: karte, begriffe_faellig, neu, runde, umgekehrt; umgekehrt dazu definition, optionen, rueckmeldung #}
 {% import "_makros.html" as m %}
 {% set eben %}{% if rueckmeldung %}
 <p class="hinweis tusche{{ ' hinweis--fehler' if not rueckmeldung.richtig }}" id="begriff-eben" role="status">
@@ -12,7 +12,7 @@
   <input type="hidden" name="runde" value="{{ runde|join(',') }}">
   {{ eben }}
   <div class="zeile zwischen">
-    <p class="etikett">Grundwissen umgekehrt · {{ faellig }} fällig · {{ neu }} neu</p>
+    <p class="etikett">Grundwissen umgekehrt · {{ begriffe_faellig }} fällig · {{ neu }} neu</p>
     {{ m.status(karte.status) }}
   </div>
   <div class="prosa begriff-definition" id="begriff-definition">{{ definition|markdown }}</div>
@@ -33,7 +33,7 @@
 <form id="karte" class="karte begriff-karte fokus-ziel" tabindex="-1" autofocus onsubmit="event.preventDefault()" aria-label="Begriff {{ karte.name }}">
   <input type="hidden" name="runde" value="{{ runde|join(',') }}">
   <div class="zeile zwischen">
-    <p class="etikett">Grundwissen · {{ faellig }} fällig · {{ neu }} neu</p>
+    <p class="etikett">Grundwissen · {{ begriffe_faellig }} fällig · {{ neu }} neu</p>
     {{ m.status(karte.status) }}
   </div>
   <p class="begriff-name">{{ karte.name }}</p>
@@ -50,7 +50,7 @@
               hx-target="#karte" hx-swap="outerHTML">{{ m.taste(wert) }} {{ text }}</button>
       {% endfor %}
     </div>
-    <p class="klein"><a href="{{ url_for('niwa.index', begriff=karte.id) }}" class="gedaempft">Fundstellen im Themengarten</a></p>
+    <p class="klein"><a href="{{ url_for('niwa.index', begriff=karte.id) }}" class="gedaempft">Fundstellen unter Themen</a></p>
   </section>
 </form>
 {% else %}

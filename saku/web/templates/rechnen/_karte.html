@@ -25,7 +25,7 @@
   {{ r.felder(a, eingaben, werte) }}
 
   {% if not fertig %}
-  {% if leer %}<p class="hinweis hinweis--fehler klein" role="status">Noch nichts eingetragen. Rechne erst, oder hol dir mit {{ m.taste('␣') }} den Rechenweg.</p>{% endif %}
+  {% if leer %}<p class="hinweis hinweis--fehler klein" role="status">Noch nichts eingetragen. Rechne erst, oder hol dir mit {{ m.taste('Esc') }} und {{ m.taste('␣') }} den Rechenweg.</p>{% endif %}
   <div class="zeile rechnen-aktionen">
     <button type="submit" class="btn" data-taste="Enter">Prüfen {{ m.taste('↵') }}</button>
     <button type="button" class="btn" data-variant="ghost" data-taste=" " title="Zählt als nicht gelöst"

@@ -62,6 +62,8 @@ body {
 code, pre, kbd, samp { font-family: var(--schrift-code); }
 pre { font-size: 0.875rem; line-height: 1.375rem; }
 a:not(.btn) { color: inherit; text-underline-offset: 3px; }
+/* Links im Fließtext unterstrichen; Basecoat nimmt Links die Unterstreichung, sonst sähen sie wie Text aus */
+:is(.hinweis, .gedaempft, .woche-themen) > a:not(.btn) { text-decoration-line: underline; }
 :focus-visible { outline: 2px solid var(--shu); outline-offset: 2px; }
 ::selection { background: color-mix(in oklab, var(--shu) 30%, transparent); }
 .defs { position: absolute; }
@@ -196,6 +198,7 @@ a:not(.btn) { color: inherit; text-underline-offset: 3px; }
 /* Fahrschul-Status: nie nur Farbe, immer mit Symbol */
 .status { display: inline-flex; align-items: center; gap: 6px; font-size: 0.8125rem; white-space: nowrap; }
 .status-punkt { width: 8px; height: 8px; border-radius: 50%; background: var(--status-farbe); flex: none; }
+.status-punkt + span { width: 1em; text-align: center; }  /* ✓ ◐ ✕ ○ gleich breit: Text in Listen und Legenden steht bündig */
 .status--neu   { --status-farbe: var(--linie); color: var(--sumi-mittel); }
 .status--rot   { --status-farbe: var(--beni); }
 .status--gelb  { --status-farbe: var(--yamabuki); }

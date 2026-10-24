@@ -135,6 +135,7 @@ def test_einfuehrung_beim_ersten_start(client, con):
     assert client.get("/").headers["Location"] == "/willkommen"
     html = client.get("/willkommen").get_data(as_text=True)
     assert html.count('class="szene"') == 7 and 'data-zaehlen=' in html and 'class="leiste"' not in html
+    assert "Noch kam kein Thema in fast jedem der 3 Termine dran." in html and "Diese Themen" not in html  # Demo: keine Dauerbrenner
 
     assert client.post("/willkommen/termin", data={"pruefungstermin": "kein Datum"}).status_code == 400
     rechnung = client.post("/willkommen/termin", data={"pruefungstermin": "2099-01-01"}).get_data(as_text=True)

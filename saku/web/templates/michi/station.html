@@ -62,7 +62,7 @@
 
   <section class="abschnitt michi-test" aria-labelledby="test-titel">
     <h2 class="ueberschrift" id="test-titel">Mini-Test</h2>
-    <p>Fünf Teilaufgaben aus dieser Station. Ab {{ (100 * schwelle)|round|int }} % der Punkte ist die Station geschafft{% if not station.bestanden %}, und die nächste wird frei{% endif %}.</p>
+    <p>Bis zu fünf Teilaufgaben aus dieser Station. Ab {{ (100 * schwelle)|round|int }} % der Punkte ist die Station geschafft{% if not station.bestanden %}, und die nächste wird frei{% endif %}.</p>
     {% if letzter %}
     <p class="klein gedaempft zahl">Zuletzt: {{ k.punkte(letzter.punkte_erreicht) }} von {{ k.punkte(letzter.punkte_moeglich) }} Punkten · {{ 'bestanden' if letzter.bestanden else 'noch nicht bestanden' }}</p>
     {% endif %}
