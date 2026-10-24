@@ -39,6 +39,18 @@
         </form>
       </li>
       {% endfor %}
+      {% if schnelltest %}
+      <li class="flaeche shiken-bereich shiken-schnelltest" id="schnelltest">
+        <p class="etikett">Schnelltest</p>
+        <p class="shiken-bereich-name">WiSo gemischt</p>
+        <p class="klein gedaempft zahl">{{ schnelltest.anzahl }} Teilaufgaben zum Anklicken · etwa {{ schnelltest.minuten }} Minuten · aus {{ schnelltest.termine }} {{ 'Termin' if schnelltest.termine == 1 else 'Terminen' }}</p>
+        <p class="klein gedaempft">Zufällig quer durch alle Termine, Zeit wie in der Prüfung. Saku wertet sofort aus.</p>
+        <form method="post" action="{{ url_for('shiken.neu') }}">
+          <input type="hidden" name="bereich" value="{{ schnelltest.bereich }}">
+          <button type="submit" class="btn" {% if laufend %}disabled title="Es läuft schon eine Simulation"{% endif %}>Starten</button>
+        </form>
+      </li>
+      {% endif %}
     </ul>
   </section>
 

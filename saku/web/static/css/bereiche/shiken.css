@@ -8,6 +8,8 @@
 .shiken-bereich { display: grid; gap: 8px; align-content: start; }
 .shiken-bereich-name { font-family: var(--schrift-titel); font-weight: 600; font-size: 1.125rem; line-height: 1.5rem; min-height: 3rem; }
 .shiken-bereich form { margin-top: 8px; }
+.shiken-schnelltest { scroll-margin-top: 24px; }
+.shiken-schnelltest:target { border-color: var(--shu); }  /* Sprung aus ⌘K */
 
 .shiken-verlauf { margin-top: 16px; }
 .shiken-verlauf .rechts { text-align: right; }

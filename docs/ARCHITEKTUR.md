@@ -92,7 +92,7 @@ saku/
 │   │   ├── fahrplan.py         Prognose, Tempo, Abdeckung nach Prüfungsgewicht, Gewinn je Thema
 │   │   ├── rueckblick.py       Wochenrückblick
 │   │   ├── pfad.py             Lernpfad: Stationen, Freischaltung, Mini-Test
-│   │   ├── simulation.py       Zusammenstellung, Notenschlüssel
+│   │   ├── simulation.py       Zusammenstellung, WiSo-Schnelltest, Notenschlüssel
 │   │   ├── hochrechnung.py     Gesamtnote nach der Ausbildungsverordnung
 │   │   ├── lernstand.py        Lernstand exportieren und importieren
 │   │   └── rechnen/            Rechentrainer, siehe unten
@@ -287,7 +287,7 @@ Wichtige Regeln:
 | `/rechnen/formeln` | GET | Formelsammlung zum Drucken | Seite |
 | `/rechnen/sprint`, `/rechnen/sprint/neu`, `/rechnen/sprint/lauf` | GET, POST | Rechen-Sprint: Start, fünf Aufgaben mit Uhr, Abgabe mit Punkten und Note | Seite, Weiterleitung |
 | `/shiken/` | GET | Übersicht, Hochrechnung und Verlauf | Seite |
-| `/shiken/neu` | POST | Simulation zusammenstellen | Weiterleitung |
+| `/shiken/neu` | POST | Simulation zusammenstellen; `bereich=WiSo-Schnelltest`: zufällige anklickbare WiSo-Teilaufgaben, Zeit anteilig nach Punkten, bei der Abgabe gleich ausgewertet | Weiterleitung |
 | `/shiken/<id>` | GET | laufende Simulation | Seite |
 | `/shiken/<id>/speichern`, `/shiken/<id>/abgeben` | POST | Antworten zwischenspeichern, abgeben | Text, Weiterleitung |
 | `/shiken/<id>/auswertung` | GET, POST | Punkte (Anklickbares und SQL vorbelegt), Note, Stempel | Seite |
@@ -365,6 +365,7 @@ return Response(stream_with_context(ereignisse()), mimetype="text/event-stream")
 ### Automatische Auswertung und Stichpunkte
 
 - `antwort.vorschlag` hält die Auswertung an einer Stelle für Simulation und Mini-Test: anklickbare Antworten (einfach, mehrfach, reihenfolge, zuordnung, zahl) über `antwort.auswerten`, SQL mit Sandbox über `sql.pruefen`. Heraus kommen vorbelegte Punkte, die man ändern kann; läuft die Anweisung nicht, sind es 0 Punkte mit der Meldung von SQLite.
+- **WiSo-Schnelltest:** eine Simulation mit dem Bereich `WiSo-Schnelltest` (`simulation.schnelltest`): bis zu 25 zufällige anklickbare WiSo-Teilaufgaben aller Termine, Teilaufgaben einer Aufgabe bleiben zusammen. Die Zeit richtet sich anteilig nach den Punkten (Prüfungszeit je Punkt der echten WiSo-Prüfungen, Median). Bei der Abgabe, auch nach Ablauf der Uhr, übernimmt `simulation.auswerten` die Punkte aus `antwort.vorschlag`: Note nach IHK-Schlüssel, jede Teilaufgabe als Bewertung. Hochrechnung und Prüfungsreife zählen nur ganze Simulationen. Die Demo-Daten bringen WiSo-Prüfungen nur mit `anlegen(wiso=True)` mit (so auch `python -m tests.demo_daten`).
 - `stichpunkte.fuer_teilaufgabe` zerlegt bei freien Antworten den Lösungshinweis in erwartete Punkte und zeigt, welche die eigene Antwort trifft (Üben, Mini-Test, Simulation). Ohne KI, nur als Hilfe zur Selbstbewertung.
 
 ### Fahrplan, Rückblick und Lernstand

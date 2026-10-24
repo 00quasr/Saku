@@ -29,7 +29,11 @@
       <ul class="heft-hinweise klein">
         <li>Lies jede Aufgabe ganz, bevor du anfängst. Plane etwa {{ '%.1f'|format(minuten_je_punkt)|replace('.', ',') }} Minuten je Punkt.</li>
         <li>Beachte die Operatoren: „nennen“ verlangt Stichworte, „erläutern“ eine Begründung.</li>
+        {% if schnelltest %}
+        <li>Deine Antworten werden laufend gespeichert. Alles hier prüft Saku bei der Abgabe selbst, du bekommst sofort Punkte und Note.</li>
+        {% else %}
         <li>Deine Antworten werden laufend gespeichert. Ankreuz-, Zuordnungs- und Rechenaufgaben und SQL mit Beispieldaten prüft Saku nach der Abgabe selbst, den Rest bewertest du, auf Wunsch mit Sensei.</li>
+        {% endif %}
       </ul>
     </header>
     {% for gruppe in aufgaben %}

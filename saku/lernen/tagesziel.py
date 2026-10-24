@@ -6,6 +6,7 @@ from datetime import date, timedelta
 from itertools import groupby
 
 from saku.db import einstellung
+from saku.lernen import simulation
 from saku.lernen.karten import fahrschul, termin_schluessel
 
 # Bundeseinheitliche schriftliche Termine der IT-Berufe (Stand 22.10.2026; Quellen: Handelskammer Hamburg,
@@ -152,9 +153,10 @@ def lernserie(con: sqlite3.Connection, heute: date | None = None) -> int:
 
 
 def pruefungsreife(con: sqlite3.Connection) -> tuple[float, bool]:
-    """(Prozent, mankai): volle Blüte ab 80 % und wenn die letzten zwei Simulationen bestanden sind."""
+    """(Prozent, mankai): volle Blüte ab 80 % und wenn die letzten zwei Simulationen bestanden sind (ohne WiSo-Schnelltest)."""
     prozent = con.execute("SELECT prozent FROM v_pruefungsreife").fetchone()[0] or 0
     letzte = [z[0] for z in con.execute(
-        "SELECT bestanden FROM simulation WHERE note IS NOT NULL ORDER BY gestartet_am DESC, id DESC LIMIT 2"
+        "SELECT bestanden FROM simulation WHERE note IS NOT NULL AND bereich <> ? ORDER BY gestartet_am DESC, id DESC LIMIT 2",
+        (simulation.SCHNELLTEST,)
     )]
     return prozent, prozent >= 80 and letzte == [1, 1]
