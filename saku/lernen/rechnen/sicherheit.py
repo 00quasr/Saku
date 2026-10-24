@@ -174,7 +174,7 @@ def _regeln(rng):
                    f"{de(math.log2(sum(anz_a)), 4)} = **{de(ea)} Bit**",
                    f"Regel B: N = {_summe(anz_b)} → {lb} · log₂ {sum(anz_b)} = {lb} · "
                    f"{de(math.log2(sum(anz_b)), 4)} = **{de(eb)} Bit**",
-                   f"**{staerker}** hat {de(mehr)} Bit mehr, also 2^{de(mehr)} ≈ {_zehner(faktor) if faktor >= 10 ** 6 else de(faktor, 0)}-mal "
+                   f"**{staerker}** hat {de(mehr)} Bit mehr, also 2^{de(mehr)} ≈ {_zehner(faktor) if faktor >= 10 ** 6 else de(faktor, 0 if faktor >= 100 else 1)}-mal "
                    "so viele Kombinationen" + (": die Länge schlägt die Zeichenvielfalt" if staerker == "Regel B" else ""))
     return Aufgabe(frage, felder, weg, toleranz=0.005, titel="Passwortregeln vergleichen")
 
