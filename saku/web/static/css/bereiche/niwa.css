@@ -33,7 +33,7 @@
 .graph-notiz { z-index: 3;
   position: absolute; top: 12px; right: 12px; bottom: 12px; width: min(380px, calc(100% - 24px)); overflow-y: auto;
   padding: 16px 18px; border-radius: 12px; border: 1px solid var(--linie);
-  background: color-mix(in oklab, var(--washi-hell) 94%, transparent); backdrop-filter: blur(10px);
+  background: var(--washi-hell);  /* kein backdrop-filter: WebKit müsste den Weichzeichner bei jedem Bild des Graphen neu rechnen */
   box-shadow: 0 24px 64px -32px rgb(0 0 0 / .5);
 }
 .notiz > * + * { margin-top: 12px; }

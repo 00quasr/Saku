@@ -57,6 +57,16 @@ window.saku = {
       unterthema: 1.8 + 3 * Math.sqrt((k.wert || 0) / groesst.unterthema), begriff: 1.2 + 2.8 * Math.sqrt((k.wert || 0) / groesst.begriff) })[k.art];
     const abZoom = { bereich: 0, thema: 0.5, lernfeld: 1.1, unterthema: 1.4, begriff: 2.6 };  // ab hier steht der Name da
     const rang = { bereich: 5, thema: 4, lernfeld: 3, unterthema: 2, begriff: 1 };
+    // Farbe, Radius und Namensbreite einmal statt in jedem Bild: WebKit zeichnet sonst beim Zoomen sichtbar langsamer
+    const messen = document.createElement("canvas").getContext("2d");
+    const breiten = () => daten.knoten.forEach((k) => {
+      messen.font = `${rang[k.art] >= 4 ? 600 : 400} 100px Inter, sans-serif`;
+      k._breite = messen.measureText(k.name).width / 100;
+    });
+    daten.knoten.forEach((k) => { k._farbe = farbe(k); k._r = radius(k); });
+    breiten();
+    document.fonts.ready.then(breiten);  // Inter ist beim ersten Aufruf evtl. noch nicht geladen
+    const pulsieren = new Set(daten.pulsieren);
 
     const nachbarn = new Map(daten.knoten.map((k) => [k.id, new Set()]));
     daten.kanten.forEach((l) => { nachbarn.get(l.source)?.add(l.target); nachbarn.get(l.target)?.add(l.source); });
@@ -77,13 +87,12 @@ window.saku = {
       .backgroundColor("rgba(0,0,0,0)")  // zeichnet nur neu, solange die Physik läuft oder der Zeiger sich bewegt
       .graphData(sichtbar())
       .nodeCanvasObject((k, ctx, zoom) => {
-        const r = radius(k);
         ctx.globalAlpha = hell(k.id) ? 1 : 0.1;
         ctx.beginPath();
-        ctx.arc(k.x, k.y, r, 0, 2 * Math.PI);
-        ctx.fillStyle = farbe(k);
+        ctx.arc(k.x, k.y, k._r, 0, 2 * Math.PI);
+        ctx.fillStyle = k._farbe;
         ctx.fill();
-        if (k.id === auswahl || daten.pulsieren.includes(k.id)) {
+        if (k.id === auswahl || pulsieren.has(k.id)) {
           ctx.lineWidth = 2 / zoom;
           ctx.strokeStyle = f.shu;
           ctx.stroke();
@@ -93,17 +102,21 @@ window.saku = {
       // Namen nach den Knoten: wichtige zuerst, was einen schon gesetzten Namen verdecken würde, entfällt
       .onRenderFramePost((ctx, zoom) => {
         const nah = mitte_();
-        const kandidaten = g.graphData().nodes.filter((k) => (nah ? hell(k.id) && (k.id === nah || zoom >= abZoom[k.art] - 0.6 || rang[k.art] >= 2)
-          : k.id === auswahl || zoom >= abZoom[k.art]));
-        kandidaten.sort((a, b) => (b.id === nah) - (a.id === nah) || rang[b.art] - rang[a.art] || radius(b) - radius(a));
+        // nur Namen im sichtbaren Ausschnitt (mit Rand für lange Namen)
+        const [lo, ru] = [g.screen2GraphCoords(-150, -40), g.screen2GraphCoords(g.width() + 150, g.height() + 40)];
+        const kandidaten = g.graphData().nodes.filter((k) => k.x > lo.x && k.x < ru.x && k.y > lo.y && k.y < ru.y
+          && (nah ? hell(k.id) && (k.id === nah || zoom >= abZoom[k.art] - 0.6 || rang[k.art] >= 2) : k.id === auswahl || zoom >= abZoom[k.art]));
+        kandidaten.sort((a, b) => (b.id === nah) - (a.id === nah) || rang[b.art] - rang[a.art] || b._r - a._r);
         const belegt = [];
         ctx.textAlign = "center";
         ctx.textBaseline = "top";
         ctx.lineJoin = "round";
+        let schrift = "";
         for (const k of kandidaten) {
           const groesse = (k.art === "bereich" ? 13 : 11) / zoom;
-          ctx.font = `${rang[k.art] >= 4 ? 600 : 400} ${groesse}px Inter, sans-serif`;
-          const breite = ctx.measureText(k.name).width, y = k.y + radius(k) + 2 / zoom;
+          const neu = `${rang[k.art] >= 4 ? 600 : 400} ${groesse}px Inter, sans-serif`;
+          if (neu !== schrift) ctx.font = schrift = neu;  // nach Rang sortiert: die Schrift wechselt selten
+          const breite = k._breite * groesse, y = k.y + k._r + 2 / zoom;
           const box = [k.x - breite / 2 - 2 / zoom, y, k.x + breite / 2 + 2 / zoom, y + groesse * 1.2];
           if (belegt.some((b) => b[0] < box[2] && box[0] < b[2] && b[1] < box[3] && box[1] < b[3])) continue;
           belegt.push(box);
@@ -117,7 +130,7 @@ window.saku = {
       .nodePointerAreaPaint((k, c, ctx) => {
         ctx.fillStyle = c;
         ctx.beginPath();
-        ctx.arc(k.x, k.y, radius(k) + 2, 0, 2 * Math.PI);
+        ctx.arc(k.x, k.y, k._r + 2, 0, 2 * Math.PI);
         ctx.fill();
       })
       .linkColor((l) => anFokus(l) ? f.shu : mitte_() ? f.linie + "40" : l.art === "voraussetzung" ? f["sumi-mittel"] : f.linie + "b0")
@@ -129,9 +142,10 @@ window.saku = {
       .onNodeClick((k) => waehlen(k))
       .onBackgroundClick(() => { auswahl = null; notiz.hidden = true; neuZeichnen(); })
       .onBackgroundRightClick(() => g.zoomToFit(400, 40))
-      .d3VelocityDecay(0.35)
-      .warmupTicks(40)  // die ersten Schritte ohne Zeichnen: kein Aufplatzen beim Öffnen
-      .cooldownTicks(160);
+      .d3VelocityDecay(0.5)  // gedämpft: die Knoten gleiten aus statt nachzuschwingen
+      // den Großteil der Physik vor dem ersten Bild rechnen: der Graph steht fast fertig da, statt lange aufzuplatzen
+      .warmupTicks(Math.min(300, Math.round(60000 / Math.max(1, daten.knoten.length))))
+      .cooldownTicks(120);
     g.d3Force("charge").strength((k) => (k.art === "begriff" ? -16 : k.art === "bereich" ? -260 : -70));
     // sanfte Schwerkraft zur Mitte: getrennte Teile (z. B. WiSo) treiben nicht davon
     const mitte = (alpha) => mitte.knoten.forEach((k) => { k.vx -= k.x * 0.04 * alpha; k.vy -= k.y * 0.04 * alpha; });
@@ -141,7 +155,7 @@ window.saku = {
       .strength((l) => (l.art === "lernfeld" ? 0.04 : 0.5));
 
     const pfad = { t: "thema", lf: "lernfeld", b: "begriff" };
-    let gezoomt = false;
+    let gezoomt = false, selbst = false;
     // der gewählte Knoten in die Mitte der Fläche, die die Notiz frei lässt
     const zeigeAuf = (k, zoom) => {
       g.zoom(zoom, 600);
@@ -157,12 +171,16 @@ window.saku = {
     };
     const finden = (kid) => g.graphData().nodes.find((k) => k.id === kid);
 
-    [700, 1800, 3200].forEach((ms) => setTimeout(() => gezoomt || g.zoomToFit(400, 40), ms));  // schon während die Physik arbeitet
+    // einmal sofort einpassen, am Ende sanft nachführen; wer selbst zoomt oder zieht, dem bewegt sich die Kamera nicht mehr weg
+    let eingepasst = false;
+    g.onEngineTick(() => { if (!eingepasst) { eingepasst = true; g.zoomToFit(0, 40); } });
+    ["wheel", "pointerdown"].forEach((t) => flaeche.addEventListener(t, () => { selbst = true; }, { capture: true, passive: true }));
     g.onEngineStop(() => {
       if (gezoomt) return;
       gezoomt = true;
       const k = auswahl && finden(auswahl);
-      k ? waehlen(k) : g.zoomToFit(500, 40);
+      if (k) waehlen(k);
+      else if (!selbst) g.zoomToFit(500, 40);
     });
 
     // Notizen und Listen verweisen mit data-knoten auf Knoten im Graphen
