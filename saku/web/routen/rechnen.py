@@ -1,5 +1,6 @@
 """Rechnen 算: generierte Rechenaufgaben wie in der AP1. ↵ prüft sofort, der Rechenweg erklärt, ↵ holt die nächste."""
 
+import json
 import random
 import time
 from datetime import datetime, timezone
@@ -7,7 +8,7 @@ from datetime import datetime, timezone
 from flask import Blueprint, abort, make_response, redirect, render_template, request, url_for
 
 from saku.db import einstellung
-from saku.lernen import rechnen, simulation, sql
+from saku.lernen import probepruefung, rechnen, simulation, sql
 from saku.lernen.rechnen import pseudocode
 from saku.web import db, ganzzahl, ist_fragment, seite_oder_fragment
 
@@ -163,10 +164,8 @@ def sprint_lauf():
         return render_template("rechnen/sprint.html", **kontext)
     eingaben = [{f.name: request.form.get(f"a{i}-{f.name}", "")[:200] for f in a.felder}
                 for i, (_, _, a) in enumerate(aufgaben, start=1)]
-    # ganz leer abgegeben zählt null, auch wo leere Zellen richtig wären (freie Plätze beim Hashing)
-    werte = [rechnen.pruefen(a, e) if any(v.strip() for v in e.values()) else {f.name: False for f in a.felder}
-             for (_, _, a), e in zip(aufgaben, eingaben)]
-    punkte = [round(SPRINT_PUNKTE * sum(w.values()) / len(w), 1) for w in werte]
+    werte = [probepruefung.bewerten(a, e) for (_, _, a), e in zip(aufgaben, eingaben)]
+    punkte = [probepruefung.anteil(SPRINT_PUNKTE, w) for w in werte]
     dauer = min(max(int(time.time()) - start, 0), 3 * 3600)
     con = db()
     # Neu laden schickt das Formular noch einmal: dieselben Aufgaben seit dem Start nicht doppelt speichern
@@ -184,6 +183,74 @@ def sprint_lauf():
     return render_template("rechnen/sprint.html", **kontext | {
         "eingaben": eingaben, "werte": werte, "punkte_je": punkte, "erreicht": erreicht, "moeglich": moeglich, "hundert": hundert,
         "note": note, "note_text": simulation.NOTEN[note], "bestanden": hundert >= simulation.BESTANDEN_AB, "dauer": dauer})
+
+
+# --- Probeprüfung aus den Generatoren: wie die Simulation, aber unbegrenzt neu und sofort ausgewertet -------------------
+
+def _probe_oder_404(con, pp_id: int):
+    zeile = con.execute("SELECT * FROM probepruefung WHERE id = ?", (pp_id,)).fetchone()
+    if zeile is None or not (aufgaben := json.loads(zeile["aufgaben"])) or any(art not in rechnen.ARTEN for art, *_ in aufgaben):
+        abort(404)  # eine Art, die es nicht mehr gibt, ergäbe eine andere Prüfung
+    return zeile
+
+
+def _probe_eingaben(zeile) -> dict[str, str]:
+    """Formularfelder a1-feld, a2-feld … aus der Abgabe oder dem Zwischenspeichern."""
+    return {f"a{i}-{f.name}": request.form.get(f"a{i}-{f.name}", "")[:sql.ZEICHEN if f.typ in ("sql", "code") else 200]
+            for i, x in enumerate(probepruefung.aufgaben(zeile), start=1) for f in x["aufgabe"].felder}
+
+
+@bp.get("/probe")
+def probe():
+    """Startseite: wie die Prüfung aufgebaut ist, die laufende und der Verlauf mit Punkten und Note."""
+    con = db()
+    verlauf = con.execute("SELECT *, strftime('%d.%m.%Y', gestartet_am, 'localtime') AS datum FROM probepruefung "
+                          "ORDER BY gestartet_am DESC, id DESC").fetchall()
+    return render_template("rechnen/probe.html", aufgaben=None, verlauf=verlauf, laufend=probepruefung.laufende(con),
+                           pfad=_pfad(con), anzahl=probepruefung.ANZAHL, minuten=probepruefung.MINUTEN, noten=simulation.NOTEN)
+
+
+@bp.post("/probe/neu")
+def probe_neu():
+    con = db()
+    laufend = probepruefung.laufende(con)
+    pp_id = laufend["id"] if laufend else probepruefung.anlegen(con, _pfad(con), _quoten(con))
+    return redirect(url_for("rechnen.probe_heft", pp_id=pp_id))
+
+
+@bp.get("/probe/<int:pp_id>")
+def probe_heft(pp_id):
+    """Das Heft mit Restzeit; nach der Abgabe dasselbe Heft mit Punkten je Aufgabe, Note und Lösungswegen."""
+    con = db()
+    zeile = _probe_oder_404(con, pp_id)
+    rest, gebraucht = con.execute(
+        "SELECT CAST((julianday(gestartet_am, '+' || dauer_min || ' minutes') - julianday('now')) * 86400 AS INTEGER), "
+        "CAST((julianday(beendet_am) - julianday(gestartet_am)) * 86400 AS INTEGER) FROM probepruefung WHERE id = ?", (pp_id,)).fetchone()
+    fertig = zeile["note"] is not None
+    return render_template("rechnen/probe.html", zeile=zeile, aufgaben=probepruefung.aufgaben(zeile), fertig=fertig, rest=max(0, rest),
+                           gebraucht=min(gebraucht or 0, zeile["dauer_min"] * 60), note_text=simulation.NOTEN.get(zeile["note"]),
+                           bestanden=fertig and zeile["punkte"] >= simulation.BESTANDEN_AB)
+
+
+@bp.post("/probe/<int:pp_id>/speichern")
+def probe_speichern(pp_id):
+    con = db()
+    zeile = _probe_oder_404(con, pp_id)
+    if zeile["beendet_am"]:
+        return "Schon abgegeben"
+    probepruefung.speichern(con, pp_id, _probe_eingaben(zeile))
+    return f"Gespeichert um {datetime.now():%H:%M}"
+
+
+@bp.post("/probe/<int:pp_id>/abgeben")
+def probe_abgeben(pp_id):
+    """Abgabe oder Zeit um: die letzten Antworten speichern, dann einmal auswerten."""
+    con = db()
+    zeile = _probe_oder_404(con, pp_id)
+    if not zeile["beendet_am"]:  # neu laden nach der Abgabe zeigt nur die Auswertung
+        probepruefung.speichern(con, pp_id, _probe_eingaben(zeile))
+        probepruefung.auswerten(con, pp_id)
+    return redirect(url_for("rechnen.probe_heft", pp_id=pp_id))
 
 
 @bp.get("/<art>")
@@ -252,7 +319,7 @@ def sql_ausfuehren(art):
     """SQL-Aufgabe: die eigene Anweisung in der Sandbox ausführen, wie in Üben (Ergebnis oder die Meldung von SQLite)."""
     aufgabe = _aufgabe_mit_oder_404(art, request.form.get("seed", type=int), "sandbox")
     try:
-        eigene = request.form.get(f"feld-{aufgabe.felder[0].name}", "")
+        eigene = request.form.get(request.form.get("praefix", "feld-") + aufgabe.felder[0].name, "")
         return render_template("keiko/_sql.html", **sql.ausfuehren(*aufgabe.sandbox, eigene))
     except sql.SqlFehler as fehler:
         return render_template("keiko/_sql.html", fehler=str(fehler))
@@ -270,5 +337,5 @@ def code_ausfuehren(art):
     """Pseudocode-Aufgabe: den eigenen Code mit dem Beispiel der Frage ausführen (Ausgabe oder die Meldung mit Zeilennummer)."""
     aufgabe = _aufgabe_mit_oder_404(art, request.form.get("seed", type=int), "testfaelle")
     faelle, ziel = aufgabe.testfaelle
-    eigene = request.form.get(f"feld-{aufgabe.felder[0].name}", "")[:sql.ZEICHEN]
+    eigene = request.form.get(request.form.get("praefix", "feld-") + aufgabe.felder[0].name, "")[:sql.ZEICHEN]
     return render_template("rechnen/_code.html", **pseudocode.ausprobieren(eigene, faelle[0], ziel))

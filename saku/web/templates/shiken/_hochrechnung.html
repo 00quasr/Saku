@@ -4,7 +4,7 @@
   <header class="zeile zwischen">
     <div>
       <h2 class="ueberschrift" id="hochrechnung-titel">Hochrechnung deiner Abschlussprüfung</h2>
-      <p class="klein gedaempft">Gewichtung nach der Ausbildungsverordnung 2020. Die schriftlichen Bereiche schätzt Saku aus deiner letzten Simulation, sonst aus dem Lernstand. Eigene Werte überschreiben die Schätzung.</p>
+      <p class="klein gedaempft">Gewichtung nach der Ausbildungsverordnung 2020. Die schriftlichen Bereiche schätzt Saku aus deiner letzten Simulation, sonst aus dem Lernstand, die AP1 aus deinen Probeprüfungen. Eigene Werte überschreiben die Schätzung.</p>
     </div>
     {% if h.gesamt is not none %}
     <div class="hochrechnung-gesamt">
@@ -25,7 +25,8 @@
                    value="{{ z.eigen|round|int if z.eigen is not none else '' }}" placeholder="{{ z.wert|round|int if z.wert is not none else '–' }}"
                    aria-label="Eigene Punkte für {{ z.name }}"
                    hx-post="{{ url_for('kern.speichern', schluessel='note_' ~ z.schluessel) }}" hx-trigger="change" hx-swap="none"></td>
-        <td class="klein gedaempft">{{ {'eingabe': 'deine Angabe', 'simulation': 'letzte Simulation', 'lernstand': 'Lernstand'}.get(z.quelle, 'fehlt noch') }}</td>
+        <td class="klein gedaempft">{{ {'eingabe': 'deine Angabe', 'simulation': 'letzte Simulation', 'lernstand': 'Lernstand',
+                                        'probepruefung': 'Schätzung: Schnitt der letzten 3 Probeprüfungen'}.get(z.quelle, 'fehlt noch') }}</td>
         <td class="rechts zahl">{{ z.note or '–' }}</td>
       </tr>
       {% endfor %}

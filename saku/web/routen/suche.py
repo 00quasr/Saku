@@ -29,6 +29,8 @@ BEFEHLE = [
     ("messages-square", "Fachgespräch üben", "projekt mündlich präsentation prüfer", ("shiken.fachgespraech", {})),
     ("shuffle", "Rechnen: gemischt", "rechentrainer rechenaufgaben üben ap1", ("rechnen.gemischt", {})),
     ("timer", "Rechnen: Sprint mit Note", "sprint zeitlimit prüfung simulation rechentrainer 15 minuten", ("rechnen.sprint", {})),
+    ("clipboard-check", "Probeprüfung aus Generatoren", "probe prüfung simulation ap1 rechentrainer 90 minuten note unbegrenzt",
+     ("rechnen.probe", {})),
     ("sigma", "Rechnen: Formelsammlung", "formeln spickzettel merksätze drucken rechentrainer", ("rechnen.formeln", {})),
     *(("calculator", f"Rechnen: {a.titel}", f"rechentrainer {a.beschreibung} {' '.join(a.themen)}", ("rechnen.aufgabe", {"art": a.slug}))
       for a in rechnen.ARTEN.values()),

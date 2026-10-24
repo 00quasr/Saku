@@ -49,6 +49,8 @@ def test_lernstand_uebersteht_neuaufbau(tmp_path, monkeypatch):
     con.executemany("INSERT INTO rechenuebung (art, seed, richtig, felder_richtig, felder_gesamt, dauer_s, zeitpunkt) "
                     "VALUES (?, ?, ?, ?, 2, ?, ?)", [("subnetz", 7, 1, 2, 40, "2026-10-20 08:00:00"),
                                                      ("datenmenge", 7, 0, 1, None, "2026-10-20 08:00:00")])
+    con.execute("INSERT INTO probepruefung (pfad, aufgaben, eingaben, gestartet_am, dauer_min, beendet_am, punkte, note) VALUES "
+                "('AP1', '[[\"subnetz\", 7, 100]]', '{\"a1-netz\": \"10.0.0.0\"}', '2026-10-21 08:00:00', 90, '2026-10-21 09:00:00', 62.5, 4)")
     con.commit()
     vorher = _vergleichbar(con)
     datei = json.loads(json.dumps(lernstand.exportieren(con)))  # wie über die Datei
@@ -64,7 +66,7 @@ def test_lernstand_uebersteht_neuaufbau(tmp_path, monkeypatch):
     assert _vergleichbar(neu) == vorher
     assert zahlen["bewertungen"] == [len(datei["bewertungen"]) - 1, 1]  # die unbekannte Teilaufgabe übersprungen
     assert zahlen["karten"] == [len(datei["karten"]), 0] and zahlen["simulationen"] == [1, 0] and zahlen["stationstests"] == [1, 0]
-    assert zahlen["rechenuebungen"] == [2, 0] and len(datei["rechenuebungen"]) == 2
+    assert zahlen["rechenuebungen"] == [2, 0] and len(datei["rechenuebungen"]) == 2 and zahlen["probepruefungen"] == [1, 0]
     karte = "SELECT status, serie, fsrs, faellig_am FROM karte WHERE teilaufgabe_id = ?"
     assert neu.execute(karte, (_id(neu, 2023, "Sommer", 1, "b"),)).fetchone()[:] == con.execute(karte, (t1,)).fetchone()[:]
 
@@ -150,8 +152,13 @@ def test_import_ueberspringt_falsche_typen(con, client):
                        datei["karten"][0] | {"fsrs": "{kaputt", "geaendert_am": "2099-01-01 00:00:00"}]
     datei["rechenuebungen"] = [{"art": "subnetz", "seed": 1, "richtig": 1, "felder_richtig": 1, "felder_gesamt": 1,
                                 "dauer_s": None, "zeitpunkt": "kaputt"}]
+    probe = {"pfad": "AP1", "aufgaben": '[["subnetz", 1, 100]]', "eingaben": None, "gestartet_am": "2026-10-01 10:00:00",
+             "dauer_min": 90, "beendet_am": None, "punkte": None, "note": None}
+    datei["probepruefungen"] = [probe | {"aufgaben": "[]"}, probe | {"aufgaben": '[["subnetz", "1", 100]]'}, probe | {"note": 9},
+                                probe | {"eingaben": "[1]"}, probe | {"gestartet_am": "heute"}]
     zahlen = lernstand.importieren(con, datei)
     assert zahlen["bewertungen"] == [0, 2] and zahlen["karten"] == [0, 2] and zahlen["rechenuebungen"] == [0, 1]
-    for url in ("/", "/keiko/verlauf", "/rechnen/", "/fahrplan"):
+    assert zahlen["probepruefungen"] == [0, 5]
+    for url in ("/", "/keiko/verlauf", "/rechnen/", "/rechnen/probe", "/fahrplan"):
         assert client.get(url).status_code == 200, url
     assert client.post("/keiko/1/bewerten", data={"ergebnis": "3"}, headers={"HX-Request": "true"}).status_code == 200

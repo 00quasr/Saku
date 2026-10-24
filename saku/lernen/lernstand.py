@@ -1,7 +1,7 @@
 """Lernstand exportieren und importieren, mit stabilen Schlüsseln statt IDs: übersteht einen Neuaufbau der Datenbank.
 Teilaufgabe = [Jahr, Saison, Teil, Bereich, Beruf, Aufgabe, Kennung] (eindeutig laut Schema), Begriff = Name,
 Thema = Slug, Station = Lernpfad und Slugs ihrer Themen (so erkennt auch die Pipeline eine Station wieder),
-Rechenübung = Art, Seed und Zeitpunkt. Nicht dabei: Katalog (auch sql_sandbox), Vektoren, Sensei-Gespräche und KI-Protokoll."""
+Rechenübung = Art, Seed und Zeitpunkt, Probeprüfung = Lernpfad und Startzeit. Nicht dabei: Katalog (auch sql_sandbox), Vektoren, Sensei-Gespräche und KI-Protokoll."""
 
 import json
 import math
@@ -36,6 +36,16 @@ def _passt(z: dict, **felder: str) -> bool:
         if not ok:
             return False
     return True
+
+
+def _probe_aufgaben(text) -> bool:
+    """Aufgaben einer Probeprüfung: JSON [[Art, Seed, Punkte], …]; anderes ließe das Heft abbrechen."""
+    try:
+        aufgaben = json.loads(text)
+    except (TypeError, ValueError):
+        return False
+    return isinstance(aufgaben, list) and bool(aufgaben) and all(
+        isinstance(a, list) and len(a) == 3 and isinstance(a[0], str) and all(type(n) is int for n in a[1:]) for a in aufgaben)
 
 
 def _teilaufgaben(con: sqlite3.Connection) -> dict[int, list]:
@@ -94,6 +104,7 @@ def exportieren(con: sqlite3.Connection) -> dict:
                           for z in con.execute("SELECT * FROM stationstest ORDER BY id").fetchall() if z["station_id"] in stationen],
         "rechenuebungen": [dict(z) for z in con.execute(
             "SELECT art, seed, richtig, felder_richtig, felder_gesamt, dauer_s, zeitpunkt FROM rechenuebung ORDER BY zeitpunkt, id")],
+        "probepruefungen": [{k: z[k] for k in z.keys() if k != "id"} for z in con.execute("SELECT * FROM probepruefung ORDER BY id")],
         # von Hand korrigierte Themen (Analyse); die der KI baut die Pipeline selbst wieder auf
         "zuordnungen": mit_schluessel("SELECT tt.teilaufgabe_id, th.slug AS thema FROM teilaufgabe_thema tt "
                                       "JOIN thema th ON th.id = tt.thema_id WHERE tt.quelle = 'manuell'"),
@@ -196,6 +207,14 @@ def importieren(con: sqlite3.Connection, daten: dict) -> dict[str, list[int]]:
                 "SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7 WHERE NOT EXISTS "
                 "(SELECT 1 FROM rechenuebung WHERE art = ?1 AND seed = ?2 AND zeitpunkt = ?7)",
                 z["art"], z["seed"], z["richtig"], z["felder_richtig"], z["felder_gesamt"], z["dauer_s"], z["zeitpunkt"]))
+
+        for z in daten.get("probepruefungen", []):
+            zaehlen("probepruefungen", _passt(z, pfad="text", eingaben="json?", gestartet_am="zeit", dauer_min="int", beendet_am="zeit?",
+                                              punkte="zahl?") and z.get("note") in (None, 1, 2, 3, 4, 5, 6)
+                    and _probe_aufgaben(z.get("aufgaben")) and einfuegen(
+                "INSERT INTO probepruefung (pfad, aufgaben, eingaben, gestartet_am, dauer_min, beendet_am, punkte, note) "
+                "SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8 WHERE NOT EXISTS (SELECT 1 FROM probepruefung WHERE pfad = ?1 AND gestartet_am = ?4)",
+                z["pfad"], z["aufgaben"], z["eingaben"], z["gestartet_am"], z["dauer_min"], z["beendet_am"], z["punkte"], z["note"]))
 
         for z in daten.get("zuordnungen", []):
             t_id, thema = teilaufgabe(z), con.execute("SELECT id FROM thema WHERE slug = ?", (z["thema"],)).fetchone()

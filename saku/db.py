@@ -49,6 +49,11 @@ MIGRATIONEN = {
         "SELECT date(zeitpunkt, 'localtime') AS tag FROM bewertung "
         "UNION ALL SELECT date(zeitpunkt, 'localtime') FROM rechenuebung) GROUP BY tag",
     ],
+    17: [
+        "CREATE TABLE probepruefung (id INTEGER PRIMARY KEY, pfad TEXT NOT NULL, aufgaben TEXT NOT NULL, eingaben TEXT, "
+        "gestartet_am TEXT NOT NULL DEFAULT (datetime('now')), dauer_min INTEGER NOT NULL, beendet_am TEXT, punkte REAL, "
+        "note INTEGER CHECK (note BETWEEN 1 AND 6))",
+    ],
 }
 
 

@@ -186,6 +186,12 @@
 .sprint-liste li { display: flex; justify-content: space-between; gap: 16px; }
 .sprint-liste a { text-decoration-color: var(--linie); }
 
+/* Probeprüfung im Heft der Simulation: breite Tabellen und Editoren dürfen das Heft nicht über den Korrekturrand schieben */
+.probe .heft > * { min-width: 0; }
+.probe .heft-aufgabe > p:last-child { margin-top: -4px; }
+.probe-punkte { display: inline-flex; align-items: center; gap: 10px; }
+.probe-punkte .linie-fortschritt { width: 72px; }
+
 @media (max-width: 720px) {
   .rechnen-felder { grid-template-columns: minmax(0, 1fr); gap: 4px; }
   .rechnen-marke:empty { display: none; }
