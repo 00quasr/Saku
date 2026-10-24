@@ -18,6 +18,8 @@ FORMELN = {
 | + Umsatzsteuer 19 % = brutto | Listenverkaufspreis netto |
 
 - Angebotsvergleich: Bezugspreis jedes Angebots für die ganze Menge, das günstigste gewinnt
+- Differenzkalkulation (Verkaufspreis vom Markt vorgegeben): vorwärts bis zu den Selbstkosten, rückwärts vom Listenverkaufspreis bis zum Barverkaufspreis (Rabatt und Skonto jetzt vom Hundert); Gewinn = Barverkaufspreis − Selbstkosten, in % der Selbstkosten
+- Rückwärtskalkulation (höchster Einkaufspreis): Kundenrabatt und -skonto vom Hundert abziehen, Gewinn und Handlungskosten auf Hundert herausrechnen (: (100 + p) · 100), Bezugskosten abziehen, Liefererskonto und -rabatt im Hundert (: (100 − p) · 100)
 
 *Beispiel:* 1.000 € − 10 % = 900 €, − 2 % Skonto = 882 €, + 20 € Bezugskosten = 902 € Bezugspreis""",
     "vergleich": """- Gesamtkosten = einmalige Kosten + monatliche Kosten · Monate
@@ -47,10 +49,10 @@ def _prozent(p: Decimal) -> str:
     return f"{de(float(p))} %"
 
 
-@art("kalkulation", "Kalkulation", "Wirtschaft", "Bezugs- und Angebotskalkulation, Angebotsvergleich",
+@art("kalkulation", "Kalkulation", "Wirtschaft", "Bezugs-, Angebots-, Differenz- und Rückwärtskalkulation, Angebotsvergleich",
      ("Kalkulation", "Angebotsvergleich", "Bezugspreis"), formeln=FORMELN["kalkulation"])
 def kalkulation(rng):
-    return rng.choice([_vorwaerts, _vorwaerts, _angebotsvergleich])(rng)
+    return rng.choice([_vorwaerts, _vorwaerts, _angebotsvergleich, _differenz, _rueckwaerts])(rng)
 
 
 def _vorwaerts(rng):
@@ -116,6 +118,96 @@ def _vorwaerts(rng):
                 f"{de(float(h - k_rabatt))} % · 100 %.")
     return Aufgabe(frage, felder, weg, toleranz=0.001, titel={"bezug": "Bezugskalkulation", "selbstkosten": "Selbstkosten",
                                                               "angebot": "Angebotskalkulation"}[variante])
+
+
+def _saetze(rng) -> dict:
+    """Prozentsätze und Bezugskosten einer Kalkulation, als Decimal."""
+    d = lambda werte: Decimal(rng.choice(werte))  # noqa: E731
+    return {"rabatt": d([5, 10, 12, 15, 20, 25]), "skonto": d([2, 3]), "bezug": d([15, 20, 25, 30, 45, 60]),
+            "hk": d([20, 25, 30, 35, 40]), "k_skonto": d([2, 3]), "k_rabatt": d([5, 10, 15])}
+
+
+def _daten(z: dict, mit_lep: bool = True) -> str:
+    teile = ([f"- Listeneinkaufspreis: {euro(z['lep'])}"] if mit_lep else []) + [
+        f"- Liefererrabatt: {_prozent(z['rabatt'])}, Liefererskonto: {_prozent(z['skonto'])}",
+        f"- Bezugskosten: {euro(z['bezug'])}", f"- Handlungskostenzuschlag: {_prozent(z['hk'])}",
+        f"- Kundenskonto: {_prozent(z['k_skonto'])}, Kundenrabatt: {_prozent(z['k_rabatt'])}"]
+    return "\n".join(teile)
+
+
+def _differenz(rng):
+    """Der Markt gibt den Listenverkaufspreis vor: Was bleibt als Gewinn?"""
+    ware, preise = rng.choice(WAREN)
+    z, h = _saetze(rng) | {"lep": Decimal(rng.choice(preise))}, Decimal(100)
+    r = _cent(z["lep"] * z["rabatt"] / h)
+    s_ = _cent((z["lep"] - r) * z["skonto"] / h)
+    bzp = z["lep"] - r - s_ + z["bezug"]
+    hkz = _cent(bzp * z["hk"] / h)
+    sk = bzp + hkz
+    # Marktpreis mit 9 am Ende, so dass 5 bis 25 % Gewinn bleiben
+    ziel = sk * (1 + Decimal(rng.randint(5, 25)) / h) / (1 - z["k_skonto"] / h) / (1 - z["k_rabatt"] / h)
+    lvp = Decimal(int(ziel / 10) * 10 + 9)
+    kr = _cent(lvp * z["k_rabatt"] / h)
+    zvp = lvp - kr
+    ks = _cent(zvp * z["k_skonto"] / h)
+    bvp = zvp - ks
+    gewinn = bvp - sk
+    prozent = gewinn / sk * h
+    firma = rng.choice(FIRMEN)
+    frage = (f"Die {firma} kauft {ware} ein. Die Konkurrenz verkauft dasselbe Gerät für **{euro(lvp)} netto**; "
+             f"teurer kann die {firma} nicht anbieten. Für die Kalkulation gelten:\n\n{_daten(z)}\n\n"
+             "Führen Sie eine Differenzkalkulation durch: Berechnen Sie Selbstkosten, Barverkaufspreis und den Gewinn in Euro und in "
+             "Prozent der Selbstkosten (Cent und Prozent auf zwei Nachkommastellen).")
+    zeilen = [["Listeneinkaufspreis", "", euro(z["lep"])], ["− Liefererrabatt", _prozent(z["rabatt"]), euro(r)],
+              ["− Liefererskonto", _prozent(z["skonto"]), euro(s_)], ["+ Bezugskosten", "", euro(z["bezug"])],
+              ["= Bezugspreis", "", euro(bzp)], ["+ Handlungskosten", _prozent(z["hk"]), euro(hkz)],
+              ["**= Selbstkosten**", "", f"**{euro(sk)}**"], ["", "", ""],
+              ["Listenverkaufspreis (vorgegeben)", "", euro(lvp)], ["− Kundenrabatt (vom Hundert)", _prozent(z["k_rabatt"]), euro(kr)],
+              ["= Zielverkaufspreis", "", euro(zvp)], ["− Kundenskonto (vom Hundert)", _prozent(z["k_skonto"]), euro(ks)],
+              ["**= Barverkaufspreis**", "", f"**{euro(bvp)}**"],
+              ["**Gewinn** = Barverkaufspreis − Selbstkosten", f"**{de(float(prozent))} %**", f"**{euro(gewinn)}**"]]
+    weg = (tabelle(["Schritt", "%", "Betrag"], zeilen)
+           + "\n\nVom Listenverkaufspreis wird rückwärts gerechnet: Rabatt und Skonto stehen jetzt am höheren Preis, also vom "
+             f"Hundert. Gewinn in Prozent = {euro(gewinn)} : {euro(sk)} · 100 = {de(float(prozent))} %.")
+    felder = [Feld("sk", "Selbstkosten", float(sk), "€"), Feld("bvp", "Barverkaufspreis", float(bvp), "€"),
+              Feld("gewinn", "Gewinn", float(gewinn), "€"), Feld("prozent", "Gewinn in Prozent", float(prozent), "%")]
+    return Aufgabe(frage, felder, weg, toleranz=0.001, titel="Differenzkalkulation")
+
+
+def _rueckwaerts(rng):
+    """Der Verkaufspreis steht fest: Wie viel darf der Einkauf höchstens kosten?"""
+    ware, preise = rng.choice(WAREN)
+    z, h = _saetze(rng), Decimal(100)
+    gewinn = Decimal(rng.choice([8, 10, 12, 15, 20]))
+    lvp = Decimal(int(Decimal(rng.choice(preise)) * Decimal("1.6") / 10) * 10 + 9)
+    kr = _cent(lvp * z["k_rabatt"] / h)
+    zvp = lvp - kr
+    ks = _cent(zvp * z["k_skonto"] / h)
+    bvp = zvp - ks
+    sk = _cent(bvp / (h + gewinn) * h)
+    bzp = _cent(sk / (h + z["hk"]) * h)
+    bep = bzp - z["bezug"]
+    zep = _cent(bep / (h - z["skonto"]) * h)
+    lep = _cent(zep / (h - z["rabatt"]) * h)
+    frage = (f"Die {rng.choice(FIRMEN)} will {ware} für **{euro(lvp)} netto** anbieten, mehr zahlt der Markt nicht. Sie plant mit "
+             f"**{_prozent(gewinn)} Gewinn**; außerdem gelten:\n\n{_daten(z, mit_lep=False)}\n\nFühren Sie eine Rückwärtskalkulation "
+             "durch: Wie hoch dürfen Barverkaufspreis, Selbstkosten, Bezugspreis und der Listeneinkaufspreis höchstens sein? "
+             "Runden Sie jeden Schritt auf Cent.")
+    zeilen = [["Listenverkaufspreis (vorgegeben)", "", euro(lvp)], ["− Kundenrabatt (vom Hundert)", _prozent(z["k_rabatt"]), euro(kr)],
+              ["= Zielverkaufspreis", "", euro(zvp)], ["− Kundenskonto (vom Hundert)", _prozent(z["k_skonto"]), euro(ks)],
+              ["**= Barverkaufspreis**", "", f"**{euro(bvp)}**"], ["− Gewinn (auf Hundert)", _prozent(gewinn), euro(bvp - sk)],
+              ["**= Selbstkosten**", "", f"**{euro(sk)}**"], ["− Handlungskosten (auf Hundert)", _prozent(z["hk"]), euro(sk - bzp)],
+              ["**= Bezugspreis**", "", f"**{euro(bzp)}**"], ["− Bezugskosten", "", euro(z["bezug"])],
+              ["= Bareinkaufspreis", "", euro(bep)], ["+ Liefererskonto (im Hundert)", _prozent(z["skonto"]), euro(zep - bep)],
+              ["= Zieleinkaufspreis", "", euro(zep)], ["+ Liefererrabatt (im Hundert)", _prozent(z["rabatt"]), euro(lep - zep)],
+              ["**= Listeneinkaufspreis höchstens**", "", f"**{euro(lep)}**"]]
+    weg = (tabelle(["Schritt", "%", "Betrag"], zeilen)
+           + f"\n\nAuf Hundert heißt: der Prozentsatz hing am kleineren Wert, also Selbstkosten = Barverkaufspreis : "
+             f"{de(float(h + gewinn))} % · 100 %. Im Hundert: der Lieferer zog den Rabatt vom größeren Wert ab, also Listeneinkaufspreis "
+             f"= Zieleinkaufspreis : {de(float(h - z['rabatt']))} % · 100 %.")
+    felder = [Feld("bvp", "Barverkaufspreis", float(bvp), "€"), Feld("sk", "Selbstkosten", float(sk), "€"),
+              Feld("bzp", "Bezugspreis", float(bzp), "€"), Feld("lep", "Listeneinkaufspreis höchstens", float(lep), "€")]
+    return Aufgabe(frage, felder, weg, toleranz=0.001, titel="Rückwärtskalkulation")
 
 
 def _angebotsvergleich(rng):

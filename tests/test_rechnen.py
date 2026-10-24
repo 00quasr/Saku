@@ -580,3 +580,29 @@ def test_datum_eingaben():
     feld = Feld("ende", "Ende", "31.03.2027", typ="datum")
     assert all(rechnen.stimmt(feld, t) for t in ["31.03.2027", "31.3.2027", "31.03.27", "31. 3. 2027", "2027-03-31"])
     assert not any(rechnen.stimmt(feld, t) for t in ["30.03.2027", "31.03.2026", "31.02.2027", "März", "31.03."])
+
+
+def test_differenz_und_rueckwaertskalkulation():
+    def wert(muster, text):
+        return _zahl(re.search(muster, text)[1])
+    for seed, a in _alle("kalkulation"):
+        if a.titel not in ("Differenzkalkulation", "Rückwärtskalkulation"):
+            continue
+        f = a.frage
+        r, s = wert(r"Liefererrabatt: ([\d,]+) %", f) / 100, wert(r"Liefererskonto: ([\d,]+) %", f) / 100
+        bk, hk = wert(r"Bezugskosten: ([\d.,]+) €", f), wert(r"Handlungskostenzuschlag: ([\d,]+) %", f) / 100
+        ks, kr = wert(r"Kundenskonto: ([\d,]+) %", f) / 100, wert(r"Kundenrabatt: ([\d,]+) %", f) / 100
+        lvp = wert(r"\*\*([\d.,]+) € netto\*\*", f)
+        bvp = lvp * (1 - kr) * (1 - ks)  # vom Hundert, ohne Zwischenrundung
+        assert a.loesung["bvp"] == pytest.approx(bvp, abs=0.02)
+        if a.titel == "Differenzkalkulation":
+            sk = (wert(r"Listeneinkaufspreis: ([\d.,]+) €", f) * (1 - r) * (1 - s) + bk) * (1 + hk)
+            assert a.loesung["sk"] == pytest.approx(sk, abs=0.03)
+            assert a.loesung["gewinn"] == pytest.approx(bvp - sk, abs=0.05) and a.loesung["prozent"] == pytest.approx((bvp - sk) / sk * 100, abs=0.01)
+        else:
+            g = wert(r"\*\*([\d,]+) % Gewinn\*\*", f) / 100
+            lep = (bvp / (1 + g) / (1 + hk) - bk) / (1 - s) / (1 - r)
+            assert a.loesung["lep"] == pytest.approx(lep, abs=0.05)
+            # Probe vorwärts: mit diesem Einkaufspreis kommt genau der Marktpreis heraus
+            vor = (a.loesung["lep"] * (1 - r) * (1 - s) + bk) * (1 + hk) * (1 + g) / (1 - ks) / (1 - kr)
+            assert vor == pytest.approx(lvp, abs=0.2)
