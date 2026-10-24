@@ -8,7 +8,7 @@ from flask import Blueprint, abort, make_response, redirect, render_template, re
 
 from saku.db import einstellung
 from saku.lernen import rechnen, simulation
-from saku.web import db, ist_fragment, seite_oder_fragment
+from saku.web import db, ganzzahl, ist_fragment, seite_oder_fragment
 
 bp = Blueprint("rechnen", __name__, url_prefix="/rechnen")
 
@@ -141,9 +141,9 @@ def _sprint_aufgaben() -> list[tuple]:
     paare = []
     for wert in request.values.getlist("a")[:SPRINT_AUFGABEN]:
         art, _, seed = wert.partition(":")
-        if art not in rechnen.ARTEN or not seed.isdigit():
+        if art not in rechnen.ARTEN or (seed := ganzzahl(seed)) is None:
             abort(400)
-        paare.append((rechnen.ARTEN[art], int(seed), rechnen.erzeugen(art, int(seed))))
+        paare.append((rechnen.ARTEN[art], seed, rechnen.erzeugen(art, seed)))
     if not paare:
         abort(400)
     return paare

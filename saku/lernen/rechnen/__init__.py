@@ -22,7 +22,7 @@ def erzeugen(art: str, seed: int) -> Aufgabe:
 
 def _ipv4(text: str) -> list[int] | None:
     teile = re.sub(r"\s", "", text).split("/")[0].split(".")
-    return [int(t) for t in teile] if len(teile) == 4 and all(t.isdigit() for t in teile) else None
+    return [int(t) for t in teile] if len(teile) == 4 and all(t.isdecimal() for t in teile) else None  # isdigit ließe „²“ durch
 
 
 def _datum(text: str) -> date | None:

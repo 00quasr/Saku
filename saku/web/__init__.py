@@ -57,6 +57,15 @@ def seite_oder_fragment(seite: str, fragment: str, **kontext) -> str:
     return render_template(fragment if ist_fragment() else seite, **kontext)
 
 
+def ganzzahl(text: str | None) -> int | None:
+    """Nicht negative Ganzzahl aus Adresse oder Formular, sonst None. Nicht str.isdigit(): das lässt „²“ durch, int() aber
+    nicht, und mehr als 4.300 Ziffern nimmt int() auch nicht; beides wäre Fehler 500 statt einer ungültigen Eingabe."""
+    try:
+        return int(text) if text and text.isdecimal() else None
+    except ValueError:
+        return None
+
+
 def create_app(daten: Path | None = None) -> Flask:
     app = Flask(__name__)
     app.config["DATEN"] = daten or config.DATEN
