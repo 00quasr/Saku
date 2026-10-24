@@ -40,7 +40,7 @@ def _datum(text: str) -> date | None:
 
 
 def _ipv6(text: str) -> int | None:
-    text = re.sub(r"\s", "", text).lower()
+    text = re.sub(r"\s", "", text).lower().split("/")[0]  # Präfixlänge dahinter egal, wie bei _ipv4
     for kandidat in (text, "::" + text):
         try:
             return int(ipaddress.IPv6Address(kandidat))

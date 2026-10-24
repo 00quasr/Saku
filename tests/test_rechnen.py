@@ -922,3 +922,5 @@ def test_eui64_unabhaengig_ueber_zeichenketten():
     assert all(rechnen.stimmt(feld, t) for t in ["2001:db8::21a:2bff:fe3c:4d5e", "2001:0DB8:0:0:021A:2BFF:FE3C:4D5E"])
     assert not rechnen.stimmt(feld, "2001:db8::21a:2bff:fe3c:4d5f") and not rechnen.stimmt(feld, "kein")
     assert rechnen.stimmt(Feld("i", "Interface-ID", "21a:2bff:fe3c:4d5e", typ="ipv6"), "021A:2BFF:FE3C:4D5E")
+    # wie bei IPv4 („10.0.0.0/24“) zählt die Adresse, eine angehängte Präfixlänge stört nicht
+    assert rechnen.stimmt(feld, "2001:db8::21a:2bff:fe3c:4d5e/64") and rechnen.stimmt(Feld("n", "Netz", "10.0.0.0", typ="ip"), "10.0.0.0/24")
