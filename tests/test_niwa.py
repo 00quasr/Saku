@@ -70,3 +70,13 @@ def test_routen_und_notizen(client, con):
     con.commit()
     assert "<strong>Primärschlüssel</strong>" in client.post(f"/niwa/begriff/{fremd}/erklaeren").get_data(as_text=True)
     assert client.get("/niwa/begriff/9999").status_code == 404
+
+
+def test_lernfeld_ohne_stunden_und_einzahl(client, con):
+    """Ohne Stundenzahl entfällt die Angabe (kein „None Unterrichtsstunden“); ein Thema heißt „1 Thema“."""
+    lf = con.execute("INSERT INTO lernfeld (nummer, titel, jahr) VALUES ('5', 'Daten verwalten', 2)").lastrowid
+    con.execute("INSERT INTO thema_lernfeld (thema_id, lernfeld_id) VALUES (?, ?)", (thema_id(con, "Datenbanken"), lf))
+    con.commit()
+    notiz = client.get(f"/niwa/lernfeld/{lf}").get_data(as_text=True)
+    assert "Unterrichtsstunden" not in notiz and "None" not in notiz and "4 Teilaufgaben in den Prüfungen" in notiz
+    assert "2. Jahr · 1 Thema · 4 Teilaufgaben" in client.get("/niwa/").get_data(as_text=True)

@@ -47,7 +47,7 @@
               onclick="document.getElementById('notiz').hidden = false">
         <span class="lehrplan-nummer">LF{{ lf.nummer }}</span>
         <span class="lehrplan-titel">{{ lf.titel }}</span>
-        <span class="klein gedaempft">{{ lf.jahr }}. Jahr · {{ lf.themen|length }} Themen · {{ lf.teilaufgaben }} Teilaufgaben</span>
+        <span class="klein gedaempft">{{ lf.jahr }}. Jahr · {{ lf.themen|length }} {{ 'Thema' if lf.themen|length == 1 else 'Themen' }} · {{ lf.teilaufgaben }} {{ 'Teilaufgabe' if lf.teilaufgaben == 1 else 'Teilaufgaben' }}</span>
       </button>
       {% endfor %}
     </div>
