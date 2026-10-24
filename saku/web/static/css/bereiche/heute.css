@@ -127,3 +127,54 @@ a.flaeche:hover { border-color: var(--sumi-mittel); }
   .plan-zahlen { grid-template-columns: repeat(2, 1fr); }
   .plan-zahlen > div + div { padding-left: 0; border-left: 0; }
 }
+
+/* Fahrplan: Kennzahlen im Bildband, Säulen der Prognose, gestapelte Balken der Abdeckung, was am meisten bringt */
+.fahrplan-kennzahlen { display: flex; flex-wrap: wrap; gap: 12px 36px; }
+.fahrplan-kennzahlen > div { display: grid; justify-items: end; text-align: right; }
+.fahrplan-zahl { font-weight: 200; font-size: clamp(2.25rem, 4vw, 3.25rem); line-height: 1; letter-spacing: -0.03em; }
+.fahrplan-kennzahlen .klein { opacity: .7; }
+.fahrplan-versteckt { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+.fahrplan-umschalter { display: flex; gap: 4px; }
+.fahrplan-umschalter a { padding: 2px 10px; border-radius: 999px; text-decoration: none; color: var(--sumi-mittel); border: 1px solid transparent; }
+.fahrplan-umschalter a:hover { color: var(--sumi); }
+.fahrplan-umschalter a[aria-current] { color: var(--sumi); border-color: var(--linie); background: var(--flaeche); }
+
+/* Säulen: Wiederholungen unten, neue darüber, der Wert obenauf; heute in Zinnoberrot */
+.saeulen-rahmen { overflow-x: auto; }
+.saeulen { display: grid; grid-template-columns: repeat(var(--spalten), minmax(0, 1fr)); gap: 4px; min-width: calc(var(--spalten) * 20px); }
+.saeulen li { position: relative; display: grid; justify-items: center; gap: 6px; }
+.saeule { display: flex; flex-direction: column-reverse; justify-content: flex-start; align-items: stretch; width: 100%; max-width: 30px; height: 168px; padding-top: 20px; }  /* oben Platz für den Wert über der höchsten Säule */
+.saeule > span { flex: none; }
+.saeule-wdh { background: var(--tusche-4); border-radius: 0 0 3px 3px; }
+.saeule-neu { background: var(--tusche-2); border-radius: 3px 3px 0 0; }
+.saeule-wert { display: grid; place-items: center; height: 18px; font-size: 0.6875rem; color: var(--sumi-mittel); }
+.saeule-wert .icon { width: 14px; height: 14px; color: var(--shu); }
+.saeule-tag { font-size: 0.6875rem; line-height: 1.2; text-align: center; color: var(--sumi-mittel); }
+.saeule-heute .saeule-wdh { background: var(--shu); }
+.saeule-heute .saeule-neu { background: color-mix(in oklab, var(--shu) 40%, var(--washi)); }
+.saeule-heute :is(.saeule-wert, .saeule-tag) { color: var(--shu); font-weight: 600; }
+.saeule-pruefung .saeule-tag { color: var(--shu); }
+.fahrplan-legende { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; }
+.legende-punkt { display: inline-block; width: 10px; height: 10px; margin-right: 6px; border-radius: 2px; vertical-align: -1px; }
+
+.fahrplan-satz { font-size: 0.9375rem; }
+.fahrplan-balken--gross { height: 10px; border-radius: 5px; }
+.fahrplan-bereiche { display: grid; }
+.fahrplan-bereich { border-top: 1px solid var(--linie); }
+.fahrplan-bereich > summary { display: grid; gap: 6px; padding: 10px 0; cursor: pointer; list-style: none; }
+.fahrplan-bereich > summary::-webkit-details-marker { display: none; }
+.fahrplan-pfeil { display: inline-block; width: 14px; height: 14px; vertical-align: -2px; color: var(--sumi-mittel); transition: rotate var(--kurz) ease-out; }
+.fahrplan-bereich[open] .fahrplan-pfeil { rotate: 90deg; }
+.fahrplan-bereich .heute-themen { padding: 0 0 12px 22px; }
+
+.fahrplan-gewinn { display: grid; gap: 2px; margin-inline: -8px; }
+.fahrplan-gewinn li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 12px; padding: 6px 8px; border-radius: 8px; }
+.fahrplan-gewinn li:hover { background: var(--flaeche); }
+.fahrplan-gewinn-text { display: grid; min-width: 0; }
+.fahrplan-gewinn-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fahrplan-gewinn-punkte { font-size: 0.875rem; color: var(--shu); }
+
+/* Heute: Countdown führt zum Fahrplan */
+a.held-countdown { text-decoration: none; }
+a.held-countdown:hover .held-einheit { text-decoration: underline; text-underline-offset: 3px; }

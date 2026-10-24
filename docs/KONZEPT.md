@@ -109,6 +109,15 @@ Heute     = Neu heute + fällige Wiederholungen
 
 Ist das Tagesziel geschafft, geht es mit „Weiter üben“ in eine Extra-Runde mit 10 weiteren neuen Teilaufgaben. Mit ← geht es eine Karte zurück; deren Bewertung wird dabei zurückgenommen.
 
+### Fahrplan (日程)
+
+Countdown, Prüfungsreife und ⌘K führen zum Blick nach vorn (`/fahrplan`): *Schaffe ich bis zur Prüfung alles?*
+
+- **Prognose:** Säulen für die nächsten 14 oder 30 Tage. Heute zählt, was das Tagesziel noch offen hat; danach die schon geplanten Wiederholungen (`karte.faellig_am`) und die neuen, die das Tagesziel an jenem Tag verlangen wird.
+- **Tempo:** neue Teilaufgaben am Tag im Schnitt der letzten 7 Lerntage vor heute. Daraus das Datum, an dem alle einmal gesehen sind, verglichen mit dem Termin; reicht es nicht bis zum letzten Lerntag vor dem Puffer, steht dabei, wie viele am Tag es bräuchte.
+- **Abdeckung:** Anteil der bisher erzielbaren Prüfungspunkte, die sicher sitzen, im Aufbau sind (gelb und rot) oder noch nie geübt wurden, gesamt, je Bereich und je Thema.
+- **Was am meisten bringt:** die 8 Themen mit dem größten erwarteten Gewinn = Prüfungspunkte × (1 − Lernstand), jeweils mit „üben“.
+
 ## Prüfungsreife
 
 Wie in der Fahrschul-App zeigt eine einzige Zahl, wie bereit man ist. Sie rechnet in Punkten und gewichtet dadurch automatisch nach Prüfungsrelevanz:

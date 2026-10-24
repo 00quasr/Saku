@@ -6,9 +6,9 @@ from datetime import date, datetime, timedelta
 from flask import Blueprint, abort, make_response, redirect, render_template, request, url_for
 
 from saku.db import einstellung, setze_einstellung
-from saku.lernen import karten, operatoren, pfad, simulation, tagesziel
+from saku.lernen import fahrplan, karten, operatoren, pfad, simulation, tagesziel
 from saku.web import db
-from saku.web.routen.bunseki import dauerbrenner
+from saku.web.routen.bunseki import dauerbrenner, termin_name
 from saku.web.routen.rechnen import heute_gerechnet
 
 bp = Blueprint("heute", __name__)
@@ -94,6 +94,30 @@ def index():
         grundwissen=karten.begriffe(con, []),
         laufend=simulation.laufende(con),
         gerechnet=heute_gerechnet(con),
+    )
+
+
+@bp.get("/fahrplan", endpoint="fahrplan")  # die Funktion heißt anders als das Modul fahrplan
+def fahrplan_seite():
+    """Fahrplan bis zur Prüfung: Prognose der Wiederholungen, Tempo, Abdeckung nach Prüfungsgewicht, was am meisten bringt."""
+    con = db()
+    if not con.execute("SELECT 1 FROM teilaufgabe LIMIT 1").fetchone():
+        return render_template("heute/fahrplan.html", leer=True)
+    heute = date.today()
+    spanne = 30 if request.args.get("tage") == "30" else 14
+    ziel = tagesziel.tagesziel(con, heute)
+    return render_template(
+        "heute/fahrplan.html",
+        spanne=spanne,
+        tage=tagesziel.tage_bis_pruefung(con, heute),
+        lerntage=tagesziel.lerntage(con, heute),
+        puffer=einstellung(con, "puffer_tage", "7"),
+        ziel=ziel,
+        prognose=fahrplan.prognose(con, heute, spanne, ziel),
+        tempo=fahrplan.tempo(con, heute),
+        abdeckung=fahrplan.abdeckung(con),
+        gewinn=fahrplan.gewinn(con),
+        termin_name=lambda i: termin_name(i, einstellung(con, "teil") == "AP1"),
     )
 
 

@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+{% block titel %}Fahrplan{% endblock %}
+
+{# Gestapelter Balken: sicher, im Aufbau, noch nie (Prozent der Prüfungspunkte) #}
+{% macro balken(a, gross=False) %}
+<span class="heute-thema-balken{{ ' fahrplan-balken--gross' if gross }}" role="img"
+      aria-label="{{ a.sicher|round|int }} % sicher, {{ a.aufbau|round|int }} % im Aufbau, {{ a.nie|round|int }} % noch nie geübt">
+  <span class="b-gruen" style="width: {{ a.sicher }}%"></span><span class="b-gelb" style="width: {{ a.aufbau }}%"></span><span class="b-rest" style="width: {{ a.nie }}%"></span>
+</span>
+{% endmacro %}
+{% macro tage_text(n) %}{{ n }} {{ 'Tag' if n == 1 else 'Tage' }}{% endmacro %}
+
+{% block inhalt %}
+{% if leer %}
+{{ m.kopf('heute', '程', 'Fahrplan', 'Bis zur Prüfung') }}
+<div class="seite weit">
+  <p class="leer">Noch gibt es keine Teilaufgaben. Lege deine Prüfungen in <code>data/pdfs</code> und starte die Analyse mit <code>python -m saku analyse</code>.</p>
+</div>
+{% else %}
+{% call m.kopf('heute', '程', None) %}
+<div class="held">
+  <div class="held-links">
+    <p class="etikett"><span lang="ja" aria-hidden="true">日程</span> Fahrplan</p>
+    <h1 class="titel">Bis zur {{ umfang.teil }}</h1>
+  </div>
+  {% if tage is not none and tage >= 0 %}
+  <dl class="fahrplan-kennzahlen">
+    <div><dt class="etikett">Bis zur Prüfung</dt><dd class="fahrplan-zahl zahl">{{ tage }}</dd><dd class="klein">{{ 'Tag' if tage == 1 else 'Tage' }}</dd></div>
+    <div><dt class="etikett">Lerntage</dt><dd class="fahrplan-zahl zahl">{{ lerntage }}</dd><dd class="klein">nach {{ puffer }} Tagen Puffer</dd></div>
+    <div><dt class="etikett">Tempo heute</dt><dd class="fahrplan-zahl zahl">{{ ziel.neu }}</dd><dd class="klein">neue laut Tagesziel</dd></div>
+  </dl>
+  {% else %}
+  <p class="held-countdown"><span>{{ 'Der Termin liegt hinter dir.' if tage is not none else 'Noch kein Prüfungstermin.' }}</span>
+    <a href="{{ url_for('kern.einstellungen', _anchor='termin') }}">Termin eintragen</a></p>
+  {% endif %}
+</div>
+{% endcall %}
+
+<div class="seite weit heute fahrplan">
+  <div class="heute-raster">
+    {# Prognose: Säulen je Tag; 14 oder 30 Tage, der Schalter tauscht nur diesen Abschnitt #}
+    <section class="flaeche heute-plan" id="prognose" aria-labelledby="prognose-titel">
+      <header class="karte-kopf">
+        <p class="etikett" id="prognose-titel">Wiederholungen · nächste {{ spanne }} Tage</p>
+        <nav class="fahrplan-umschalter klein" aria-label="Zeitraum">
+          {% for n in (14, 30) %}
+          <a href="{{ url_for('heute.fahrplan', tage=n) }}" hx-get="{{ url_for('heute.fahrplan', tage=n) }}" hx-select="#prognose"
+             hx-target="#prognose" hx-swap="outerHTML" hx-push-url="true" {% if n == spanne %}aria-current="true"{% endif %}>{{ n }} Tage</a>
+          {% endfor %}
+        </nav>
+      </header>
+      {% set hoechst = [prognose|map(attribute='summe')|max, 1]|max %}
+      <div class="saeulen-rahmen">
+        <ol class="saeulen" style="--spalten: {{ spanne }}">
+          {% for t in prognose %}
+          {% set text = t.tag.strftime('%d.%m.') ~ ': ' ~ t.wdh ~ (' Wiederholung' if t.wdh == 1 else ' Wiederholungen') ~ ', ' ~ t.neu ~ ' neue' %}
+          <li class="{{ 'saeule-heute' if t.heute }}{{ ' saeule-pruefung' if t.pruefung }}" title="{{ text }}{{ ' · Prüfung' if t.pruefung }}">
+            <span class="saeule" aria-hidden="true">
+              <span class="saeule-wdh" style="height: {{ 100 * t.wdh / hoechst }}%"></span>
+              <span class="saeule-neu" style="height: {{ 100 * t.neu / hoechst }}%"></span>
+              <span class="saeule-wert zahl">{% if t.pruefung %}{{ m.icon('flag') }}{% elif t.summe %}{{ t.summe }}{% endif %}</span>
+            </span>
+            <span class="saeule-tag zahl" aria-hidden="true">{{ 'MDMDFSS'[t.tag.weekday()] }}<br>{{ t.tag.day }}</span>
+            <span class="fahrplan-versteckt">{{ 'Heute, ' if t.heute }}{{ text }}{{ ', Prüfung' if t.pruefung }}</span>
+          </li>
+          {% endfor %}
+        </ol>
+      </div>
+      <p class="klein gedaempft fahrplan-legende">
+        <span><span class="legende-punkt saeule-wdh" aria-hidden="true"></span>Wiederholungen</span>
+        <span><span class="legende-punkt saeule-neu" aria-hidden="true"></span>neue laut Tagesziel</span>
+        <span>Heute zählt, was noch offen ist; danach nur schon geplante Wiederholungen.</span>
+      </p>
+    </section>
+
+    {# Tempo: Schnitt der letzten Lerntage und wann alles einmal gesehen ist #}
+    <section class="flaeche kachel" aria-labelledby="tempo-titel">
+      <header class="karte-kopf"><p class="etikett" id="tempo-titel"><span lang="ja" aria-hidden="true">速</span> Tempo und Prognose</p></header>
+      {% set t = tempo %}
+      {% if not t.rest %}
+      <p class="kachel-titel">Alles einmal gesehen.</p>
+      <p class="klein gedaempft">Jede Teilaufgabe im Umfang hast du schon geübt. Jetzt zählen die Wiederholungen.</p>
+      {% elif t.schnitt is none %}
+      <p class="kachel-titel">Noch kein Tempo.</p>
+      <p class="klein gedaempft">Nach deinem ersten Lerntag rechnet Saku hier hoch, wann du alle {{ t.rest }} neuen Teilaufgaben gesehen hast.{% if t.termin %} Für deinen Termin reichen {{ t.noetig }} am Tag.{% endif %}</p>
+      {% else %}
+      {% set schnitt = ('%g'|format(t.schnitt|round(1)))|replace('.', ',') %}
+      <p class="kachel-zahl"><span class="zahl">{{ schnitt }}</span> neue am Tag</p>
+      <p class="fahrplan-satz">
+        {%- if not t.fertig %}In deinen letzten Lerntagen kamen keine neuen dazu.{% if t.termin %} Mit {{ t.noetig }} am Tag schaffst du es bis {{ t.letzter.strftime('%d.%m.%Y') }}.{% endif %}
+        {%- else %}Bei {{ schnitt }} neuen am Tag bist du am {{ t.fertig.strftime('%d.%m.%Y') }} durch
+          {%- if t.termin %} – {% if t.abstand > 0 %}{{ tage_text(t.abstand) }} vor der Prüfung{% elif t.abstand < 0 %}{{ tage_text(-t.abstand) }} nach der Prüfung{% else %}am Tag der Prüfung{% endif %}.
+            {%- if t.fertig > t.letzter %} Mit {{ t.noetig }} am Tag schaffst du es bis {{ t.letzter.strftime('%d.%m.%Y') }}.{% else %} Danach bleibt Zeit für Wiederholungen und Simulationen.{% endif %}
+          {%- else %}.{% endif %}
+        {%- endif -%}
+      </p>
+      <p class="klein gedaempft">Schnitt der letzten {{ t.lerntage }} {{ 'Lerntag' if t.lerntage == 1 else 'Lerntage' }} · noch {{ t.rest }} neue{% if t.termin %} · letzter Lerntag vor dem Puffer {{ t.letzter.strftime('%d.%m.') }}{% endif %}</p>
+      {% endif %}
+      {% if not t.termin %}<p class="klein"><a href="{{ url_for('kern.einstellungen', _anchor='termin') }}">Trag deinen Prüfungstermin ein</a>, dann vergleicht Saku dein Tempo mit dem Termin.</p>{% endif %}
+    </section>
+
+    {# Abdeckung: Anteil der bisher erzielbaren Prüfungspunkte, je Bereich aufklappbar bis zum Thema #}
+    <section class="flaeche heute-plan" id="abdeckung" aria-labelledby="abdeckung-titel">
+      <header class="karte-kopf"><p class="etikett" id="abdeckung-titel">Abdeckung nach Prüfungsgewicht</p>
+        <span class="zeile fahrplan-legende klein">{{ m.status('gruen') }}{{ m.status('gelb') }}{{ m.status('neu') }}</span></header>
+      {% set g = abdeckung.gesamt %}
+      <p class="kachel-zahl"><span class="zahl">{{ g.sicher|round|int }} %</span> der Prüfungspunkte sitzen sicher{% if g.aufbau >= 0.5 %}, {{ g.aufbau|round|int }} % sind im Aufbau{% endif %}.</p>
+      {{ balken(g, gross=True) }}
+      <div class="fahrplan-bereiche">
+        {% for b in abdeckung.bereiche %}
+        <details class="fahrplan-bereich">
+          <summary>
+            <span class="heute-thema-zeile"><span>{{ m.icon('chevron-right', 'fahrplan-pfeil') }} {{ b.name }}</span>
+              <span class="klein gedaempft zahl">{{ b.sicher|round|int }} % sicher · {{ b.punkte|round|int }} P.</span></span>
+            {{ balken(b) }}
+          </summary>
+          <ul class="heute-themen">
+            {% for th in b.themen %}
+            <li><a href="{{ url_for('keiko.index', thema=th.id) }}">
+              <span class="heute-thema-zeile"><span>{{ th.name }}</span><span class="klein gedaempft zahl">{{ th.sicher|round|int }} % sicher · {{ th.punkte|round|int }} P.</span></span>
+              {{ balken(th) }}
+            </a></li>
+            {% endfor %}
+          </ul>
+        </details>
+        {% endfor %}
+      </div>
+      <p class="klein gedaempft">Punkte aus allen bisherigen Prüfungen im Umfang. Im Aufbau: schon geübt, aber noch nicht sicher.</p>
+    </section>
+
+    {# Was am meisten bringt: Prüfungspunkte × (1 − Lernstand) #}
+    <section class="flaeche kachel" aria-labelledby="gewinn-titel">
+      <header class="karte-kopf"><p class="etikett" id="gewinn-titel"><span lang="ja" aria-hidden="true">得</span> Was jetzt am meisten bringt</p></header>
+      {% if gewinn %}
+      <ol class="fahrplan-gewinn">
+        {% for th in gewinn %}
+        <li>
+          <span class="fahrplan-gewinn-text">
+            <span class="fahrplan-gewinn-name">{{ th.name }}</span>
+            <span class="klein gedaempft zahl">{{ th.teilaufgaben }} {{ 'Teilaufgabe' if th.teilaufgaben == 1 else 'Teilaufgaben' }} · zuletzt {{ termin_name(th.letzter_termin) }} · {{ (100 * th.beherrschung)|round|int }} % Lernstand</span>
+          </span>
+          <span class="zahl fahrplan-gewinn-punkte" title="erwarteter Gewinn in Prüfungspunkten">+{{ th.gewinn|round|int }} P.</span>
+          <a class="btn" data-variant="outline" data-size="sm" href="{{ url_for('keiko.index', thema=th.thema_id) }}" aria-label="{{ th.name }} üben">üben</a>
+        </li>
+        {% endfor %}
+      </ol>
+      <p class="klein gedaempft">Gewinn = Prüfungspunkte des Themas × (1 − Lernstand).</p>
+      {% else %}
+      <p class="klein gedaempft">Alles sitzt. {{ m.wort('満開', 'Volle Blüte') }}: jetzt helfen Simulationen am meisten.</p>
+      {% endif %}
+    </section>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

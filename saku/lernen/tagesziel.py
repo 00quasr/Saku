@@ -49,6 +49,17 @@ def tage_bis_pruefung(con: sqlite3.Connection, heute: date | None = None) -> int
     return (date.fromisoformat(termin) - (heute or date.today())).days if termin else None
 
 
+def lerntage(con: sqlite3.Connection, heute: date | None = None) -> int | None:
+    """Tage bis zur Prüfung − Puffer, mindestens 1; None ohne Termin."""
+    tage = tage_bis_pruefung(con, heute)
+    return None if tage is None else max(1, tage - int(einstellung(con, "puffer_tage", "7") or 0))
+
+
+def neu_am_tag(neue: int, lerntage: int | None) -> int:
+    """aufrunden(neue ÷ Lerntage), mindestens NEU_MINDESTENS, höchstens alle neuen."""
+    return min(max(NEU_MINDESTENS, math.ceil(neue / lerntage) if lerntage else 0), neue)
+
+
 def tagesziel(con: sqlite3.Connection, heute: date | None = None) -> dict:
     """Lerntage = Tage bis Prüfung − Puffer (mind. 1), Neu heute = aufrunden(neue ÷ Lerntage), mindestens NEU_MINDESTENS,
     Heute = Neu heute + fällige Wiederholungen. Gerechnet ab Tagesbeginn, damit das Ziel beim Lernen stehen bleibt."""
@@ -61,12 +72,7 @@ def tagesziel(con: sqlite3.Connection, heute: date | None = None) -> dict:
     wdh_erledigt = len(bewertet) - neu_erledigt
 
     neue = con.execute("SELECT COUNT(*) FROM v_teilaufgabe WHERE status = 'neu'").fetchone()[0]
-    tage = tage_bis_pruefung(con, heute)
-    neu_ziel = NEU_MINDESTENS
-    if tage is not None:
-        lerntage = max(1, tage - int(einstellung(con, "puffer_tage", "7") or 0))
-        neu_ziel = max(neu_ziel, math.ceil((neue + neu_erledigt) / lerntage))
-    neu_ziel = min(neu_ziel, neue + neu_erledigt)
+    neu_ziel = neu_am_tag(neue + neu_erledigt, lerntage(con, heute))
     neu_offen = min(neue, max(0, neu_ziel - neu_erledigt))
 
     wdh_offen = con.execute(

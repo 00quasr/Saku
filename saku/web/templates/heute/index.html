@@ -35,11 +35,11 @@
     {{ m.termin_vorschlaege(umfang.teil, 'heute-termin', absenden=True) }}
   </form>
   {% elif tage >= 0 %}
-  <div class="held-countdown">
+  <a class="held-countdown" href="{{ url_for('heute.fahrplan') }}" title="Fahrplan bis zur Prüfung">
     <span class="held-zahl zahl">{{ tage }}</span>
     <span class="held-einheit">{{ 'Tag' if tage == 1 else 'Tage' }} bis zur {{ umfang.teil }}</span>
-    <span class="held-datum">{{ termin_lang }}</span>
-  </div>
+    <span class="held-datum">{{ termin_lang }} · Fahrplan</span>
+  </a>
   {% else %}
   <p class="held-countdown"><span>Der Termin liegt hinter dir.</span> <a href="{{ url_for('kern.einstellungen') }}">Neuen eintragen</a></p>
   {% endif %}
@@ -72,7 +72,7 @@
       {% endif %}
     </section>
 
-    <a class="flaeche heute-reife" href="{{ url_for('bunseki.index') }}" aria-labelledby="reife-titel">
+    <a class="flaeche heute-reife" href="{{ url_for('heute.fahrplan', _anchor='abdeckung') }}" aria-labelledby="reife-titel">
       <header class="karte-kopf"><p class="etikett" id="reife-titel">Prüfungsreife</p></header>
       <div class="reife-inhalt">
         <div class="heute-enso">
