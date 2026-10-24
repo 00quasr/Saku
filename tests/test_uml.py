@@ -387,3 +387,108 @@ def test_usecase_alle_systeme_kreuzungsarm():
         assert any(a for _, a in s["akteure"])
         assert all(re.search(r"jede[mnrs]?\b|immer|sofort", satz) for *_, satz in s["include"])
         assert not any(re.search(r"jede[mnrs]?\b|immer|sofort", satz) for *_, satz in s["extend"])
+
+
+# --- Sequenzdiagramm ---------------------------------------------------------------------------
+
+def _nachrichten(svg: ET.Element) -> list[tuple[str, str, str, str]]:
+    """(Art, von, an, Text) von oben nach unten aus der Textfassung."""
+    return re.findall(r"\d+\. (synchron|asynchron|Antwort) von (:\w+) an (:\w+): (.+?)(?:; |\.$)", svg.get("aria-label", ""))
+
+
+def test_sequenzdiagramm_selbst_ausgewertet():
+    titel = set()
+    for seed, a in _alle("sequenz"):
+        svg = svg_pruefen(a.struktogramm)
+        n = _nachrichten(svg)
+        assert len(n) >= 4 and {m[3] for m in n} <= set(_texte(svg)), seed
+        titel.add(a.titel)
+        if a.titel == "Nachrichtenarten":
+            for f in a.felder[:-1]:
+                assert f.loesung == next(art for art, _, _, text in n if f"„{text}“" == f.label), seed
+            sender, text = re.search(r"Wartet (:\w+) nach dem Senden von `(.+?)`", a.frage).groups()
+            art = next(art for art, von, _, t in n if (von, t) == (sender, text))
+            assert a.loesung["warten"] == ("Ja" if art == "synchron" else "Nein") and art != "Antwort"
+        else:
+            ziel = re.search(r"empfängt \*\*(:\w+)\*\*", a.frage)[1]
+            assert a.loesung["anzahl"] == sum(1 for _, _, an, _ in n if an == ziel), seed
+            assert not rechnen.pruefen(a, {"anzahl": str(sum(1 for art, _, an, _ in n if an == ziel and art != "Antwort"))})["anzahl"] \
+                or not any(art == "Antwort" and an == ziel for art, _, an, _ in n)  # Antworten vergessen: falsch
+            antwort = re.search(r"antwortet die Nachricht `(.+?)`", a.frage)[1]
+            i = next(i for i, m in enumerate(n) if m[3] == antwort)
+            # rückwärts: der nächste synchrone Aufruf in Gegenrichtung, auf den nicht schon eine spätere Antwort davor passt
+            beantwortet = 0
+            for art, von, an, text in reversed(n[:i]):
+                if (von, an) == (n[i][1], n[i][2]) and art == "Antwort":
+                    beantwortet += 1
+                elif (von, an) == (n[i][2], n[i][1]) and art == "synchron":
+                    if not beantwortet:
+                        assert a.loesung["aufruf"] == text, seed
+                        break
+                    beantwortet -= 1
+            else:
+                raise AssertionError(("kein Aufruf", seed))
+    assert titel == {"Nachrichtenarten", "Ablauf"}
+
+
+def test_sequenzdiagramm_alle_ablaeufe():
+    from saku.lernen.rechnen import uml
+    for ablauf in uml.ABLAEUFE:
+        svg = svg_pruefen(uml.sequenzdiagramm(ablauf))
+        # gefüllte Spitzen nur an synchronen Nachrichten, gestrichelte Pfeile nur bei Antworten (und den Lebenslinien)
+        arten = [m[3] for m in ablauf["nachrichten"]]
+        assert len(svg.findall("polygon[@class='uml-voll']")) == arten.count("sync")
+        assert len(svg.findall("polyline[@class='uml-linie uml-strich']")) == arten.count("antwort") + len(ablauf["teilnehmer"])
+        for i, m in enumerate(ablauf["nachrichten"]):
+            if m[3] == "antwort":
+                assert ablauf["nachrichten"][uml._aufruf(ablauf, i)][:2] == (m[1], m[0])
+
+
+# --- Einbindung ---------------------------------------------------------------------------------
+
+def test_uml_passt_zu_themen():
+    passt = {"zustand": ["Zustandsdiagramm", "UML-Zustandsdiagramm", "Zustandsautomaten modellieren", "Zustandsübergänge"],
+             "klassen": ["Klassendiagramm: Assoziation, Vererbung", "Objektorientierte Programmierung", "Modellierung mit UML",
+                         "Klassen und Objekte", "UML-Diagramme lesen"],
+             "usecase": ["Use-Case-Diagramm", "Anwendungsfalldiagramm", "Use Cases beschreiben"],
+             "sequenz": ["Sequenzdiagramm", "UML-Sequenzdiagramm"],
+             "schreibtisch": ["UML-Aktivitätsdiagramm", "Aktivitätsdiagramm"]}
+    for slug, namen in passt.items():
+        assert all(rechnen.passend([n]).slug == slug for n in namen), slug
+    # „UML“, „OOP“, „Automat“, „Sequenz“ wären zu breit: Umlaufvermögen, Kooperation, Automatisierung, Sequenz als Kontrollstruktur
+    for name in ["Umlaufvermögen", "Kooperation im Team", "Automatisierung mit Skripten", "Sequenz und Iteration",
+                 "Zustand der Hardware prüfen", "Anwendungsentwicklung", "Lastenheft und Pflichtenheft", "Klassenarbeit"]:
+        assert rechnen.passend([name]) is None, name
+
+
+def test_uml_im_umfang_und_auf_den_seiten(client):
+    ap1, ae, si = (set(rechnen.im_umfang(p)) for p in ("AP1", "AP2-1201", "AP2-1202"))
+    uml = {a for a, x in rechnen.ARTEN.items() if x.gruppe == "UML"}
+    assert uml == {"zustand", "klassen", "usecase", "sequenz"} and uml <= ae and not uml & (ap1 | si)
+    assert "schreibtisch" in ap1 & ae  # das Aktivitätsdiagramm gehört zum Schreibtischtest
+    assert all(rechnen.ARTEN[a].sprint and "Beispiel" in rechnen.ARTEN[a].formeln for a in uml)
+    assert "Aktivitätsdiagramm" in rechnen.ARTEN["schreibtisch"].formeln
+    html = client.get("/rechnen/formeln").get_data(as_text=True)
+    assert all(f'id="{a}"' in html for a in uml) and ">UML<" in html
+    from saku.web.routen.suche import befehle
+    assert befehle("zustandsdiagramm")[0][3] == ("rechnen.aufgabe", {"art": "zustand"})
+    assert befehle("use case")[0][3] == ("rechnen.aufgabe", {"art": "usecase"})
+
+
+def test_uml_aufgabe_anzeigen_pruefen_aufgeben(client, con):
+    headers = {"HX-Request": "true"}
+    for art in ("zustand", "klassen", "usecase", "sequenz"):
+        seed, a = next(_alle(art))
+        html = client.get(f"/rechnen/{art}?seed={seed}").get_data(as_text=True)
+        assert '<svg class="uml uml-' in html and 'role="img"' in html and "<select" in html
+        richtig = {f"feld-{f.name}": f.anzeige for f in a.felder}
+        html = client.post(f"/rechnen/{art}/pruefen", data={"seed": seed, **richtig}, headers=headers).get_data(as_text=True)
+        assert "Richtig." in html and f"Formeln: {rechnen.ARTEN[art].titel}" in html and '<svg class="uml' in html
+        erstes = a.felder[0]
+        falsch = next(o for o in erstes.optionen if o != erstes.loesung) if erstes.optionen else "999"
+        html = client.post(f"/rechnen/{art}/pruefen", data={"seed": seed, **richtig, f"feld-{erstes.name}": falsch},
+                           headers=headers).get_data(as_text=True)
+        assert (f"{len(a.felder) - 1} von {len(a.felder)} richtig." if len(a.felder) > 1 else "Leider falsch.") in html
+        assert "Hier ist der Rechenweg." in client.post(f"/rechnen/{art}/pruefen", data={"seed": seed, "aufgeben": "1"},
+                                                        headers=headers).get_data(as_text=True)
+    assert con.execute("SELECT COUNT(*) FROM rechenuebung WHERE art IN ('zustand', 'klassen', 'usecase', 'sequenz')").fetchone()[0] == 12

@@ -37,6 +37,14 @@ FORMELN = {
 - Generalisierung von Akteuren: Linie mit leerem Dreieck zum allgemeinen Akteur; der spezielle darf alles, was der allgemeine darf, nicht umgekehrt
 
 *Beispiel:* „Bestellung aufgeben“ «include» „Anmelden“ (jede Bestellung verlangt die Anmeldung); „Gutschein einlösen“ «extend» „Bestellung aufgeben“ (nur wenn ein Gutschein vorliegt)""",
+    "sequenz": """- Lebenslinie: Kasten mit `:Klasse` (oder `name:Klasse`), darunter eine gestrichelte Linie; die Zeit läuft von oben nach unten
+- Synchrone Nachricht: durchgezogene Linie mit **gefüllter** Spitze, der Sender wartet, bis die Antwort kommt
+- Asynchrone Nachricht: durchgezogene Linie mit **offener** Spitze, der Sender arbeitet sofort weiter und erwartet keine Antwort
+- Antwort (Rückgabe): **gestrichelte** Linie mit offener Spitze zurück zum Aufrufer, beschriftet mit dem Rückgabewert
+- Jede Antwort gehört zum letzten noch offenen synchronen Aufruf in der Gegenrichtung
+- Aktivierungsbalken (schmale Rechtecke auf der Lebenslinie) zeigen, wann ein Objekt arbeitet; sie dürfen fehlen
+
+*Beispiel:* `:Browser` ruft `anmelden(name, passwort)` synchron beim `:Webserver` auf, der fragt synchron `pruefe(name, hash)` bei der `:Datenbank`, Antwort `gueltig`, dann Antwort `sitzung` an den Browser""",
 }
 
 
@@ -271,7 +279,7 @@ def _spur(a: dict, folge: list[str]) -> str:
 
 
 @art("zustand", "Zustandsdiagramm", "UML", "Zustandsautomaten nachspielen: Ereignisse, Wächter, Zähler, verfallende Ereignisse",
-     ("Zustandsdiagramm", "Zustandsautomat", "Zustandsübergang"), formeln=FORMELN["zustand"])
+     ("Zustandsdiagramm", "Zustandsautomat", "Zustandsübergang", "Zustandsübergänge"), formeln=FORMELN["zustand"])
 def zustand(rng):
     a = rng.choice(AUTOMATEN)(rng)
     z, start, firma = a["zaehler"], next(iter(a["zustaende"])), rng.choice(FIRMEN)
@@ -813,3 +821,109 @@ def usecase(rng):
                    f"„{ext[0]}“ «extend» „{ext[1]}“: die Erweiterung läuft nur unter einer Bedingung → **Nein**",
                    f"Der «extend»-Pfeil zeigt von der Erweiterung auf den erweiterten Fall: **{ext[1]}**")
     return Aufgabe(frage, felder, weg, titel="Beziehungen lesen", struktogramm=bild)
+
+
+# --- Sequenzdiagramm -------------------------------------------------------------------------------
+# Ein Ablauf: Teilnehmer (Lebenslinien) von links nach rechts, Nachrichten von oben nach unten als (von, an, Text, Art) mit
+# Art sync (durchgezogen, gefüllte Spitze), async (durchgezogen, offene Spitze) oder antwort (gestrichelt, offene Spitze).
+
+ABLAEUFE = [
+    {"thema": "die Anmeldung an einem Kundenportal", "teilnehmer": [":Browser", ":Webserver", ":Datenbank", ":Protokoll"],
+     "nachrichten": [(":Browser", ":Webserver", "anmelden(name, passwort)", "sync"),
+                     (":Webserver", ":Datenbank", "pruefe(name, hash)", "sync"), (":Datenbank", ":Webserver", "gueltig", "antwort"),
+                     (":Webserver", ":Protokoll", "schreibe(anmeldung)", "async"), (":Webserver", ":Browser", "sitzung", "antwort")]},
+    {"thema": "den Bestellvorgang eines Onlineshops", "teilnehmer": [":Kunde", ":Shop", ":Lager", ":Zahlung", ":Versand"],
+     "nachrichten": [(":Kunde", ":Shop", "bestellen(artikel)", "sync"), (":Shop", ":Lager", "reservieren(artikel)", "sync"),
+                     (":Lager", ":Shop", "reserviert", "antwort"), (":Shop", ":Zahlung", "abbuchen(betrag)", "sync"),
+                     (":Zahlung", ":Shop", "bestaetigt", "antwort"), (":Shop", ":Versand", "beauftragen(paket)", "async"),
+                     (":Shop", ":Kunde", "bestellNr", "antwort")]},
+    {"thema": "die Software eines Geldautomaten", "teilnehmer": [":Kunde", ":Automat", ":Bank"],
+     "nachrichten": [(":Kunde", ":Automat", "karteEinstecken()", "async"), (":Kunde", ":Automat", "pinEingeben(pin)", "async"),
+                     (":Automat", ":Bank", "pruefePin(karte, pin)", "sync"), (":Bank", ":Automat", "gueltig", "antwort"),
+                     (":Kunde", ":Automat", "betragWaehlen(betrag)", "async"), (":Automat", ":Bank", "abheben(konto, betrag)", "sync"),
+                     (":Bank", ":Automat", "freigabe", "antwort"), (":Automat", ":Kunde", "geldAusgeben(betrag)", "async")]},
+    {"thema": "die Ticketbuchung eines Kinos", "teilnehmer": [":App", ":Buchung", ":Saalplan", ":Mail"],
+     "nachrichten": [(":App", ":Buchung", "buchen(film, platz)", "sync"), (":Buchung", ":Saalplan", "sperren(platz)", "sync"),
+                     (":Saalplan", ":Buchung", "gesperrt", "antwort"), (":Buchung", ":Mail", "sendeTicket(adresse)", "async"),
+                     (":Buchung", ":App", "ticket", "antwort")]},
+    {"thema": "den Druck aus einer Anwendung", "teilnehmer": [":Anwendung", ":Druckdienst", ":Drucker"],
+     "nachrichten": [(":Anwendung", ":Druckdienst", "drucken(dokument)", "async"), (":Druckdienst", ":Drucker", "sendeDaten(seiten)", "sync"),
+                     (":Drucker", ":Druckdienst", "fertig", "antwort"), (":Druckdienst", ":Anwendung", "auftragErledigt()", "async")]},
+]
+NACHRICHT = {"sync": "synchron", "async": "asynchron", "antwort": "Antwort"}
+S_KOPF, S_ZEILE = 30, 36  # Höhe der Kästen oben, Abstand der Nachrichten
+
+
+def sequenzdiagramm(ablauf: dict) -> Markup:
+    """Lebenslinien mit Kasten und gestrichelter Linie, Nachrichten als waagrechte Pfeile; die Beschriftung steht über dem Pfeil
+    gleich neben dem Sender, die Lücke dorthin ist so breit, dass sie keine Lebenslinie kreuzt."""
+    t = ablauf["teilnehmer"]
+    b = [breite(n) + 20 for n in t]
+    luecke = [b[i] / 2 + b[i + 1] / 2 + 30 for i in range(len(t) - 1)]
+    for von, an, text, _ in ablauf["nachrichten"]:
+        i, j = t.index(von), t.index(an)
+        k = i if j > i else i - 1  # die Lücke neben dem Sender in Richtung Empfänger
+        luecke[k] = max(luecke[k], breite(text) + 24)
+    x = [b[0] / 2]
+    for g in luecke:
+        x.append(x[-1] + g)
+    unten = S_KOPF + S_ZEILE * (len(ablauf["nachrichten"]) + 1)
+    bild = Bild()
+    for n, xi, bi in zip(t, x, b):
+        bild.kasten(xi - bi / 2, 0, bi, S_KOPF)
+        bild.text(xi, S_KOPF / 2 + 4, n, "middle")
+        bild.linie([(xi, S_KOPF), (xi, unten)], gestrichelt=True)
+    for nr, (von, an, text, art_) in enumerate(ablauf["nachrichten"], start=1):
+        xa, xb, y = x[t.index(von)], x[t.index(an)], S_KOPF + S_ZEILE * nr
+        bild.pfeil([(xa, y), (xb, y)], form="voll" if art_ == "sync" else "offen", gestrichelt=art_ == "antwort")
+        bild.beschriftung([(xa + 8, y - 5, "start") if xb > xa else (xa - 8, y - 5, "end")], [text])
+    nachrichten = "; ".join(f"{nr}. {NACHRICHT[a]} von {v} an {n}: {txt}" for nr, (v, n, txt, a) in enumerate(ablauf["nachrichten"], start=1))
+    return bild.svg("uml-sequenz", f"Sequenzdiagramm mit den Lebenslinien {', '.join(t)}. Nachrichten von oben nach unten: {nachrichten}.")
+
+
+def _aufruf(ablauf: dict, antwort: int) -> int:
+    """Index des synchronen Aufrufs, zu dem die Antwort gehört: der letzte noch offene in der Gegenrichtung."""
+    offen = []
+    for i, (von, an, _, art_) in enumerate(ablauf["nachrichten"][:antwort + 1]):
+        if art_ == "sync":
+            offen.append(i)
+        elif art_ == "antwort":
+            treffer = next(k for k in reversed(offen) if ablauf["nachrichten"][k][:2] == (an, von))
+            offen.remove(treffer)
+            if i == antwort:
+                return treffer
+    raise ValueError("keine Antwort")
+
+
+@art("sequenz", "Sequenzdiagramm", "UML", "Sequenzdiagramme lesen: synchron, asynchron, Antworten und Reihenfolge",
+     ("Sequenzdiagramm",), formeln=FORMELN["sequenz"])
+def sequenz(rng):
+    ablauf = rng.choice(ABLAEUFE)
+    n, t = ablauf["nachrichten"], ablauf["teilnehmer"]
+    einleitung = (f"Die {rng.choice(FIRMEN)} dokumentiert {ablauf['thema']}. Das Sequenzdiagramm unten zeigt den Ablauf.\n\n")
+    bild = sequenzdiagramm(ablauf)
+    if rng.random() < 0.5:
+        gefragt = sorted(rng.sample(range(len(n)), 2))
+        warten = rng.choice([i for i, m in enumerate(n) if m[3] != "antwort"])
+        frage = einleitung + "a) Um welche Art von Nachricht handelt es sich jeweils?\n\n" + \
+            f"b) Wartet {n[warten][0]} nach dem Senden von `{n[warten][2]}` auf eine Antwort?"
+        felder = [Feld(f"art{i}", f"„{n[i][2]}“", NACHRICHT[n[i][3]], typ="text", optionen=list(NACHRICHT.values())) for i in gefragt] + \
+            [Feld("warten", f"{n[warten][0]} wartet?", "Ja" if n[warten][3] == "sync" else "Nein", typ="text", optionen=["Ja", "Nein"])]
+        zeichen = {"sync": "durchgezogen mit gefüllter Spitze", "async": "durchgezogen mit offener Spitze", "antwort": "gestrichelt"}
+        weg = schritte(*(f"`{n[i][2]}`: {zeichen[n[i][3]]} → **{NACHRICHT[n[i][3]]}**" for i in gefragt),
+                       f"`{n[warten][2]}` ist {NACHRICHT[n[warten][3]]}: " + ("der Sender wartet auf die Antwort → **Ja**" if n[warten][3] == "sync"
+                                                                             else "der Sender arbeitet sofort weiter → **Nein**"))
+        return Aufgabe(frage, felder, weg, titel="Nachrichtenarten", struktogramm=bild)
+    ziel = rng.choice(t[1:])
+    antwort = rng.choice([i for i, m in enumerate(n) if m[3] == "antwort"])
+    aufruf = _aufruf(ablauf, antwort)
+    an_ziel = [m for m in n if m[1] == ziel]
+    aufrufe = [m[2] for m in n if m[3] == "sync"]
+    frage = einleitung + (f"a) Wie viele Nachrichten empfängt **{ziel}**, Antworten mitgezählt?\n\n"
+                          f"b) Auf welchen Aufruf antwortet die Nachricht `{n[antwort][2]}`?")
+    felder = [Feld("anzahl", f"Nachrichten an {ziel}", len(an_ziel), stellen=0),
+              Feld("aufruf", f"„{n[antwort][2]}“ antwortet auf", n[aufruf][2], typ="text", optionen=aufrufe)]
+    weg = schritte(f"Pfeile, die bei {ziel} ankommen: " + (", ".join(f"`{m[2]}`" for m in an_ziel) or "keine") + f" → **{len(an_ziel)}**",
+                   f"`{n[antwort][2]}` geht gestrichelt von {n[antwort][0]} an {n[antwort][1]}; der letzte noch offene synchrone Aufruf "
+                   f"von {n[antwort][1]} an {n[antwort][0]} davor ist **{n[aufruf][2]}**")
+    return Aufgabe(frage, felder, weg, titel="Ablauf", struktogramm=bild)
