@@ -64,7 +64,7 @@
         <div class="katalog-themen">
           {% for t in b.themen %}
           <details class="katalog-thema" open>
-            <summary><span>{{ t.name }}</span><span class="klein gedaempft zahl">{{ t.termine }} Termine · {{ t.teilaufgaben }} Teilaufg.</span></summary>
+            <summary><span>{{ t.name }}</span><span class="klein gedaempft zahl">{{ t.termine }} {{ 'Termin' if t.termine == 1 else 'Termine' }} · {{ t.teilaufgaben }} Teilaufg.</span></summary>
             <ul>
               {% for u in t.unterthemen %}
               <li class="{{ 'nie' if not u.termine }}">
