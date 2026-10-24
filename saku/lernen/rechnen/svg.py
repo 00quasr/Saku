@@ -71,7 +71,8 @@ class Bild:
         rx = f' rx="{_z(rund)}"' if rund else ""
         self._teil(0, f'<rect class="uml-kasten{klasse}" x="{_z(x)}" y="{_z(y)}" width="{_z(b)}" height="{_z(h)}"{rx}/>',
                    (x, y), (x + b, y + h))
-        self.formen.append((x, y, x + b, y + h))
+        if "uml-rahmen" not in klasse:  # ein Rahmen (Systemgrenze) umschließt Formen und Beschriftungen
+            self.formen.append((x, y, x + b, y + h))
 
     def ellipse(self, cx, cy, rx, ry):
         self._teil(0, f'<ellipse class="uml-kasten" cx="{_z(cx)}" cy="{_z(cy)}" rx="{_z(rx)}" ry="{_z(ry)}"/>',
@@ -142,6 +143,22 @@ class Bild:
         """Beschriftung an einer Linie: kommt an die erste der Stellen (x, y der ersten Grundlinie, Anker), die nichts überdeckt;
         gesetzt wird erst in svg(), wenn alle Formen und Linien stehen."""
         self.offen.append((kandidaten, [z for z in zeilen if z], klasse))
+
+    def an_linie(self, a, b, zeilen: list[str], klasse: str = ""):
+        """Beschriftung an einer geraden Linie von a nach b: über, unter oder neben ihr, entlang der Linie gesucht; der Abstand
+        wächst mit der Schräge, so schneidet die Linie den Text nicht."""
+        hb, hoch = max(map(breite, zeilen)) / 2, (len(zeilen) - 1) * ZEILE
+        dx, dy = b[0] - a[0], b[1] - a[1]
+        s = abs(dy / dx) if dx else math.inf
+        kandidaten = []
+        for t in (0.5, 0.4, 0.6, 0.3, 0.7, 0.2, 0.8):
+            x, y = a[0] + dx * t, a[1] + dy * t
+            if s < 1.5:
+                kandidaten += [(x, y - s * hb - 5 - hoch, "middle"), (x, y + s * hb + 14, "middle")]
+            if s > 0.3:
+                d = (7 + hoch / 2) / s + 5
+                kandidaten += [(x + d, y + 4 - hoch / 2, "start"), (x - d, y + 4 - hoch / 2, "end")]
+        self.beschriftung(kandidaten, zeilen, klasse)
 
     def frei(self, r) -> bool:
         return (not any(_ueberlappen(r, f) for f in self.formen) and not any(_ueberlappen(r, t, 2) for t in self.texte)

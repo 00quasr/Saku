@@ -2,6 +2,9 @@
 Jedes Modell ist ein kleines Datenstück; dasselbe Stück wird gezeichnet, als Text beschrieben (aria-label) und für die Lösung
 ausgewertet. Alle Systeme, Klassen und Abläufe sind erfunden."""
 
+import itertools
+import math
+
 from markupsafe import Markup
 
 from saku.lernen.rechnen.basis import FIRMEN, Aufgabe, Feld, art, schritte, tabelle
@@ -26,6 +29,14 @@ FORMELN = {
 - Ein Objekt der Unterklasse hat alle Attribute der Oberklasse, auch die privaten (direkt zugreifen darf es nur auf `+`, `#` und, im selben Paket, `~`); eine überschriebene Methode gibt es einmal
 
 *Beispiel:* `Kunde 1 —— 0..* Mietvertrag`: ein Kunde hat beliebig viele Mietverträge (auch keinen), jeder Mietvertrag gehört zu genau einem Kunden""",
+    "usecase": """- Systemgrenze: Rechteck mit dem Namen des Systems, darin die Anwendungsfälle als Ellipsen; die Akteure (Strichmännchen) stehen außerhalb
+- Linie zwischen Akteur und Anwendungsfall: der Akteur nutzt ihn
+- `«include»`: gestrichelter Pfeil vom Basisfall zum eingebundenen Fall; der eingebundene läuft **jedes Mal** mit (Pflicht)
+- `«extend»`: gestrichelter Pfeil vom erweiternden Fall zum Basisfall; die Erweiterung läuft nur **unter einer Bedingung** (optional)
+- Merkhilfe: «include» zeigt auf das, was immer dazugehört, «extend» auf das, was erweitert wird
+- Generalisierung von Akteuren: Linie mit leerem Dreieck zum allgemeinen Akteur; der spezielle darf alles, was der allgemeine darf, nicht umgekehrt
+
+*Beispiel:* „Bestellung aufgeben“ «include» „Anmelden“ (jede Bestellung verlangt die Anmeldung); „Gutschein einlösen“ «extend» „Bestellung aufgeben“ (nur wenn ein Gutschein vorliegt)""",
 }
 
 
@@ -620,3 +631,185 @@ def klassen(rng):
         + ("**Ja**, zu mehreren" if gmax is None or gmax > 1 else "**Nein**"),
         f"Mindestens {gmin} → " + ("**Ja**, ein Teil kann ohne Ganzes bestehen" if gmin == 0 else "**Nein**, jedes Teil braucht sein Ganzes"))
     return Aufgabe(frage, felder, weg, titel="Ganzes und Teil", **bild)
+
+
+# --- Use-Case-Diagramm -----------------------------------------------------------------------------
+# Ein System: Akteure (Name, allgemeiner Akteur oder None), die Anwendungsfälle der linken Spalte mit den Akteuren, die sie
+# nutzen; include (Basis, eingebundener Fall, Anforderung), extend (Erweiterung, Basis, Anforderung). Eingebundene und
+# erweiternde Fälle stehen in der rechten Spalte. Der allgemeine Akteur steht vor dem speziellen.
+
+SYSTEME = [
+    {"system": "Webshop", "thema": "einen Webshop", "akteure": [("Gast", None), ("Kunde", "Gast"), ("Mitarbeiter", None)],
+     "faelle": [("Artikel suchen", ["Gast"]), ("Bestellung aufgeben", ["Kunde"]), ("Bewertung schreiben", ["Kunde"]),
+                ("Artikel pflegen", ["Mitarbeiter"])],
+     "include": [("Bestellung aufgeben", "Anmelden", "Wer eine Bestellung aufgibt, muss sich dabei jedes Mal anmelden."),
+                 ("Bewertung schreiben", "Anmelden", "Vor jeder Bewertung meldet sich der Kunde an."),
+                 ("Artikel pflegen", "Anmelden", "Mitarbeiter melden sich immer an, bevor sie Artikel pflegen.")],
+     "extend": [("Gutschein einlösen", "Bestellung aufgeben", "Beim Bestellen kann ein Gutschein eingelöst werden, falls der Kunde einen hat."),
+                ("Filter setzen", "Artikel suchen", "Bei der Suche lassen sich auf Wunsch Filter setzen.")]},
+    {"system": "Bibliothekssystem", "thema": "das System einer Stadtbibliothek",
+     "akteure": [("Besucher", None), ("Mitglied", "Besucher"), ("Bibliothekar", None)],
+     "faelle": [("Katalog durchsuchen", ["Besucher"]), ("Medium ausleihen", ["Mitglied"]), ("Medium verlängern", ["Mitglied"]),
+                ("Mahnung erstellen", ["Bibliothekar"])],
+     "include": [("Medium ausleihen", "Ausweis prüfen", "Bei jeder Ausleihe wird der Ausweis des Mitglieds geprüft."),
+                 ("Medium verlängern", "Ausweis prüfen", "Auch vor jeder Verlängerung wird der Ausweis geprüft."),
+                 ("Mahnung erstellen", "Gebühr berechnen", "Zu jeder Mahnung wird die Mahngebühr berechnet.")],
+     "extend": [("Medium vormerken", "Katalog durchsuchen", "Ist ein gefundenes Medium verliehen, kann es bei der Suche vorgemerkt werden."),
+                ("Gebühr bezahlen", "Medium verlängern", "Ist die Leihfrist schon überschritten, wird beim Verlängern zusätzlich eine Gebühr bezahlt.")]},
+    {"system": "Kinoportal", "thema": "das Ticketportal eines Kinos",
+     "akteure": [("Besucher", None), ("Kunde", "Besucher"), ("Kassenkraft", None)],
+     "faelle": [("Programm ansehen", ["Besucher"]), ("Ticket buchen", ["Kunde"]), ("Buchung stornieren", ["Kunde"]),
+                ("Ticket verkaufen", ["Kassenkraft"])],
+     "include": [("Ticket buchen", "Bezahlen", "Jede Buchung wird sofort bezahlt."),
+                 ("Ticket verkaufen", "Bezahlen", "Auch an der Kasse wird jedes Ticket gleich bezahlt."),
+                 ("Buchung stornieren", "Buchung suchen", "Zum Stornieren wird immer zuerst die Buchung gesucht.")],
+     "extend": [("Sitzplatz wählen", "Ticket buchen", "Beim Buchen kann der Kunde auf Wunsch einen bestimmten Sitzplatz wählen."),
+                ("Trailer ansehen", "Programm ansehen", "Im Programm lässt sich zu einem Film optional der Trailer abspielen.")]},
+    {"system": "Lernplattform", "thema": "eine Lernplattform für Weiterbildungen",
+     "akteure": [("Gast", None), ("Teilnehmer", "Gast"), ("Dozent", None)],
+     "faelle": [("Kurse ansehen", ["Gast"]), ("Kurs belegen", ["Teilnehmer"]), ("Test ablegen", ["Teilnehmer"]), ("Kurs anlegen", ["Dozent"])],
+     "include": [("Kurs belegen", "Anmelden", "Zum Belegen eines Kurses ist jedes Mal eine Anmeldung nötig."),
+                 ("Test ablegen", "Ergebnis speichern", "Nach jedem Test wird das Ergebnis gespeichert."),
+                 ("Kurs anlegen", "Material hochladen", "Zu jedem neuen Kurs lädt der Dozent das Kursmaterial hoch.")],
+     "extend": [("Warteliste beitreten", "Kurs belegen", "Ist ein Kurs voll, kommt der Teilnehmer beim Belegen auf die Warteliste."),
+                ("Zertifikat laden", "Test ablegen", "Wer einen Test besteht, kann danach ein Zertifikat herunterladen.")]},
+    {"system": "Werkstattportal", "thema": "das Kundenportal einer Kfz-Werkstatt",
+     "akteure": [("Kunde", None), ("Stammkunde", "Kunde"), ("Werkstattmeister", None)],
+     "faelle": [("Termin buchen", ["Kunde"]), ("Rechnung ansehen", ["Kunde"]), ("Wartungshistorie ansehen", ["Stammkunde"]),
+                ("Auftrag annehmen", ["Werkstattmeister"])],
+     "include": [("Termin buchen", "Fahrzeug angeben", "Bei jeder Terminbuchung wird das Fahrzeug angegeben."),
+                 ("Auftrag annehmen", "Kosten schätzen", "Zu jedem angenommenen Auftrag schätzt der Meister die Kosten.")],
+     "extend": [("Ersatzwagen reservieren", "Termin buchen", "Bei der Terminbuchung kann bei Bedarf ein Ersatzwagen reserviert werden."),
+                ("Rechnung herunterladen", "Rechnung ansehen", "Eine angesehene Rechnung lässt sich auf Wunsch als PDF herunterladen.")]},
+]
+U_RY, U_ABSTAND, U_SPALTE, U_AKTEUR = 20, 26, 150, 96  # halbe Höhe einer Ellipse, Abstand darunter, Spaltenlücke, Akteurabstand
+
+
+def _rand(cx: float, cy: float, rx: float, ry: float, px: float, py: float) -> tuple[float, float]:
+    """Der Punkt am Rand der Ellipse in Richtung (px, py)."""
+    dx, dy = px - cx, py - cy
+    t = 1 / math.hypot(dx / rx, dy / ry)
+    return cx + dx * t, cy + dy * t
+
+
+def _rechte_spalte(s: dict) -> dict[str, int]:
+    """Zeile je eingebundenem und erweiterndem Fall: so, dass sich möglichst wenige «include»- und «extend»-Pfeile kreuzen, dann
+    möglichst waagrecht. Alle Belegungen werden durchprobiert, es sind nur wenige Fälle."""
+    reihe = [f for f, _ in s["faelle"]]
+    paare = [(reihe.index(b), t) for b, t, _ in s["include"]] + [(reihe.index(b), e) for e, b, _ in s["extend"]]
+    rechts = sorted({f for _, f in paare})
+
+    def kosten(zeilen):
+        z = dict(zip(rechts, zeilen))
+        kreuzungen = sum(1 for (i, f), (j, g) in itertools.combinations(paare, 2) if (i - j) * (z[f] - z[g]) < 0)
+        return kreuzungen * 1000 + sum(abs(i - z[f]) for i, f in paare), zeilen
+    return dict(zip(rechts, min(kosten(p) for p in itertools.permutations(range(len(reihe) + 1), len(rechts)))[1]))
+
+
+def _nutzt(s: dict, akteur: str) -> list[str]:
+    """Anwendungsfälle des Akteurs, die vom allgemeinen Akteur geerbten mitgezählt."""
+    eltern = dict(s["akteure"])[akteur]
+    return [f for f, wer in s["faelle"] if akteur in wer] + (_nutzt(s, eltern) if eltern else [])
+
+
+def usecasediagramm(s: dict, ohne: tuple = ()) -> Markup:
+    """Systemgrenze mit zwei Spalten Ellipsen (links die Fälle der Akteure, rechts eingebundene und erweiternde), Akteure links
+    davor, der spezielle unter dem allgemeinen. ohne: (von, nach) der «include»- und «extend»-Pfeile, die fehlen sollen."""
+    links, rechts = [f for f, _ in s["faelle"]], _rechte_spalte(s)
+    rx = {f: breite(f) / 2 + 22 for f in [*links, *rechts]}
+    y = {f: i * (2 * U_RY + U_ABSTAND) + U_RY for i, f in enumerate(links)} | \
+        {f: i * (2 * U_RY + U_ABSTAND) + U_RY for f, i in rechts.items()}
+    x_rechts = max(2 * rx[f] for f in links) + U_SPALTE
+    cx = {f: rx[f] for f in links} | {f: x_rechts + rx[f] for f in rechts}
+    bild = Bild()
+    unten, ende = max(y.values()) + U_RY + 20, max(cx[f] + rx[f] for f in cx) + 24
+    bild.kasten(-24, -48, ende + 24, unten + 48, klasse=" uml-rahmen")
+    bild.text(-14, -26, s["system"], klasse="uml-fett")
+    for f in cx:
+        bild.ellipse(cx[f], y[f], rx[f], U_RY)
+        bild.text(cx[f], y[f] + 4, f, "middle")
+    ax, oben, letzte = -24 - 110, {}, -math.inf
+    for name, _ in s["akteure"]:
+        ys = [y[f] for f, wer in s["faelle"] if name in wer]
+        oben[name] = letzte = max(sum(ys) / len(ys) - 23, letzte + U_AKTEUR)
+    for name, eltern in s["akteure"]:
+        bild.strichmann(ax, oben[name])
+        bild.text(ax, oben[name] + 60, name, "middle")
+        if eltern:
+            bild.pfeil([(ax, oben[name] - 2), (ax, oben[eltern] + 66)], form="dreieck")
+    for f, wer in s["faelle"]:
+        for name in wer:
+            start = (ax + 16, oben[name] + 20)
+            bild.linie([start, _rand(cx[f], y[f], rx[f], U_RY, *start)])
+    pfeile = [(b, t, "«include»") for b, t, _ in s["include"]] + [(e, b, "«extend»") for e, b, _ in s["extend"]]
+    pfeile.sort(key=lambda p: y[p[0]] != y[p[1]])  # waagrechte zuerst: ihre Beschriftung steht dann sicher über der eigenen Linie
+    for von, nach, text in pfeile:
+        if (von, nach) in ohne:
+            continue
+        a, b = _rand(cx[von], y[von], rx[von], U_RY, cx[nach], y[nach]), _rand(cx[nach], y[nach], rx[nach], U_RY, cx[von], y[von])
+        bild.pfeil([a, b], gestrichelt=True)
+        bild.an_linie(a, b, [text])
+    akteure = "; ".join(n + (f" (erbt von {e})" if e else "") for n, e in s["akteure"])
+    verbindungen = [f"{n} nutzt „{f}“" for f, wer in s["faelle"] for n in wer] + \
+        [f"„{von}“ {text} „{nach}“" for von, nach, text in pfeile if (von, nach) not in ohne]
+    return bild.svg("uml-usecase", f"Use-Case-Diagramm, System {s['system']}. Akteure: {akteure}. Anwendungsfälle: "
+                                   f"{', '.join(f'„{f}“' for f in cx)}. Verbindungen: {'; '.join(verbindungen)}.")
+
+
+def _richtung(von: str, nach: str, text: str) -> str:
+    return f"{text}: Pfeil von „{von}“ zu „{nach}“"
+
+
+@art("usecase", "Use-Case-Diagramm", "UML", "Anwendungsfälle lesen und modellieren: «include» oder «extend», Akteure mit Generalisierung",
+     ("Use-Case", "Use Case", "Anwendungsfall", "Anwendungsfälle"), formeln=FORMELN["usecase"])
+def usecase(rng):
+    s = rng.choice(SYSTEME)
+    firma = rng.choice(FIRMEN)
+    einleitung = f"Die {firma} plant {s['thema']}. Das Use-Case-Diagramm unten zeigt den Stand der Analyse.\n\n"
+    variante = rng.choice(["anforderung", "akteure", "lesen"])
+    inc, ext = rng.choice(s["include"]), rng.choice(s["extend"])
+    if variante == "anforderung":  # zwei Beziehungen fehlen im Bild, die Anforderungen beschreiben sie
+        paare = [(inc[0], inc[1], "«include»", inc[2]), (ext[1], ext[0], "«extend»", ext[2])]  # (Basis, anderer Fall, …)
+        rng.shuffle(paare)
+        bild = usecasediagramm(s, ohne=((inc[0], inc[1]), (ext[0], ext[1])))
+        frage = einleitung + "Zwei Anforderungen fehlen noch im Diagramm:\n\n" + "\n".join(
+            f"{i}. {p[3]}" for i, p in enumerate(paare, start=1)) + "\n\nWie werden sie im Diagramm ergänzt?"
+        felder, weg = [], []
+        for i, (basis, anderer, text, satz) in enumerate(paare, start=1):
+            optionen = [_richtung(v, n, t) for t in ("«include»", "«extend»") for v, n in ((basis, anderer), (anderer, basis))]
+            loesung = _richtung(basis, anderer, text) if text == "«include»" else _richtung(anderer, basis, text)
+            felder.append(Feld(f"a{i}", f"Anforderung {i}", loesung, typ="text", optionen=optionen))
+            weg.append(f"„{satz}“ – " + (f"„{anderer}“ gehört **jedes Mal** zu „{basis}“: **«include»**, der Pfeil zeigt vom Basisfall "
+                                         f"auf den eingebundenen Fall „{anderer}“." if text == "«include»" else
+                                         f"„{anderer}“ kommt nur **unter einer Bedingung** dazu: **«extend»**, der Pfeil zeigt von der "
+                                         f"Erweiterung auf den erweiterten Fall „{basis}“."))
+        return Aufgabe(frage, felder, schritte(*weg), titel="include oder extend", struktogramm=bild)
+    bild = usecasediagramm(s)
+    if variante == "akteure":
+        kind, eltern = next((n, e) for n, e in s["akteure"] if e)
+        eigene, geerbte = [f for f, wer in s["faelle"] if kind in wer], _nutzt(s, eltern)
+        nur_kind, nur_eltern = rng.choice(eigene), rng.choice(geerbte)
+        fragen = [("kind", f"Darf {kind} „{nur_eltern}“ nutzen?", "Ja"), ("eltern", f"Darf {eltern} „{nur_kind}“ nutzen?", "Nein")]
+        rng.shuffle(fragen)
+        frage = einleitung + (f"a) Wie viele Anwendungsfälle darf der Akteur **{kind}** nutzen, die über die Generalisierung geerbten "
+                              "mitgezählt? Fälle, die nur über «include» oder «extend» erreicht werden, zählen nicht.\n\n"
+                              + "\n\n".join(f"{b}) {f[1]}" for b, f in zip("bc", fragen)))
+        felder = [Feld("anzahl", f"Anwendungsfälle von {kind}", len(eigene) + len(geerbte), stellen=0)] + \
+            [Feld(n, text, l, typ="text", optionen=["Ja", "Nein"]) for n, text, l in fragen]
+        weg = schritte(f"{kind} ist direkt mit {_liste([f'„{f}“' for f in eigene])} verbunden ({len(eigene)})",
+                       f"Das Dreieck zeigt auf {eltern}: {kind} ist ein spezieller {eltern} und erbt {_liste([f'„{f}“' for f in geerbte])} "
+                       f"({len(geerbte)}), zusammen **{len(eigene) + len(geerbte)}**",
+                       f"{kind} darf „{nur_eltern}“ nutzen (**Ja**, geerbt); {eltern} darf „{nur_kind}“ nicht (**Nein**): "
+                       "geerbt wird nur vom allgemeinen zum speziellen Akteur")
+        return Aufgabe(frage, felder, weg, titel="Akteure und Generalisierung", struktogramm=bild)
+    fragen = [("inc", f"Läuft „{inc[1]}“ bei jedem „{inc[0]}“ mit?", "Ja"), ("ext", f"Läuft „{ext[0]}“ bei jedem „{ext[1]}“ mit?", "Nein")]
+    rng.shuffle(fragen)
+    alle = sorted([f for f, _ in s["faelle"]] + list(_rechte_spalte(s)))
+    frage = einleitung + "\n\n".join(f"{b}) {f[1]}" for b, f in zip("ab", fragen)) + \
+        f"\n\nc) Welchen Anwendungsfall erweitert „{ext[0]}“?"
+    felder = [Feld(n, text, l, typ="text", optionen=["Ja", "Nein"]) for n, text, l in fragen] + \
+        [Feld("basis", f"„{ext[0]}“ erweitert", ext[1], typ="text", optionen=alle)]
+    weg = schritte(f"„{inc[0]}“ «include» „{inc[1]}“: der eingebundene Fall läuft **jedes Mal** mit → **Ja**",
+                   f"„{ext[0]}“ «extend» „{ext[1]}“: die Erweiterung läuft nur unter einer Bedingung → **Nein**",
+                   f"Der «extend»-Pfeil zeigt von der Erweiterung auf den erweiterten Fall: **{ext[1]}**")
+    return Aufgabe(frage, felder, weg, titel="Beziehungen lesen", struktogramm=bild)

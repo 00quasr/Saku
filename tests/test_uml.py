@@ -322,3 +322,68 @@ def test_klassendiagramm_alle_modelle_und_beliebig_viele():
     feld = uml._vielheit_feld("x", "höchstens", None)
     assert all(rechnen.stimmt(feld, t) for t in ["beliebig viele", "*", "n", "unbegrenzt", "Beliebig"]) and not rechnen.stimmt(feld, "1")
     assert [uml._vielheit(m) for m in ("1", "0..1", "*", "0..*", "1..*", "0..5")] == [(1, 1), (0, 1), (0, None), (0, None), (1, None), (0, 5)]
+
+
+# --- Use-Case-Diagramm -------------------------------------------------------------------------
+
+def _usecase_modell(svg: ET.Element) -> tuple[dict, dict, list]:
+    """Akteure (mit allgemeinem Akteur), wer welchen Fall nutzt und die «include»-/«extend»-Pfeile aus der Textfassung."""
+    text = svg.get("aria-label", "")
+    akteure = dict(re.findall(r"(\w+)(?: \(erbt von (\w+)\))?", re.search(r"Akteure: (.*?)\. Anwendungsfälle", text)[1]))
+    nutzt = {}
+    for akteur, fall in re.findall(r"(\w+) nutzt „(.+?)“", text):
+        nutzt.setdefault(akteur, set()).add(fall)
+    return akteure, nutzt, re.findall(r"„([^“]+)“ «(include|extend)» „([^“]+)“", text)
+
+
+def _darf(akteure: dict, nutzt: dict, akteur: str) -> set[str]:
+    return nutzt.get(akteur, set()) | (_darf(akteure, nutzt, akteure[akteur]) if akteure[akteur] else set())
+
+
+def test_usecase_selbst_ausgewertet():
+    titel = set()
+    for seed, a in _alle("usecase"):
+        svg = svg_pruefen(a.struktogramm)
+        akteure, nutzt, pfeile = _usecase_modell(svg)
+        texte = set(_texte(svg))
+        assert set(akteure) <= texte and {f for fs in nutzt.values() for f in fs} <= texte
+        titel.add(a.titel)
+        felder = {f.name: f for f in a.felder}
+        if a.titel == "include oder extend":
+            # die gefragten Beziehungen fehlen im Bild; je Anforderung: «include» bei „jedes Mal“/„immer“, sonst «extend»
+            for f in a.felder:
+                satz = re.search(rf"^{f.name[1]}\. (.*)$", a.frage, re.M)[1]
+                pflicht = bool(re.search(r"jede[mnrs]?\b|immer|sofort", satz))
+                art, von, nach = re.fullmatch(r"«(\w+)»: Pfeil von „(.+?)“ zu „(.+?)“", f.loesung).groups()
+                assert (art == "include") == pflicht and (von, art, nach) not in [(v, x, n) for v, x, n in pfeile], (seed, satz)
+                assert len(set(f.optionen)) == 4 and f.loesung in f.optionen
+                # typischer Fehler: der «extend»-Pfeil in die falsche Richtung
+                falsch = f"«{art}»: Pfeil von „{nach}“ zu „{von}“"
+                assert not rechnen.pruefen(a, {f.name: falsch})[f.name]
+        elif a.titel == "Akteure und Generalisierung":
+            kind = re.search(r"Akteur \*\*(\w+)\*\*", a.frage)[1]
+            assert a.loesung["anzahl"] == len(_darf(akteure, nutzt, kind)), seed
+            assert not rechnen.pruefen(a, {"anzahl": str(len(nutzt[kind]))})["anzahl"]  # nur die eigenen gezählt: falsch
+            for f in a.felder[1:]:
+                wer, fall = re.fullmatch(r"Darf (\w+) „(.+)“ nutzen\?", f.label).groups()
+                assert f.loesung == ("Ja" if fall in _darf(akteure, nutzt, wer) else "Nein"), (seed, f.label)
+        else:
+            for f in a.felder[:2]:
+                teil, basis = re.fullmatch(r"Läuft „(.+)“ bei jedem „(.+)“ mit\?", f.label).groups()
+                assert f.loesung == ("Ja" if (basis, "include", teil) in pfeile else "Nein") and \
+                    ((basis, "include", teil) in pfeile or (teil, "extend", basis) in pfeile), seed
+            erweiterung = re.search(r"Welchen Anwendungsfall erweitert „(.+?)“", a.frage)[1]
+            assert [(e, n) for e, x, n in pfeile if x == "extend" and e == erweiterung] == [(erweiterung, felder["basis"].loesung)]
+    assert titel == {"include oder extend", "Akteure und Generalisierung", "Beziehungen lesen"}
+
+
+def test_usecase_alle_systeme_kreuzungsarm():
+    from saku.lernen.rechnen import uml
+    for s in uml.SYSTEME:
+        svg_pruefen(uml.usecasediagramm(s))
+        for inc, ext in itertools.product(s["include"], s["extend"]):
+            svg_pruefen(uml.usecasediagramm(s, ohne=((inc[0], inc[1]), (ext[0], ext[1]))))
+        assert {e for e, _ in s["akteure"]} >= {a for _, a in s["akteure"] if a}  # Generalisierung nur zwischen bekannten Akteuren
+        assert any(a for _, a in s["akteure"])
+        assert all(re.search(r"jede[mnrs]?\b|immer|sofort", satz) for *_, satz in s["include"])
+        assert not any(re.search(r"jede[mnrs]?\b|immer|sofort", satz) for *_, satz in s["extend"])
