@@ -1450,3 +1450,12 @@ def test_sql_aufgabe_ausfuehren_pruefen_aufgeben(client, con):
     html = client.post("/rechnen/aendern/pruefen", data={"seed": seed, "feld-sql": _typisch_falsch(a.felder[0].loesung)},
                        headers=HTMX).get_data(as_text=True)
     assert "Leider falsch." in html and re.search(r"Tabelle \w+: \d+ Zeilen? fehl", html)
+
+
+def test_sql_knapp_daneben_heisst_fast_richtig(client):
+    """Richtige Zeilen ohne verlangtes ORDER BY: zählt nicht als gelöst, die Karte sagt aber nicht „Leider falsch“."""
+    seed, a = next((s, a) for s in range(500) if "ORDER BY" in (a := rechnen.erzeugen("select", s)).felder[0].loesung.upper())
+    ohne = re.sub(r"\s*ORDER BY.*?(;|$)", r"\1", a.felder[0].loesung, flags=re.I | re.S)
+    html = client.post("/rechnen/select/pruefen", data={"seed": seed, f"feld-{a.felder[0].name}": ohne},
+                       headers={"HX-Request": "true"}).get_data(as_text=True)
+    assert "Fast richtig." in html and "keiko-urteil--2" in html and "Leider falsch." not in html
