@@ -3,11 +3,39 @@ Teilaufgabe = [Jahr, Saison, Teil, Bereich, Beruf, Aufgabe, Kennung] (eindeutig 
 Thema = Slug, Station = Lernpfad und Slugs ihrer Themen (so erkennt auch die Pipeline eine Station wieder),
 Rechenübung = Art, Seed und Zeitpunkt. Nicht dabei: Katalog (auch sql_sandbox), Vektoren, Sensei-Gespräche und KI-Protokoll."""
 
+import json
+import math
+import re
 import sqlite3
 from datetime import datetime, timezone
 
 FORMAT = "saku-lernstand"
 VERSION = 1
+_ZEIT = re.compile(r"\d{4}-\d\d-\d\d \d\d:\d\d:\d\d")  # wie in der Datenbank (UTC)
+
+
+def _passt(z: dict, **felder: str) -> bool:
+    """Hat die Zeile aus der Datei die Form, mit der Saku später rechnet? zeit, int, zahl, text, json; mit „?“ auch leer.
+    Sonst brächen nach dem Import Heute, Verlauf oder Rechnen ab (z. B. an einem Zeitpunkt „gestern“)."""
+    for name, art in felder.items():
+        wert = z.get(name)
+        if wert is None and art.endswith("?"):
+            continue
+        art = art.rstrip("?")
+        if art == "zeit":
+            ok = isinstance(wert, str) and _ZEIT.fullmatch(wert)
+        elif art in ("int", "zahl"):
+            ok = isinstance(wert, (int, float) if art == "zahl" else int) and not isinstance(wert, bool) and math.isfinite(wert)
+        elif art == "json":
+            try:
+                ok = isinstance(json.loads(wert), dict)
+            except (TypeError, ValueError):
+                ok = False
+        else:
+            ok = isinstance(wert, str)
+        if not ok:
+            return False
+    return True
 
 
 def _teilaufgaben(con: sqlite3.Connection) -> dict[int, list]:
@@ -101,7 +129,8 @@ def importieren(con: sqlite3.Connection, daten: dict) -> dict[str, list[int]]:
         # Karten nur, wenn die importierte neuer ist: ein Import überschreibt nichts, was danach gelernt wurde
         for z in daten.get("karten", []):
             t_id = teilaufgabe(z)
-            zaehlen("karten", bool(t_id) and einfuegen(
+            zaehlen("karten", bool(t_id) and _passt(z, serie="int", fsrs="json?", faellig_am="zeit?", geaendert_am="zeit")
+                    and einfuegen(
                 "INSERT INTO karte (teilaufgabe_id, status, serie, fsrs, faellig_am, markiert, notiz, geaendert_am) "
                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (teilaufgabe_id) DO UPDATE SET status = excluded.status, "
                 "serie = excluded.serie, fsrs = excluded.fsrs, faellig_am = excluded.faellig_am, markiert = excluded.markiert, "
@@ -110,7 +139,8 @@ def importieren(con: sqlite3.Connection, daten: dict) -> dict[str, list[int]]:
 
         for z in daten.get("bewertungen", []):
             t_id = teilaufgabe(z)
-            zaehlen("bewertungen", bool(t_id) and einfuegen(
+            zaehlen("bewertungen", bool(t_id) and _passt(z, zeitpunkt="zeit", dauer_s="int?", punkte="zahl?", antwort="text?")
+                    and einfuegen(
                 "INSERT INTO bewertung (teilaufgabe_id, zeitpunkt, ergebnis, quelle, dauer_s, antwort, punkte) "
                 "SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7 WHERE NOT EXISTS (SELECT 1 FROM bewertung "
                 "WHERE teilaufgabe_id = ?1 AND zeitpunkt = ?2 AND ergebnis = ?3 AND quelle = ?4)",
@@ -118,14 +148,15 @@ def importieren(con: sqlite3.Connection, daten: dict) -> dict[str, list[int]]:
 
         for z in daten.get("luecken", []):
             t_id = teilaufgabe(z)
-            zaehlen("luecken", bool(t_id) and einfuegen(
+            zaehlen("luecken", bool(t_id) and _passt(z, text="text", operator="text?", zeitpunkt="zeit") and einfuegen(
                 "INSERT INTO luecke (teilaufgabe_id, text, operator, zeitpunkt) SELECT ?1, ?2, ?3, ?4 WHERE NOT EXISTS "
                 "(SELECT 1 FROM luecke WHERE teilaufgabe_id = ?1 AND text = ?2 AND zeitpunkt = ?4)",
                 t_id, z["text"], z["operator"], z["zeitpunkt"]))
 
         for z in daten.get("begriff_karten", []):
             begriff = con.execute("SELECT id FROM begriff WHERE name = ?", (z["begriff"],)).fetchone()
-            zaehlen("begriff_karten", bool(begriff) and einfuegen(
+            zaehlen("begriff_karten", bool(begriff) and _passt(z, serie="int", fsrs="json?", faellig_am="zeit?", geaendert_am="zeit?")
+                    and einfuegen(
                 "INSERT INTO begriff_karte (begriff_id, status, serie, fsrs, faellig_am, geaendert_am) VALUES (?, ?, ?, ?, ?, ?) "
                 "ON CONFLICT (begriff_id) DO UPDATE SET status = excluded.status, serie = excluded.serie, fsrs = excluded.fsrs, "
                 "faellig_am = excluded.faellig_am, geaendert_am = excluded.geaendert_am "
@@ -133,7 +164,10 @@ def importieren(con: sqlite3.Connection, daten: dict) -> dict[str, list[int]]:
                 begriff[0], z["status"], z["serie"], z["fsrs"], z["faellig_am"], z["geaendert_am"]))
 
         for s in daten.get("simulationen", []):
-            if con.execute("SELECT 1 FROM simulation WHERE bereich = ? AND gestartet_am = ?", (s["bereich"], s["gestartet_am"])).fetchone():
+            if not _passt(s, bereich="text", gestartet_am="zeit", beendet_am="zeit?", dauer_min="int", punkte_erreicht="zahl?",
+                          punkte_moeglich="zahl?") or not all(_passt(z, position="int", punkte_erreicht="zahl?", antwort="text?")
+                                                              for z in s["teilaufgaben"]) or con.execute(
+                    "SELECT 1 FROM simulation WHERE bereich = ? AND gestartet_am = ?", (s["bereich"], s["gestartet_am"])).fetchone():
                 zaehlen("simulationen", False)
                 continue
             sim_id = con.execute(
@@ -149,13 +183,15 @@ def importieren(con: sqlite3.Connection, daten: dict) -> dict[str, list[int]]:
 
         for z in daten.get("stationstests", []):
             s_id = stationen.get((z["pfad"], tuple(z["themen"])))
-            zaehlen("stationstests", bool(s_id) and einfuegen(
+            zaehlen("stationstests", bool(s_id) and _passt(z, gestartet_am="zeit", beendet_am="zeit?", punkte_erreicht="zahl?",
+                                                              punkte_moeglich="zahl?") and einfuegen(
                 "INSERT INTO stationstest (station_id, gestartet_am, beendet_am, punkte_erreicht, punkte_moeglich, bestanden) "
                 "SELECT ?1, ?2, ?3, ?4, ?5, ?6 WHERE NOT EXISTS (SELECT 1 FROM stationstest WHERE station_id = ?1 AND gestartet_am = ?2)",
                 s_id, z["gestartet_am"], z["beendet_am"], z["punkte_erreicht"], z["punkte_moeglich"], z["bestanden"]))
 
         for z in daten.get("rechenuebungen", []):
-            zaehlen("rechenuebungen", einfuegen(
+            zaehlen("rechenuebungen", _passt(z, art="text", seed="int", felder_richtig="int", felder_gesamt="int", dauer_s="int?",
+                                             zeitpunkt="zeit") and einfuegen(
                 "INSERT INTO rechenuebung (art, seed, richtig, felder_richtig, felder_gesamt, dauer_s, zeitpunkt) "
                 "SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7 WHERE NOT EXISTS "
                 "(SELECT 1 FROM rechenuebung WHERE art = ?1 AND seed = ?2 AND zeitpunkt = ?7)",
