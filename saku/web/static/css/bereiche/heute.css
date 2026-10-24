@@ -52,7 +52,7 @@ a.flaeche:hover { border-color: var(--sumi-mittel); }
 .heute-rechnen:hover { color: var(--sumi); }
 .heute-rechnen [lang="ja"] { color: var(--shu); margin-right: 2px; }
 
-.reife-inhalt { display: flex; align-items: center; gap: 22px; }
+.reife-inhalt { display: flex; flex-wrap: wrap; align-items: center; gap: 22px; }  /* schmal: die Liste rutscht unter das Ensō statt aus der Karte */
 .heute-enso { display: grid; place-items: center; flex: none; }
 .heute-enso > * { grid-area: 1 / 1; }
 .heute-enso-zahl { font-weight: 300; font-size: 1.75rem; line-height: 1; letter-spacing: -0.02em; }
@@ -95,10 +95,10 @@ a.flaeche:hover { border-color: var(--sumi-mittel); }
 .luecke-beispiel { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
 /* Mini-Trittsteine: geschafft in Tusche, aktuell in Zinnoberrot, gesperrt nur umrandet */
-.mini-steine { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; margin: 2px 0; }
+.mini-steine { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; margin: 2px 0; }  /* sieben Steine passen auch bei 1024 px in eine Zeile */
 .mini-stein { position: relative; width: 14px; height: 14px; flex: none; border: 1.5px solid var(--sumi-mittel); }
 .mini-stein + .mini-stein::before {
-  content: ""; position: absolute; top: 50%; right: calc(100% + 4px); width: 16px; border-top: 1px dotted var(--sumi-mittel);
+  content: ""; position: absolute; top: 50%; right: calc(100% + 4px); width: 12px; border-top: 1px dotted var(--sumi-mittel);
 }
 .mini-stein--fertig { background: var(--sumi); border-color: var(--sumi); }
 .mini-stein--fertig + .mini-stein::before { border-top: 1px solid var(--sumi-mittel); }
