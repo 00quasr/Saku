@@ -34,7 +34,8 @@ def test_jede_art_deterministisch_abwechslungsreich_und_selbst_lesbar(art):
         assert a.art == art and a.titel and a.themen and a.felder and len({f.name for f in a.felder}) == len(a.felder)
         # was Saku als richtigen Wert anzeigt, muss die Kontrolle selbst als richtig erkennen
         assert all(rechnen.pruefen(a, {f.name: f.anzeige for f in a.felder}).values()), (seed, a.titel)
-        assert not any(rechnen.pruefen(a, {}).values())
+        leer = rechnen.pruefen(a, {})  # leer ist nur richtig, wo die Lösung leer ist (freie Plätze beim Hashing)
+        assert all(leer[f.name] == (f.loesung == "") for f in a.felder)
         assert "Demo GmbH" in a.frage or any(f in a.frage for f in ("Muster AG", "Beispiel KG", "Fiktiv", "Probe & Partner"))
         fragen.add(a.frage)
     assert len(fragen) > len(SEEDS) * 0.6
@@ -189,16 +190,22 @@ def test_passende_art_zu_themen():
         "nutzwert": ["Nutzwertanalyse bei der Lieferantenwahl", "Entscheidungsmatrix"],
         "netzplan": ["Netzplantechnik", "Gantt-Diagramm erstellen", "Projektplanung und Termine"],
         "schreibtisch": ["Schreibtischtest mit Wertetabelle", "Kontrollstrukturen in Pseudocode", "Programmcode lesen und verstehen"],
+        "sortieren": ["Sortierverfahren vergleichen", "Bubblesort und Quicksort"],
+        "binaersuche": ["Suchalgorithmen im Array", "Binäre Suche"],
+        "hashing": ["Hashtabellen und Kollisionen", "Assoziative Arrays"],
+        "baum": ["Binärbaum durchlaufen", "Bäume und Graphen"],
+        "stapel": ["Stack und Heap", "Warteschlangen im Druckdienst"],
+        "verfuegbarkeit": ["Verfügbarkeit von Diensten", "Hochverfügbarkeit im Rechenzentrum", "MTBF und MTTR", "Redundanz im Netz"],
     }
     for slug, namen in passt.items():
         for name in namen:
             art = rechnen.passend([name])
             assert art and art.slug == slug, name
     # früher zu breit: „Binär“, „Bandbreite“, „Übertragung“, „Strom“, „Speicher“, „Netz“, „Elektrische“, „IP-Adresse“
-    for name in ["Binärbäume und Graphen", "Binäre Suche", "Bandbreitenmanagement mit QoS", "Übertragungsmedien im Gebäude",
+    for name in ["Bandbreitenmanagement mit QoS", "Übertragungsmedien im Gebäude",
                  "Datenstrom-Verarbeitung", "Speicherverwaltung im Betriebssystem", "Netzwerkmonitoring", "Elektrische Sicherheit prüfen",
                  "Energielabel und Gütesiegel", "NAT mit privaten Adressen", "Vertragsarten im Kaufrecht", "Laufzeit und Speicherbedarf",
-                 "Fehlersuche im Netzwerk", None]:
+                 "Fehlersuche im Netzwerk", "Hashwerte und digitale Signaturen", "Gruppenrichtlinien", None]:
         assert rechnen.passend([name]) is None, name
     # mehrere Themen: das erste passende (Keiko sortiert nach Gewicht)
     assert rechnen.passend(["Scrum", "Netzplantechnik", "RAID-Level"]).slug == "netzplan"
@@ -376,3 +383,104 @@ def test_formelsammlung(client):
     assert befehle("formelsammlung")[0][3] == ("rechnen.formeln", {})
     karte = client.post("/rechnen/raid/pruefen", data={"seed": 1, "aufgeben": "1"}, headers=HTMX).get_data(as_text=True)
     assert "Formeln: RAID" in karte and 'href="/rechnen/formeln#raid"' in karte  # dieselbe Quelle wie die Sammlung
+
+
+# --- Algorithmen und Verfügbarkeit (Runde 3) -------------------------------------
+
+def _array(text: str) -> list[int]:
+    return _folge(re.search(r"`\[([\d, ]+)\]`", text)[1])
+
+
+def test_sortieren_mit_eigenschaften():
+    for seed, a in _alle("sortieren"):
+        start, l = _array(a.frage), a.loesung
+        if "Vertauschungen" in a.titel:
+            inversionen = sum(1 for i in range(len(start)) for j in range(i + 1, len(start)) if start[i] > start[j])
+            if a.titel.startswith("Bubblesort"):
+                assert l["tausch"] == inversionen
+            else:  # Selectionsort: ein Tausch je Stelle, an der das Minimum noch nicht steht
+                rest, tausch = list(start), 0
+                for i in range(len(rest) - 1):
+                    k = rest.index(min(rest[i:]), i)
+                    tausch += k != i
+                    rest[i], rest[k] = rest[k], rest[i]
+                assert l["tausch"] == tausch
+            continue
+        k = int(re.search(r"\*\*(\d)\. Durchlauf", a.frage)[1])
+        nach = [l[f"i{i}"] for i in range(len(start))]
+        assert sorted(nach) == sorted(start)
+        if a.titel.startswith("Bubblesort"):
+            assert nach[-k:] == sorted(start)[-k:]
+        elif a.titel.startswith("Selectionsort"):
+            assert nach[:k] == sorted(start)[:k]
+        else:
+            assert nach[:k + 1] == sorted(start[:k + 1]) and nach[k + 1:] == start[k + 1:]
+
+
+def test_binaersuche_rekursiv_nachgerechnet():
+    def suche(werte, x, links, rechts):
+        if links > rechts:
+            return []
+        mitte = (links + rechts) // 2
+        if werte[mitte] == x:
+            return [x]
+        return [werte[mitte]] + (suche(werte, x, mitte + 1, rechts) if werte[mitte] < x else suche(werte, x, links, mitte - 1))
+    for seed, a in _alle("binaersuche"):
+        werte, x = _array(a.frage), int(re.search(r"Gesucht wird \*\*(\d+)\*\*", a.frage)[1])
+        erwartet = suche(werte, x, 0, len(werte) - 1)
+        assert _folge(a.loesung["werte"]) == erwartet and a.loesung["anzahl"] == len(erwartet) <= len(werte).bit_length()
+        assert (a.titel == "Gefunden") == (x in werte)
+
+
+def test_hashing_und_baum_und_stapel():
+    for seed, a in _alle("hashing"):
+        m = int(re.search(r"m = (\d+)", a.frage)[1])
+        tabelle_ = {}
+        for k in _folge(re.search(r"nacheinander: \*\*(.*?)\*\*", a.frage)[1]):
+            i = k % m
+            while i in tabelle_:
+                i = (i + 1) % m
+            tabelle_[i] = k
+        if "i0" in a.loesung:
+            assert [a.loesung[f"i{i}"] for i in range(m)] == [tabelle_.get(i, "") for i in range(m)]
+        else:
+            k = int(re.search(r"Schlüssel \*\*(\d+)\*\*", a.frage)[1])
+            assert tabelle_[a.loesung["index"]] == k
+    for seed, a in _alle("baum"):
+        schluessel = _folge(re.search(r"nacheinander:\n\n\*\*(.*?)\*\*", a.frage)[1])
+        if "in" in a.loesung:
+            assert _folge(a.loesung["in"]) == sorted(schluessel)
+        if "pre" in a.loesung:  # die Preorder neu eingefügt ergibt denselben Baum, also wieder dieselbe Preorder
+            from saku.lernen.rechnen.algorithmen import durchlauf, suchbaum
+            pre = _folge(a.loesung["pre"])
+            assert pre[0] == schluessel[0] and durchlauf(suchbaum(pre), "pre") == pre
+        assert 3 <= a.loesung["hoehe"] <= len(schluessel)
+    for seed, a in _alle("stapel"):
+        inhalt, ausgabe = [], []
+        for op, wert in re.findall(r"(\w+)\((\d*)\)", re.search(r"`(.*?)`", a.frage)[1]):
+            if wert:
+                inhalt.append(int(wert))
+            else:
+                ausgabe.append(inhalt.pop() if op == "pop" else inhalt.pop(0))
+        assert _folge(a.loesung["ausgabe"]) == ausgabe and _folge(a.loesung["inhalt"]) == inhalt and inhalt
+
+
+def test_verfuegbarkeit_nachgerechnet():
+    def prozent(text):
+        return _zahl(text) / 100
+    for seed, a in _alle("verfuegbarkeit"):
+        l = a.loesung
+        if a.titel == "Ausfallzeit aus Prozent":
+            v = prozent(re.search(r"Verfügbarkeit von \*\*([\d,]+) %", a.frage)[1])
+            assert l["jahr"] == pytest.approx((1 - v) * 365 * 24) and l["monat"] == pytest.approx((1 - v) * 30 * 24 * 60)
+        elif a.titel == "MTBF und MTTR":
+            mtbf, mttr = (_zahl(x) for x in re.findall(r"\*\*([\d.]+) Stunden", a.frage))
+            assert l["v"] == pytest.approx(100 * mtbf / (mtbf + mttr))
+        elif a.titel == "Seriell und redundant":
+            router, firewall, server, storage = (prozent(x) for x in re.findall(r": ([\d,]+) %", a.frage))
+            n = int(re.search(r"\*\*(\d) redundanten", a.frage)[1])
+            assert l["gesamt"] == pytest.approx(100 * router * firewall * (1 - (1 - server) ** n) * storage)
+        else:
+            stunden = int(re.search(r"höchstens \*\*(\d+) Stunde", a.frage)[1])
+            angebot = prozent(re.search(r"SLA mit \*\*([\d,]+) %", a.frage)[1])
+            assert l["noetig"] == pytest.approx(100 * (1 - stunden / 8760)) and (l["reicht"] == "Ja") == (angebot > 1 - stunden / 8760)

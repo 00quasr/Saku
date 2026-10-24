@@ -43,8 +43,10 @@
 /* Eingabetabelle (Wertetabelle, Array): die Grundform kommt aus Üben (.tabelle-eingabe) */
 .rechnen-tabelle { max-width: max-content; }
 .rechnen-tabelle th[scope="row"] { background: none; font-weight: 500; color: var(--sumi-mittel); }
-.rechnen-tabelle td { min-width: 4.5rem; vertical-align: top; }
-.rechnen-tabelle input { font-family: var(--schrift-code); font-variant-numeric: tabular-nums; }
+.rechnen-tabelle :is(th, td) { padding: 6px 8px; }
+.rechnen-tabelle td { vertical-align: top; }
+/* Arrays mit bis zu 11 Plätzen sollen ohne Scrollen in die Lesebreite passen */
+.rechnen-tabelle input { min-width: 2.75rem; padding: 4px 5px; font-family: var(--schrift-code); font-variant-numeric: tabular-nums; }
 .rechnen-tabelle input:disabled { opacity: 1; border-style: solid; }
 .rechnen-zelle--richtig input { border-color: var(--matcha); background: color-mix(in oklab, var(--matcha) 10%, var(--washi)); }
 .rechnen-zelle--falsch input { border-color: var(--beni); background: color-mix(in oklab, var(--beni) 10%, var(--washi)); }

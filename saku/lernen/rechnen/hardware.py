@@ -26,6 +26,13 @@ FORMELN = {
 - Effizienz = Nutzkapazität : Gesamtkapazität
 
 *Beispiel:* RAID 5 aus 4 × 8 TB: 3 · 8 = 24 TB nutzbar, Effizienz 75 %, 1 Ausfall""",
+    "verfuegbarkeit": """- Verfügbarkeit V = Betriebszeit : Gesamtzeit; Ausfallzeit = (1 − V) · Gesamtzeit
+- Hier: Jahr = 365 Tage = 8.760 h, Monat = 30 Tage = 720 h = 43.200 min
+- Seriell (alle Komponenten nötig): V = V₁ · V₂ · …
+- Parallel (redundant, eine reicht): V = 1 − (1 − V₁) · (1 − V₂) · …
+- Aus MTBF (mittlere Zeit zwischen Ausfällen) und MTTR (mittlere Reparaturzeit): V = MTBF : (MTBF + MTTR)
+
+*Beispiel:* 99,9 % im Jahr: 0,001 · 8.760 h = 8,76 h Ausfall; zwei Server mit je 99 % redundant: 1 − 0,01 · 0,01 = 99,99 %""",
 }
 
 
@@ -237,3 +244,75 @@ def _gemischt(rng):
     )
     felder = [Feld("nutz", "Nutzkapazität", nutz(n) * kleinste, "TB"), Feld("frei", "Ungenutzt", brutto - n * kleinste, "TB")]
     return Aufgabe(frage, felder, weg, titel="Platten verschiedener Größe")
+
+
+# --- Verfügbarkeit ------------------------------------------------------------
+
+def _prozent(v: float, stellen: int = 3) -> str:
+    return f"{de(v * 100, stellen)} %"
+
+
+@art("verfuegbarkeit", "Verfügbarkeit", "Strom & Hardware", "Ausfallzeit aus Prozent, seriell und redundant, MTBF und MTTR",
+     ("Verfügbarkeit", "Ausfallsicherheit", "Ausfallwahrscheinlichkeit", "MTBF", "Redundanz"), formeln=FORMELN["verfuegbarkeit"])
+def verfuegbarkeit(rng):
+    return rng.choice([_ausfallzeit, _sla, _system, _mtbf])(rng)
+
+
+def _ausfallzeit(rng):
+    v = rng.choice([0.99, 0.995, 0.998, 0.999, 0.9995, 0.9999])
+    jahr, monat = (1 - v) * 8760, (1 - v) * 43200
+    frage = (f"Der Hoster der {rng.choice(FIRMEN)} garantiert für den Webserver eine Verfügbarkeit von **{_prozent(v, 2)}**.\n\n"
+             "Wie lange darf der Server höchstens ausfallen: in Stunden pro Jahr (365 Tage) und in Minuten pro Monat (30 Tage)?")
+    weg = schritte(f"Erlaubter Ausfall: 100 % − {_prozent(v, 2)} = {_prozent(1 - v, 2)} = {de(1 - v, 4)}",
+                   f"Jahr: {de(1 - v, 4)} · 8.760 h = **{de(jahr)} h**",
+                   f"Monat: {de(1 - v, 4)} · 43.200 min = **{de(monat, 1)} min**")
+    felder = [Feld("jahr", "Ausfall pro Jahr", jahr, "h"), Feld("monat", "Ausfall pro Monat", monat, "min", stellen=1)]
+    return Aufgabe(frage, felder, weg, toleranz=0.002, titel="Ausfallzeit aus Prozent")
+
+
+def _sla(rng):
+    while True:
+        stunden = rng.choice([1, 2, 4, 6, 8, 10, 12, 24])
+        noetig = 1 - stunden / 8760
+        angebot = rng.choice([0.995, 0.998, 0.999, 0.9995, 0.9999])
+        if abs(angebot - noetig) > 0.00005:
+            break
+    reicht = "Ja" if angebot > noetig else "Nein"
+    frage = (f"Das Warenwirtschaftssystem der {rng.choice(FIRMEN)} darf im Jahr (365 Tage) höchstens **{stunden} "
+             f"{'Stunde' if stunden == 1 else 'Stunden'}** ausfallen. Ein Rechenzentrum bietet ein SLA mit **{_prozent(angebot, 2)}** "
+             "Verfügbarkeit an.\n\nWelche Verfügbarkeit ist mindestens nötig (drei Nachkommastellen), und reicht das Angebot?")
+    weg = schritte(f"Nötig: 1 − {stunden} h : 8.760 h = {de(noetig, 6)} = **{_prozent(noetig)}**",
+                   f"Angebot {_prozent(angebot, 2)} {'>' if reicht == 'Ja' else '<'} {_prozent(noetig)} → **{reicht}**")
+    felder = [Feld("noetig", "Nötige Verfügbarkeit", noetig * 100, "%", stellen=3),
+              Feld("reicht", "Reicht das Angebot?", reicht, typ="text", optionen=["Ja", "Nein"])]
+    return Aufgabe(frage, felder, weg, toleranz=0.00001, titel="Nötige Verfügbarkeit")
+
+
+def _system(rng):
+    router, firewall, storage = rng.choice([0.995, 0.998, 0.999]), rng.choice([0.998, 0.999, 0.9995]), rng.choice([0.995, 0.998, 0.999])
+    server, anzahl = rng.choice([0.95, 0.97, 0.98, 0.99]), rng.choice([2, 2, 3])
+    cluster = 1 - (1 - server) ** anzahl
+    gesamt = router * firewall * cluster * storage
+    frage = (f"Ein Dienst der {rng.choice(FIRMEN)} ist nur erreichbar, wenn Router, Firewall, der Server-Verbund und das Storage "
+             f"laufen (in Reihe). Der Server-Verbund besteht aus **{anzahl} redundanten Servern**; einer reicht.\n\n"
+             f"- Router: {_prozent(router, 2)}\n- Firewall: {_prozent(firewall, 2)}\n- je Server: {_prozent(server, 2)}\n"
+             f"- Storage: {_prozent(storage, 2)}\n\nBerechnen Sie die Verfügbarkeit des Server-Verbunds und des gesamten Dienstes "
+             "(in Prozent, drei Nachkommastellen).")
+    weg = schritte(f"Server-Verbund parallel: 1 − (1 − {de(server, 4)}){'²' if anzahl == 2 else '³'} = 1 − {de(1 - server, 4)}"
+                   f"{'²' if anzahl == 2 else '³'} = **{_prozent(cluster)}**",
+                   f"Gesamt in Reihe: {de(router, 4)} · {de(firewall, 4)} · {de(cluster, 6)} · {de(storage, 4)} = **{_prozent(gesamt)}**",
+                   "In Reihe sinkt die Verfügbarkeit mit jedem Glied, Redundanz hebt sie an.")
+    felder = [Feld("cluster", "Server-Verbund", cluster * 100, "%", stellen=3), Feld("gesamt", "Gesamter Dienst", gesamt * 100, "%", stellen=3)]
+    return Aufgabe(frage, felder, weg, toleranz=0.00001, titel="Seriell und redundant")
+
+
+def _mtbf(rng):
+    mtbf, mttr = rng.choice([2000, 4000, 5000, 8760, 10000, 20000]), rng.choice([2, 4, 6, 8, 12, 24])
+    v = mtbf / (mtbf + mttr)
+    frage = (f"Laut Datenblatt hat ein Switch der {rng.choice(FIRMEN)} eine MTBF von **{de(mtbf)} Stunden**; eine Reparatur dauert "
+             f"im Mittel (MTTR) **{mttr} Stunden**.\n\nBerechnen Sie die Verfügbarkeit in Prozent (drei Nachkommastellen) und die zu "
+             "erwartende Ausfallzeit pro Jahr (365 Tage) in Stunden.")
+    weg = schritte(f"V = MTBF : (MTBF + MTTR) = {de(mtbf)} : {de(mtbf + mttr)} = {de(v, 6)} = **{_prozent(v)}**",
+                   f"Ausfall pro Jahr: (1 − {de(v, 6)}) · 8.760 h = **{de((1 - v) * 8760)} h**")
+    felder = [Feld("v", "Verfügbarkeit", v * 100, "%", stellen=3), Feld("ausfall", "Ausfall pro Jahr", (1 - v) * 8760, "h")]
+    return Aufgabe(frage, felder, weg, toleranz=0.002, titel="MTBF und MTTR")

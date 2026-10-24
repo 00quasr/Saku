@@ -6,7 +6,7 @@ import re
 
 from saku.lernen.antwort import zahl
 # melden ihre Arten an; die Reihenfolge hier ist die Reihenfolge der Arten (nach Nutzen für die AP1)
-from saku.lernen.rechnen import netzwerk, daten, hardware, wirtschaft, projekt, programmieren  # noqa: F401, I001
+from saku.lernen.rechnen import netzwerk, daten, hardware, wirtschaft, projekt, programmieren, algorithmen  # noqa: F401, I001
 from saku.lernen.rechnen.basis import ARTEN, GRUPPEN, Art, Aufgabe, Feld
 
 __all__ = ["ARTEN", "GRUPPEN", "Art", "Aufgabe", "Feld", "erzeugen", "pruefen", "stimmt", "passend", "gemischt"]
