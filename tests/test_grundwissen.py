@@ -1,6 +1,7 @@
 """Grundwissen umgekehrt: Definition lesen, unter vier Begriffen wählen (Demo-Daten, erfundene Begriffe)."""
 
 import re
+from datetime import datetime, timedelta, timezone
 
 import numpy as np
 import pytest
@@ -80,3 +81,13 @@ def test_umgekehrt_waehlen_und_umschalten(client, con, begriffe):
     assert client.post("/keiko/grundwissen/999/bewerten", data={"wahl": 1}).status_code == 400
     weiter = client.get(f"/keiko/grundwissen?modus=umgekehrt&runde={erste},{zweite}", headers=HTMX).get_data(as_text=True)
     assert "<html" not in weiter and f"/keiko/grundwissen/{erste}/bewerten" not in weiter
+
+
+def test_seitenleiste_zaehlt_weiter_die_teilaufgaben(client, con, begriffe):
+    """Die fälligen Begriffe überschreiben nicht die Zahl fälliger Teilaufgaben an „Üben“ in der Seitenleiste."""
+    karten.bewerten(con, 1, 1, jetzt=datetime.now(timezone.utc) - timedelta(days=30))
+    con.commit()
+    n = con.execute("SELECT COUNT(*) FROM v_faellig").fetchone()[0]
+    for url in ("/keiko/grundwissen", "/keiko/grundwissen?modus=umgekehrt"):
+        html = client.get(url).get_data(as_text=True)
+        assert n and f'aria-label="{n} fällig"' in html and f"· 0 fällig · {len(BEGRIFFE)} neu" in html
