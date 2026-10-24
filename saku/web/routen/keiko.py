@@ -6,7 +6,7 @@ from datetime import date, datetime, timezone
 
 from flask import Blueprint, abort, make_response, render_template, request, url_for
 
-from saku.lernen import antwort, karten, rechnen, rueckblick, sql, tagesziel
+from saku.lernen import antwort, karten, rechnen, rueckblick, sql, stichpunkte, tagesziel
 from saku.web import db, seite_oder_fragment
 from saku.web.routen.heute import datum_lang
 
@@ -249,8 +249,13 @@ def index():
 @bp.get("/<int:t_id>/loesung")
 def loesung(t_id):
     # mit eigener Antwort holt sich die Lösung gleich den Bewertungsvorschlag von Sensei
-    return render_template("keiko/_loesung.html", karte=_teilaufgabe_oder_404(db(), t_id),
-                           antwort=request.args.get("antwort", "").strip(), zeichnung=request.args.get("zeichnung_da") == "1")
+    karte, eigene = _teilaufgabe_oder_404(db(), t_id), request.args.get("antwort", "").strip()
+    # Freitext: kostenloser Stichpunkt-Abgleich mit der Musterlösung, nur als Hilfe zur Selbstbewertung
+    frei = not karte["antwort"] or karte["antwort"]["art"] == "frei"
+    abgleich = stichpunkte.abgleichen(eigene, karte["loesung_inhalt"] or karte["loesung_text"] or "",
+                                      karte["inhalt"] or karte["text"] or "") if frei else None
+    return render_template("keiko/_loesung.html", karte=karte, antwort=eigene, abgleich=abgleich,
+                           zeichnung=request.args.get("zeichnung_da") == "1")
 
 
 @bp.post("/<int:t_id>/pruefen")
