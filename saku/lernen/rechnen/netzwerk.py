@@ -495,7 +495,7 @@ def eui_64(rng):
 # Kurzname, Port, Transport, von Anfang an verschlüsselt, Name in der Frage, wofür, weitere richtige Namen (IANA-Standardports).
 # Transport nur als „TCP“ oder „UDP“ und Verschlüsselung nur als True/False gefragt; ein Text heißt: nicht eindeutig, nur zum Lesen
 PORTS = [
-    ("FTP", 20, "TCP", False, "FTP-Datenverbindung (aktiver Modus)", "Dateiübertragung, Daten", ("FTP-Daten", "FTP-Data")),
+    ("FTP", 20, "TCP", False, "FTP-Daten (aktiver Modus)", "Dateiübertragung, Daten", ("FTP-Daten", "FTP-Data")),
     ("FTP", 21, "TCP", False, "FTP-Steuerverbindung", "Dateiübertragung, Befehle", ("FTP-Steuerung", "FTP-Control")),
     ("SSH", 22, "TCP", True, "SSH", "verschlüsselte Fernwartung und Dateiübertragung", ("SFTP", "SCP")),
     ("Telnet", 23, "TCP", False, "Telnet", "unverschlüsselte Fernwartung, veraltet", ()),
@@ -508,14 +508,14 @@ PORTS = [
     ("POP3", 110, "TCP", False, "POP3", "E-Mails abholen", ("POP",)),
     ("NTP", 123, "UDP", False, "NTP", "Uhrzeit synchronisieren", ()),
     ("IMAP", 143, "TCP", False, "IMAP", "E-Mails auf dem Server verwalten", ("IMAP4",)),
-    ("SNMP", 161, "UDP", "nur SNMPv3, wenn eingestellt", "SNMP (Abfragen an den Agenten)", "Netzwerkgeräte überwachen", ()),
+    ("SNMP", 161, "UDP", "nur SNMPv3, wenn eingestellt", "SNMP (Abfragen)", "Netzwerkgeräte überwachen", ()),
     ("LDAP", 389, "TCP", False, "LDAP", "Verzeichnisdienst, z. B. Active Directory", ()),
     ("HTTPS", 443, "TCP (HTTP/3: UDP)", True, "HTTPS", "Webseiten über TLS", ("HTTP über TLS",)),
     ("SMB", 445, "TCP", "ab SMB 3 möglich", "SMB", "Datei- und Druckerfreigaben unter Windows", ("CIFS",)),
-    ("SMTPS", 465, "TCP", True, "SMTPS (Einlieferung, TLS von Anfang an)", "E-Mail einliefern mit implizitem TLS",
+    ("SMTPS", 465, "TCP", True, "SMTPS (implizites TLS)", "E-Mail einliefern mit implizitem TLS",
      ("Submissions", "SMTP über TLS")),
     ("Syslog", 514, "UDP", False, "Syslog", "Protokollmeldungen an einen Logserver", ()),
-    ("SMTP", 587, "TCP", False, "SMTP-Submission (Einlieferung mit STARTTLS)", "E-Mail vom Mailprogramm einliefern, meist mit STARTTLS",
+    ("SMTP", 587, "TCP", False, "SMTP-Submission (STARTTLS)", "E-Mail vom Mailprogramm einliefern, meist mit STARTTLS",
      ("Submission", "SMTP-Submission")),
     ("LDAPS", 636, "TCP", True, "LDAPS", "Verzeichnisdienst über TLS", ("LDAP über TLS",)),
     ("IMAPS", 993, "TCP", True, "IMAPS", "E-Mails auf dem Server verwalten, über TLS", ("IMAP über TLS",)),
@@ -577,7 +577,7 @@ def _steckbrief(rng):
         if transport in ("TCP", "UDP"):
             felder.append(Feld(f"t{port}", f"{name}: TCP oder UDP?", transport, typ="text", optionen=["TCP", "UDP"]))
         if isinstance(verschluesselt, bool):
-            felder.append(Feld(f"v{port}", f"{name}: von Anfang an verschlüsselt?", _ja_nein(verschluesselt), typ="text",
+            felder.append(Feld(f"v{port}", f"{name}: verschlüsselt?", _ja_nein(verschluesselt), typ="text",
                                optionen=["Ja", "Nein"]))
     return Aufgabe(frage, felder, tabelle(PORT_KOPF, _port_zeilen(auswahl)), titel="Steckbrief der Dienste")
 

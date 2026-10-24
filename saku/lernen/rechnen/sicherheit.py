@@ -377,8 +377,8 @@ SCHAEDEN = [1_500, 2_500, 4_000, 6_000, 8_000, 12_000, 20_000, 30_000, 45_000, 6
 # Bedrohung, Maßnahme, senkt sie die Häufigkeit (h) oder den Schaden je Fall (s)?
 BEDROHUNGEN = [("Stromausfall im Serverraum", "eine USV mit automatischem Herunterfahren", "s"),
                ("Ransomware-Befall der Fileserver", "Offline-Backups mit regelmäßigem Wiederherstellungstest", "s"),
-               ("Diebstahl eines Notebooks mit Kundendaten", "Festplattenverschlüsselung auf allen Notebooks", "s"),
-               ("Phishing-Angriff mit Abfluss von Zugangsdaten", "Schulungen und Zwei-Faktor-Anmeldung", "h"),
+               ("Notebook-Diebstahl mit Kundendaten", "Festplattenverschlüsselung auf allen Notebooks", "s"),
+               ("Phishing-Angriff mit Datenabfluss", "Schulungen und Zwei-Faktor-Anmeldung", "h"),
                ("DDoS-Angriff auf den Webshop", "einen DDoS-Schutzdienst des Providers", "h"),
                ("Festplattendefekt im NAS", "ein RAID 6 mit Ersatzplatte", "h"),
                ("Ausfall des Mailservers", "einen zweiten Mailserver im Cluster", "s"),

@@ -1162,8 +1162,8 @@ UDP_PORTS, TLS_PORTS = {67, 68, 69, 123, 161, 514}, {22, 443, 465, 636, 993, 995
 
 
 def test_ports_wie_iana():
-    besondere = {"FTP-Datenverbindung (aktiver Modus)": 20, "FTP-Steuerverbindung": 21, "DHCP-Server": 67, "DHCP-Client": 68,
-                 "SMTP zwischen Mailservern": 25, "SMTP-Submission (Einlieferung mit STARTTLS)": 587, "SMTPS (Einlieferung, TLS von Anfang an)": 465}
+    besondere = {"FTP-Daten (aktiver Modus)": 20, "FTP-Steuerverbindung": 21, "DHCP-Server": 67, "DHCP-Client": 68,
+                 "SMTP zwischen Mailservern": 25, "SMTP-Submission (STARTTLS)": 587, "SMTPS (implizites TLS)": 465}
     for seed, a in _alle("ports"):
         for f in a.felder:
             if a.titel == "Port → Protokoll":
@@ -1177,9 +1177,9 @@ def test_ports_wie_iana():
                 name, frage = f.label.split(": ")
                 port = besondere.get(name) or next(p for p, n in IANA.items() if n == name.split(" ")[0])
                 assert {"Port": port, "TCP oder UDP?": "UDP" if port in UDP_PORTS else "TCP",
-                        "von Anfang an verschlüsselt?": "Ja" if port in TLS_PORTS else "Nein"}[frage] == f.loesung
+                        "verschlüsselt?": "Ja" if port in TLS_PORTS else "Nein"}[frage] == f.loesung
                 # nicht eindeutig, also nie gefragt: DNS und HTTPS auch über die andere Transportart, SNMP und SMB je nach Version
-                assert not (frage == "TCP oder UDP?" and port in (53, 443)) and not (frage.startswith("von") and port in (161, 445))
+                assert not (frage == "TCP oder UDP?" and port in (53, 443)) and not (frage == "verschlüsselt?" and port in (161, 445))
     feld = next(f for _, a in _alle("ports", "Port → Protokoll") for f in a.felder if f.label == "Port 22")
     assert all(rechnen.stimmt(feld, t) for t in ["SSH", "ssh", "SFTP", "scp"]) and not rechnen.stimmt(feld, "Telnet")
 
