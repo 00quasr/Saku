@@ -255,15 +255,10 @@ def pruefen(t_id):
     karte = _teilaufgabe_oder_404(db(), t_id)
     if not antwort.pruefbar(karte["antwort"]):
         abort(400)
-    form = request.form
-    eingabe = {"wahl": form.getlist("wahl"), "zahl": form.get("zahl", ""),
-               "position": {k.removeprefix("position-"): v for k, v in form.items() if k.startswith("position-")},
-               "ziel": {k.removeprefix("ziel-"): v for k, v in form.items() if k.startswith("ziel-")}}
+    eingabe = antwort.eingabe(request.form)
     ergebnis, werte = antwort.auswerten(karte["antwort"], eingabe)
-    zusammenfassung = ", ".join(eingabe["wahl"]) or eingabe["zahl"] or ", ".join(
-        f"{k}={v}" for k, v in (eingabe["position"] | eingabe["ziel"]).items() if v)
     return render_template("keiko/_pruefung.html", karte=karte, ergebnis=ergebnis, werte=werte, eingabe=eingabe,
-                           zusammenfassung=f"Gewählt: {zusammenfassung}" if zusammenfassung else "")
+                           zusammenfassung=antwort.zusammenfassung(eingabe))
 
 
 @bp.post("/<int:t_id>/bewerten")

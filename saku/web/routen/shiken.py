@@ -1,6 +1,8 @@
 """Shiken 試験: Prüfungssimulation mit Timer, Selbstbewertung, Note und Stempel."""
 
+import json
 import math
+import re
 import uuid
 from datetime import datetime
 from itertools import groupby
@@ -8,8 +10,9 @@ from pathlib import Path
 
 import pymupdf
 from flask import Blueprint, abort, current_app, redirect, render_template, request, url_for
+from werkzeug.datastructures import MultiDict
 
-from saku.lernen import hochrechnung, karten, simulation
+from saku.lernen import antwort, hochrechnung, karten, simulation
 from saku.web import db
 
 bp = Blueprint("shiken", __name__, url_prefix="/shiken")
@@ -29,18 +32,37 @@ def _teilaufgaben(con, sim_id: int) -> list[dict]:
     zeilen = con.execute("SELECT teilaufgabe_id, antwort, punkte_erreicht FROM simulation_teilaufgabe "
                          "WHERE simulation_id = ? ORDER BY position", (sim_id,)).fetchall()
     eigenes = {z["teilaufgabe_id"]: dict(z) for z in zeilen}
-    return [t | {"eigene": eigenes[t["id"]]["antwort"], "erreicht": eigenes[t["id"]]["punkte_erreicht"]}
+    return [t | {"eigene": eigenes[t["id"]]["antwort"], "erreicht": eigenes[t["id"]]["punkte_erreicht"],
+                 "eingabe": _eingabe(t["antwort"], eigenes[t["id"]]["antwort"])}
             for t in karten.lade(con, list(eigenes))]
 
 
+def _eingabe(format_: dict | None, eigene: str | None) -> dict | None:
+    """Gespeicherte Eingabe einer automatisch prüfbaren Teilaufgabe (JSON aus antwort.eingabe).
+    None bei freien Antworten, auch bei einem Freitext von früher, damit er sichtbar bleibt."""
+    if not antwort.pruefbar(format_):
+        return None
+    if not eigene:
+        return antwort.eingabe(MultiDict())
+    try:
+        wert = json.loads(eigene)
+    except ValueError:
+        return None
+    return wert if isinstance(wert, dict) else None
+
+
 def _antworten_speichern(con, sim) -> None:
-    """Antworten bleiben änderbar, bis die Simulation ausgewertet ist (auch kurz nach Ablauf der Zeit)."""
+    """Antworten bleiben änderbar, bis die Simulation ausgewertet ist (auch kurz nach Ablauf der Zeit).
+    Anklickbare Teilaufgaben melden sich mit antwort-<id>-art (leere Auswahl schickt sonst nichts) und
+    werden als JSON gespeichert, damit die Auswertung sie prüfen kann."""
     if sim["note"] is not None:
         return
-    con.executemany(
-        "UPDATE simulation_teilaufgabe SET antwort = ? WHERE simulation_id = ? AND teilaufgabe_id = ?",
-        [(wert if wert.strip() else None, sim["id"], int(name[8:]))  # Einrückung bleibt (Pseudocode)
-         for name, wert in request.form.items() if name.startswith("antwort-") and name[8:].isdigit()])
+    werte = [(wert if wert.strip() else None, sim["id"], int(name[8:]))  # Einrückung bleibt (Pseudocode)
+             for name, wert in request.form.items() if name.startswith("antwort-") and name[8:].isdigit()]
+    for name in request.form:
+        if treffer := re.fullmatch(r"antwort-(\d+)-art", name):
+            werte.append((json.dumps(antwort.eingabe(request.form, f"antwort-{treffer[1]}-")), sim["id"], int(treffer[1])))
+    con.executemany("UPDATE simulation_teilaufgabe SET antwort = ? WHERE simulation_id = ? AND teilaufgabe_id = ?", werte)
     con.commit()
 
 
@@ -123,8 +145,13 @@ def auswertung(sim_id):
         return redirect(url_for("shiken.auswertung", sim_id=sim_id))
 
     punkte_100 = simulation.umrechnen(sim["punkte_erreicht"] or 0, sim["punkte_moeglich"] or 0)
+    teilaufgaben = _teilaufgaben(con, sim_id)
+    for t in teilaufgaben:  # anklickbare Teilaufgaben prüft Saku selbst; die Punkte stehen dann schon im Feld
+        if t["eingabe"] is not None:
+            ergebnis, werte = antwort.auswerten(t["antwort"], t["eingabe"])
+            t["auto"] = {"werte": werte, "punkte": antwort.punkte(ergebnis, t["punkte"] or 0)}
     return render_template(
-        "shiken/auswertung.html", sim=sim, teilaufgaben=_teilaufgaben(con, sim_id), punkte_100=punkte_100,
+        "shiken/auswertung.html", sim=sim, teilaufgaben=teilaufgaben, punkte_100=punkte_100,
         noten=simulation.NOTEN, kosten=simulation.kosten(con, sim_id) if sim["note"] is not None else [])
 
 

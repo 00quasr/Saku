@@ -295,3 +295,38 @@ def test_verlauf_nach_tagen_mit_filter(client, con):
 
     assert "Verlauf" in client.get("/suche/", query_string={"q": "verlauf"}).get_data(as_text=True)
     assert 'href="/keiko/verlauf"' in client.get("/").get_data(as_text=True)
+
+
+def test_shiken_wertet_anklickbare_aufgaben_aus(client, con):
+    url = client.post("/shiken/neu", data={"bereich": "Entwicklung und Umsetzung von Algorithmen"}).headers["Location"]
+    ids = [z[0] for z in con.execute("SELECT teilaufgabe_id FROM simulation_teilaufgabe ORDER BY position")]
+    auswahl, zahl, leer = ids[:3]
+    format_ = {"ziele": [], "einheit": "", "vorlage": ""}
+    con.execute("UPDATE teilaufgabe SET antwort = ? WHERE id = ?", (json.dumps(format_ | {
+        "art": "einfach", "optionen": [{"wert": "A", "text": "O(n)"}, {"wert": "B", "text": "O(n²)"}], "richtig": ["B"]}), auswahl))
+    con.execute("UPDATE teilaufgabe SET antwort = ? WHERE id IN (?, ?)",
+                (json.dumps(format_ | {"art": "zahl", "optionen": [], "richtig": ["1024"], "einheit": "Byte"}), zahl, leer))
+    con.commit()
+
+    heft = client.get(url).get_data(as_text=True)
+    assert f'name="antwort-{auswahl}-wahl"' in heft and f'name="antwort-{zahl}-art"' in heft
+    assert 'data-taste="A"' not in heft and f'name="antwort-{auswahl}"' not in heft  # keine Tasten, kein Freitext
+    client.post(url + "/speichern", data={f"antwort-{auswahl}-art": "einfach", f"antwort-{auswahl}-wahl": "B",
+                                          f"antwort-{zahl}-art": "zahl", f"antwort-{zahl}-zahl": "1024",
+                                          f"antwort-{leer}-art": "zahl"}, headers=HTMX)
+    gespeichert = json.loads(con.execute("SELECT antwort FROM simulation_teilaufgabe WHERE teilaufgabe_id = ?", (auswahl,)).fetchone()[0])
+    assert gespeichert["wahl"] == ["B"]
+    assert re.search(r'value="B"\s+checked', client.get(url).get_data(as_text=True))
+    client.post(url + "/abgeben", data={})
+
+    punkte = dict(con.execute("SELECT id, punkte FROM teilaufgabe").fetchall())
+    auswertung = client.get(url + "/auswertung").get_data(as_text=True)
+    assert f'name="punkte-{auswahl}"' in auswertung and re.search(rf'id="punkte-{auswahl}"[^>]*value="{punkte[auswahl]:g}"', auswertung)
+    assert re.search(rf'id="punkte-{leer}"[^>]*value="0"', auswertung) and "automatisch bewertet" in auswertung
+    assert "wahl-option--richtig" in auswertung and "zahl-eingabe--falsch" in auswertung
+
+    # vorbelegt ist nur ein Vorschlag: hier überschreibt die eigene Bewertung die leere Antwort
+    client.post(url + "/auswertung", data={f"punkte-{i}": punkte[i] if i in (auswahl, zahl) else 1 if i == leer else 0 for i in ids})
+    assert con.execute("SELECT antwort FROM bewertung WHERE teilaufgabe_id = ?", (auswahl,)).fetchone()[0] == "Gewählt: B"
+    fertig = client.get(url + "/auswertung").get_data(as_text=True)
+    assert fertig.count("automatisch bewertet") == 2 and "selbst bewertet, automatisch wären es 0" in fertig
