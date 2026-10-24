@@ -265,6 +265,11 @@ a:not(.btn) { color: inherit; text-underline-offset: 3px; }
 dialog.dialog > div { background: var(--washi-hell); border: 1px solid var(--linie); box-shadow: 0 24px 64px -24px rgb(0 0 0 / .45); }
 .tasten-tabelle td { padding: 6px 8px; vertical-align: middle; }
 .tasten-tabelle td:first-child { white-space: nowrap; }
+.tasten-tabelle th { padding: 16px 8px 4px; text-align: left; }
+.tasten-tabelle tbody:first-child th { padding-top: 0; }
+#hilfe-dialog > div { max-width: min(44rem, calc(100% - 2rem)); }
+#hilfe-dialog section { overflow-y: auto; }
+.tasten-tabelle td:last-child { white-space: normal; }
 
 /* --- Bewegung ------------------------------------------------------------- */
 /* Bereichswechsel: der neue Inhalt blendet kurz ein, nur Deckkraft (keine View Transitions: in WebKit ruckeln die Bilder) */
@@ -292,3 +297,6 @@ dialog.dialog > div { background: var(--washi-hell); border: 1px solid var(--lin
 .termin-chip:hover { opacity: 1; border-color: currentColor; }
 .einstellung-termin { display: grid; justify-items: end; }
 .einstellung-termin .termin-vorschlaege { justify-content: flex-end; max-width: 300px; }
+
+/* Fokusziel nach einem htmx-Tausch (tabindex="-1"): der Screenreader liest es vor; kein Rahmen, weil man es nicht bedient */
+.fokus-ziel:focus { outline: none; }

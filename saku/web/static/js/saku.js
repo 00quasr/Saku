@@ -5,7 +5,8 @@ window.saku = {
     const dialog = document.getElementById(id);
     if (!dialog || dialog.open) return;
     dialog.showModal();
-    dialog.querySelector("input, textarea")?.focus();
+    // ins Eingabefeld, sonst auf „Schließen“ (nicht auf die scrollbare Fläche, die der Browser sonst nimmt)
+    (dialog.querySelector("input, textarea") || dialog.querySelector("[aria-label='Schließen']"))?.focus();
   },
   sensei() {
     document.body.classList.toggle("sensei-offen");

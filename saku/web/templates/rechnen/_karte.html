@@ -36,7 +36,7 @@
   {% else %}
   {% set n = werte.values()|select|list|length %}
   <section class="tusche rechnen-ergebnis" aria-label="Auswertung">
-    <p class="keiko-urteil{{ '' if aufgegeben else ' keiko-urteil--' ~ (3 if n == werte|length else 2 if n else 1) }}" role="status">
+    <p class="keiko-urteil{{ '' if aufgegeben else ' keiko-urteil--' ~ (3 if n == werte|length else 2 if n else 1) }}" id="rechnen-urteil" role="status">
       {% if aufgegeben %}Hier ist der Rechenweg.{% elif n == werte|length %}Richtig.{% elif n %}{{ n }} von {{ werte|length }} richtig.{% else %}Leider falsch.{% endif %}
       {% if aufgegeben %}<span class="klein gedaempft">Zählt als nicht gelöst. Rechne die nächste selbst.</span>{% endif %}
     </p>
@@ -50,7 +50,8 @@
     </details>
     {% endif %}
     <nav class="zeile rechnen-weiter" aria-label="Weiter">
-      <button type="button" class="btn" data-taste="Enter" hx-get="{{ naechste }}" hx-target="#karte" hx-swap="outerHTML show:window:top">
+      <button type="button" class="btn" data-taste="Enter" autofocus aria-describedby="rechnen-urteil"
+              hx-get="{{ naechste }}" hx-target="#karte" hx-swap="outerHTML show:window:top">
         Nächste Aufgabe {{ m.taste('↵') }}</button>
       <a class="btn" data-variant="outline" href="{{ url_for('rechnen.index') }}">Übersicht</a>
     </nav>

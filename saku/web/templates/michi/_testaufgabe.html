@@ -12,7 +12,8 @@
             autocomplete="off" placeholder="SELECT …" onkeydown="saku.editorTaste(event)">{{ t.antwort.vorlage if t.antwort }}</textarea>
   {% endif %}
   <p class="zeile">
-    <button type="button" class="btn" data-variant="outline" hx-post="{{ url_for('michi.test_pruefen', station_id=station.id, t_id=t.id) }}"
+    <button type="button" class="btn" data-variant="outline" aria-describedby="testaufgabe-{{ t.id }}"
+            hx-post="{{ url_for('michi.test_pruefen', station_id=station.id, t_id=t.id) }}"
             hx-target="#test-{{ t.id }}" hx-swap="outerHTML">Prüfen</button>
     {% if not klick %}
     <button type="button" class="btn" data-variant="ghost" hx-get="{{ url_for('keiko.sql_tabellen', t_id=t.id) }}"
@@ -32,7 +33,7 @@
     <label for="punkte-{{ t.id }}">Deine Punkte</label>
     <input class="input zahl" type="number" id="punkte-{{ t.id }}" name="punkte-{{ t.id }}"
            min="0" max="{{ t.punkte }}" step="0.5" required inputmode="decimal"
-           {% if v %}value="{{ '%g' % v.punkte }}" aria-describedby="auto-{{ t.id }}"{% endif %}>
+           {% if v %}value="{{ '%g' % v.punkte }}" aria-describedby="auto-{{ t.id }}" autofocus{% endif %}>
     <span class="gedaempft">von {{ k.punkte(t.punkte) }}</span>
     {% if v %}{{ k.auto_hinweis(v, 'auto-' ~ t.id) }}{% endif %}
   </p>

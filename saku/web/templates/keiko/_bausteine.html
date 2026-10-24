@@ -84,7 +84,7 @@
 
 {# Tabelle aus der SQL-Sandbox (Ergebnis, Beispieldaten, Vergleich): t aus lernen/sql._tabelle #}
 {% macro sql_tabelle(t) %}
-<figure class="sql-tabelle">
+<figure class="sql-tabelle" aria-live="off">
   <figcaption class="etikett">{{ t.titel }}</figcaption>
   <div class="tabelle-rahmen">
     <table class="table">

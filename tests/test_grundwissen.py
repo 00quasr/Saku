@@ -63,7 +63,7 @@ def test_umgekehrt_waehlen_und_umschalten(client, con, begriffe):
     assert all(f'data-taste="{n}"' in html for n in range(1, 5)) and 'data-taste=" "' not in html
     erste = int(re.search(r'/keiko/grundwissen/(\d+)/bewerten', html)[1])
     name = next(n for n, i in begriffe.items() if i == erste)
-    assert name not in html.split('class="prosa begriff-definition">')[1].split("</div>")[0]  # verdeckt
+    assert name not in html.split('id="begriff-definition">')[1].split("</div>")[0]  # verdeckt
 
     richtig = client.post(f"/keiko/grundwissen/{erste}/bewerten", data={"wahl": erste, "runde": ""}, headers=HTMX).get_data(as_text=True)
     assert f"Richtig: {name}." in richtig and 'name="runde" value="' + str(erste) + '"' in richtig and "<html" not in richtig

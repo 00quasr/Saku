@@ -54,7 +54,7 @@ def test_woche_zahlen_sicher_themen_rechnen(woche):
 def test_heute_und_verlauf_zeigen_den_rueckblick(woche, client):
     for url in ("/", "/keiko/verlauf"):
         html = client.get(url).get_data(as_text=True)
-        assert "Diese Woche" in html and '<span class="zahl">9</span> Bewertungen' in html and "↑ Vorwoche 3" in html
+        assert "Diese Woche" in html and '<span class="zahl">9</span> Bewertungen' in html and 'aria-hidden="true">↑</span> Vorwoche 3' in html
         assert '<span class="zahl">2</span> sicher geworden' in html and "78 %</span> gewusst" in html
         assert "Stärkstes Thema:" in html and "Projektmanagement</a>" in html and "Modellierung mit UML</a>" in html
         assert "50 % richtig" in html

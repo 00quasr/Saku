@@ -189,3 +189,10 @@ a.held-countdown:hover .held-einheit { text-decoration: underline; text-underlin
 .woche-zahlen li { display: flex; align-items: baseline; gap: 6px; }
 .woche-zahlen .zahl { font-weight: 300; font-size: 1.75rem; line-height: 1; letter-spacing: -0.02em; }
 .woche-themen a { text-underline-offset: 3px; }
+
+/* Neu in Saku: einmal, über allem, bis „Verstanden“ */
+.heute-neu { margin-bottom: 16px; }
+.heute-neu-liste { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 8px 32px; font-size: 0.9375rem; }
+.heute-neu-liste a { text-decoration: underline; text-decoration-color: var(--sumi-mittel); text-underline-offset: 3px; }
+.heute-neu-liste a:hover { text-decoration-color: var(--shu); }
+.heute-neu-liste [lang="ja"] { color: var(--shu); margin-right: 4px; }

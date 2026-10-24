@@ -47,6 +47,7 @@
 {% endcall %}
 
 <div class="seite weit heute">
+  {% if neu %}{% include "heute/_neu.html" %}{% endif %}
   {% if laufend %}
   <p class="hinweis heute-hinweis">Eine Simulation läuft noch. <a href="{{ url_for('shiken.simulation', sim_id=laufend.id) }}">Weiter zur Simulation</a></p>
   {% endif %}
