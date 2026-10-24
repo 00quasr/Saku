@@ -61,6 +61,7 @@
         {% if t.auto %}
         {{ k.auto_hinweis(t.auto, 'auto-' ~ t.id) }}
         {% else %}
+        {% if t.stichpunkte %}{% import "keiko/_stichpunkte.html" as sp %}{{ sp.kompakt(t.stichpunkte, 'stichpunkte-' ~ t.id) }}{% endif %}
         {% with teilaufgabe=t, antwort=t.eigene, feld_id='punkte-' ~ t.id %}{% include "sensei/_punkte_vorschlag.html" ignore missing %}{% endwith %}
         {% endif %}
         {% endif %}

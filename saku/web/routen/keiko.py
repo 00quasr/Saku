@@ -251,9 +251,7 @@ def loesung(t_id):
     # mit eigener Antwort holt sich die Lösung gleich den Bewertungsvorschlag von Sensei
     karte, eigene = _teilaufgabe_oder_404(db(), t_id), request.args.get("antwort", "").strip()
     # Freitext: kostenloser Stichpunkt-Abgleich mit der Musterlösung, nur als Hilfe zur Selbstbewertung
-    frei = not karte["antwort"] or karte["antwort"]["art"] == "frei"
-    abgleich = stichpunkte.abgleichen(eigene, karte["loesung_inhalt"] or karte["loesung_text"] or "",
-                                      karte["inhalt"] or karte["text"] or "") if frei else None
+    abgleich = stichpunkte.fuer_teilaufgabe(karte, eigene)
     return render_template("keiko/_loesung.html", karte=karte, antwort=eigene, abgleich=abgleich,
                            zeichnung=request.args.get("zeichnung_da") == "1")
 

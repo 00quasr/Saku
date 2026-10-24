@@ -17,6 +17,7 @@ def test_neu_fuer_bestehende_bis_verstanden(client, con):
                  "/keiko/grundwissen?modus=umgekehrt", "/shiken/", "/michi/", "/einstellungen#daten"):
         assert f'href="{link}"' in html, link
     assert f'hx-vals=\'{{"neu_gesehen": "{NEU_IN_SAKU}"}}\'' in html and 'hx-post="/einstellungen/neu_gesehen"' in html
+    assert "Stichpunkt-Abgleich" in html and NEU_IN_SAKU == "2026-10"  # die Versionsmarke bleibt: noch nicht gesehen
 
     assert client.post("/einstellungen/neu_gesehen", data={"neu_gesehen": "irgendwas"}, headers=HTMX).status_code == 400
     weg = client.post("/einstellungen/neu_gesehen", data={"neu_gesehen": NEU_IN_SAKU}, headers=HTMX)

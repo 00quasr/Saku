@@ -7,7 +7,7 @@ from datetime import date
 
 from saku.lernen.antwort import zahl
 # melden ihre Arten an; die Reihenfolge hier ist die Reihenfolge der Arten (nach Nutzen für die AP1)
-from saku.lernen.rechnen import netzwerk, daten, hardware, wirtschaft, wiso, projekt, programmieren, algorithmen  # noqa: F401, I001
+from saku.lernen.rechnen import netzwerk, daten, hardware, komponenten, wirtschaft, wiso, projekt, programmieren, algorithmen  # noqa: F401, I001
 from saku.lernen.rechnen.plan import faellig, im_umfang
 from saku.lernen.rechnen.basis import ARTEN, GRUPPEN, Art, Aufgabe, Feld
 
@@ -38,6 +38,12 @@ def _datum(text: str) -> date | None:
         return None
 
 
+def _wochentage(text: str) -> list[str]:
+    """„Mo (voll), Dienstag und Mi“ → [mo, di, mi]: jedes Wort, das mit einem Wochentag beginnt."""
+    return [w[:2] for w in re.findall(r"[a-zäöü]+", text.lower())
+            if w[:2] in ("mo", "di", "mi", "do", "fr", "sa", "so") and "montag dienstag mittwoch donnerstag freitag samstag sonntag".find(w) >= 0]
+
+
 def _ganzzahl(text: str, basis: int, praefix: str) -> int | None:
     text = re.sub(r"[\s_]", "", text).lower().removeprefix(praefix).removesuffix("h" if basis == 16 else "b")
     try:
@@ -57,6 +63,8 @@ def stimmt(feld: Feld, eingabe: str, toleranz: float = 0.0) -> bool:
     soll = str(feld.loesung)
     if feld.typ == "ip":
         return _ipv4(eingabe) is not None and _ipv4(eingabe) == _ipv4(soll)
+    if feld.typ == "wochentage":
+        return bool(_wochentage(eingabe)) and _wochentage(eingabe) == _wochentage(soll)
     if feld.typ == "datum":
         return _datum(eingabe) is not None and _datum(eingabe) == _datum(soll)
     if feld.typ == "liste":  # ohne Vorzeichen: „3-8-1“ ist eine Folge mit Bindestrichen (Listen sind nie negativ)

@@ -98,3 +98,50 @@ def test_ueben_zeigt_abgleich_bei_freitext(client, con):
     html = client.get(f"/keiko/{t_id}/loesung", query_string={"antwort": "Anweisungsüberdeckung"}, headers=htmx).get_data(as_text=True)
     assert "stichpunkte" not in html  # nur bei Freitext
     assert re.search(r'data-taste="2"', html)  # die Bewertung bleibt wie gehabt
+
+
+def _whitebox(con) -> int:
+    return con.execute("SELECT id FROM teilaufgabe WHERE text LIKE '%Whitebox%'").fetchone()[0]
+
+
+def test_fuer_teilaufgabe_mit_punktevorschlag(con):
+    from saku.lernen import karten
+    t = karten.lade(con, [_whitebox(con)])[0]  # 6 Punkte, „Nennen Sie zwei …“
+    a = sp.fuer_teilaufgabe(t, "Anweisungsüberdeckung und Pfadüberdeckung")
+    assert (a["erkannt"], a["ziel"], a["punkte_vorschlag"]) == (1, 2, 3.0)
+    assert sp.fuer_teilaufgabe(t, "Anweisungsüberdeckung, Zweigüberdeckung")["punkte_vorschlag"] == 6
+    assert sp.fuer_teilaufgabe(t, "") is None
+    t["antwort"] = {"art": "einfach", "optionen": [], "ziele": [], "richtig": ["1"], "einheit": "", "vorlage": ""}
+    assert sp.fuer_teilaufgabe(t, "Anweisungsüberdeckung") is None  # feste Formate prüft antwort.vorschlag
+
+
+def test_simulation_zeigt_hinweis_ohne_vorzubelegen(client, con):
+    url = client.post("/shiken/neu", data={"bereich": "Entwicklung und Umsetzung von Algorithmen"}).headers["Location"]
+    sim_id = int(url.rsplit("/", 1)[1])
+    t_id = _whitebox(con)
+    con.execute("DELETE FROM simulation_teilaufgabe")
+    con.execute("INSERT INTO simulation_teilaufgabe (simulation_id, teilaufgabe_id, position, antwort) VALUES (?, ?, 1, ?)",
+                (sim_id, t_id, "Anweisungsüberdeckung und Pfadüberdeckung"))
+    con.execute("UPDATE simulation SET beendet_am = datetime('now') WHERE id = ?", (sim_id,))
+    con.commit()
+    html = " ".join(client.get(f"/shiken/{sim_id}/auswertung").get_data(as_text=True).split())
+    assert "Stichpunkte: 1 von 2 erkannt · Vorschlag 3 P." in html and "<mark>Anweisungsüberdeckung</mark>" in html
+    assert not re.search(rf'id="punkte-{t_id}"[^>]*value=', html)  # Freitext: Punkte vergibt der Nutzer
+
+
+def test_mini_test_vergleicht_freitext(client, con):
+    t_id = _whitebox(con)
+    station = con.execute("SELECT id FROM station WHERE titel = 'Qualitätssicherung'").fetchone()[0]
+    con.executemany("INSERT INTO stationstest (station_id, bestanden) VALUES (?, 1)", [(s,) for s in range(1, station)])
+    con.commit()
+    html = client.get(f"/michi/{station}/test").get_data(as_text=True)
+    assert f'name="antwort-{t_id}"' in html and "Mit der Lösung vergleichen" in html
+    htmx = {"HX-Request": "true"}
+    teil = client.post(f"/michi/{station}/test/{t_id}/pruefen", data={f"antwort-{t_id}": "Anweisungsüberdeckung und Pfadüberdeckung"},
+                       headers=htmx).get_data(as_text=True)
+    teil = " ".join(teil.split())
+    assert "Stichpunkte: 1 von 2 erkannt · Vorschlag 3 P." in teil and "Anweisungsüberdeckung und Pfadüberdeckung" in teil
+    assert 'class="michi-loesung" open' in teil and not re.search(rf'id="punkte-{t_id}"[^>]*value=', teil)
+    assert "<summary>Lösung</summary>" in teil
+    leer = client.post(f"/michi/{station}/test/{t_id}/pruefen", data={}, headers=htmx).get_data(as_text=True)
+    assert "Stichpunkte" not in leer and 'class="michi-loesung" open' in leer  # ohne Antwort nur die Lösung
