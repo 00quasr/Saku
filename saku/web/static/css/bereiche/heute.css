@@ -179,3 +179,11 @@ a.flaeche:hover { border-color: var(--sumi-mittel); }
 /* Heute: Countdown führt zum Fahrplan */
 a.held-countdown { text-decoration: none; }
 a.held-countdown:hover .held-einheit { text-decoration: underline; text-underline-offset: 3px; }
+
+/* Wochenrückblick (Heute und Verlauf): eine kompakte Zeile mit Zahlen, darunter die Themen */
+.woche { grid-column: 1 / -1; display: grid; gap: 12px; }
+.verlauf-seite .woche { margin: 24px 0 16px; border-radius: 14px; padding: 18px 22px; }
+.woche-zahlen { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 32px; }
+.woche-zahlen li { display: flex; align-items: baseline; gap: 6px; }
+.woche-zahlen .zahl { font-weight: 300; font-size: 1.75rem; line-height: 1; letter-spacing: -0.02em; }
+.woche-themen a { text-underline-offset: 3px; }

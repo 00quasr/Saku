@@ -245,8 +245,8 @@ Wichtige Regeln:
 | `/michi/<station>/test` | GET, POST | Mini-Test; ungeprüfte anklickbare und SQL wertet Saku beim Auswerten selbst aus | Seite, Fragment |
 | `/michi/<station>/test/<id>/pruefen` | POST | anklickbare Antwort oder SQL (mit Sandbox) prüfen, Punkte vorbelegen | Fragment |
 | `/keiko` | GET | Fokusmodus; Filter `?thema=`, `?muster=`, `?modus=fehler\|markiert\|neu` | Seite |
-| `/keiko/grundwissen` | GET | Begriffs-Karten (FSRS, eigener Fahrschul-Status) | Seite |
-| `/keiko/grundwissen/<id>/bewerten` | POST | 1, 2 oder 3, nächste Begriffs-Karte | Fragment |
+| `/keiko/grundwissen` | GET | Begriffs-Karten (FSRS, eigener Fahrschul-Status); `?modus=umgekehrt`: Definition lesen, unter vier Begriffen wählen | Seite, Fragment |
+| `/keiko/grundwissen/<id>/bewerten` | POST | 1, 2 oder 3, nächste Begriffs-Karte; umgekehrt `wahl` (richtig → 3, falsch → 1) | Fragment |
 | `/keiko/<id>/loesung` | GET | Lösung aufdecken | Fragment |
 | `/keiko/<id>/pruefen` | POST | anklickbare Antwort oder SQL (mit Sandbox) prüfen, Bewertung vorschlagen | Fragment |
 | `/keiko/<id>/sql` | POST | SQL in der Sandbox ausführen | Fragment |

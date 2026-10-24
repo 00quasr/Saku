@@ -6,8 +6,8 @@ from datetime import date, datetime, timezone
 
 from flask import Blueprint, abort, make_response, render_template, request, url_for
 
-from saku.lernen import antwort, karten, rechnen, sql, tagesziel
-from saku.web import db
+from saku.lernen import antwort, karten, rechnen, rueckblick, sql, tagesziel
+from saku.web import db, seite_oder_fragment
 from saku.web.routen.heute import datum_lang
 
 bp = Blueprint("keiko", __name__, url_prefix="/keiko")
@@ -363,7 +363,7 @@ def verlauf():
         f"FROM bewertung WHERE date(zeitpunkt, 'localtime') IN ({','.join('?' * len(tage))}) GROUP BY 1", tage)}
     heute = date.today()
     return render_template(
-        "keiko/verlauf.html", ergebnis=ergebnis, seite=seite, weiter=weiter, quellen=QUELLEN,
+        "keiko/verlauf.html", ergebnis=ergebnis, seite=seite, weiter=weiter, quellen=QUELLEN, rueckblick=rueckblick.woche(con),
         zahlen=con.execute("SELECT COUNT(*), SUM(ergebnis = 1), SUM(ergebnis = 2), SUM(ergebnis = 3) FROM bewertung").fetchone(),
         tage=[{"name": _tagesname(date.fromisoformat(t), heute), "summe": summen[t], "zeilen": [z for z in zeilen if z["tag"] == t]}
               for t in tage])
@@ -375,21 +375,37 @@ def _tagesname(tag_: date, heute: date) -> str:
     return name if tag_.year == heute.year else f"{name} {tag_.year}"
 
 
+def _begriff_karte(con, runde: list[int], umgekehrt: bool, **kontext) -> dict:
+    """Nächste Begriffs-Karte; umgekehrt mit Definition ohne Namen und Begriffen zur Wahl."""
+    kontext |= karten.begriffe(con, runde) | {"runde": runde, "umgekehrt": umgekehrt}
+    return kontext | (karten.auswahl(con, kontext["karte"]) if umgekehrt and kontext["karte"] else {})
+
+
 @bp.get("/grundwissen")
 def grundwissen():
-    """Begriffs-Karten: Begriff lesen, Definition aufdecken, 1/2/3 bewerten."""
-    return render_template("keiko/grundwissen.html", **karten.begriffe(db(), []), runde=[])
+    """Begriffs-Karten: Begriff lesen, Definition aufdecken, 1/2/3 bewerten; umgekehrt (modus=umgekehrt) die Definition
+    lesen und unter vier Begriffen wählen."""
+    runde = _zahlen(request.args.get("runde", "").split(","))
+    return seite_oder_fragment("keiko/grundwissen.html", "keiko/_begriff.html",
+                               **_begriff_karte(db(), runde, request.args.get("modus") == "umgekehrt"))
 
 
 @bp.post("/grundwissen/<int:begriff_id>/bewerten")
 def grundwissen_bewerten(begriff_id):
+    """ergebnis 1–3 nach dem Aufdecken, oder umgekehrt wahl: der gewählte Begriff (richtig → 3, falsch → 1)."""
     con = db()
-    ergebnis = request.form.get("ergebnis", type=int)
-    if ergebnis not in (1, 2, 3) or not con.execute("SELECT 1 FROM begriff WHERE id = ?", (begriff_id,)).fetchone():
+    begriff = con.execute("SELECT id, name FROM begriff WHERE id = ?", (begriff_id,)).fetchone()
+    wahl = request.form.get("wahl", type=int)
+    ergebnis = (3 if wahl == begriff_id else 1) if wahl is not None else request.form.get("ergebnis", type=int)
+    if ergebnis not in (1, 2, 3) or begriff is None:
         abort(400)
     karten.begriff_bewerten(con, begriff_id, ergebnis)
     runde = _zahlen(request.form.get("runde", "").split(",")) + [begriff_id]
-    return render_template("keiko/_begriff.html", **karten.begriffe(con, runde), runde=runde)
+    if wahl is None:
+        return render_template("keiko/_begriff.html", **_begriff_karte(con, runde, False))
+    gewaehlt = con.execute("SELECT name FROM begriff WHERE id = ?", (wahl,)).fetchone()
+    rueckmeldung = {"richtig": wahl == begriff_id, "name": begriff["name"], "gewaehlt": gewaehlt[0] if gewaehlt else None}
+    return render_template("keiko/_begriff.html", **_begriff_karte(con, runde, True, rueckmeldung=rueckmeldung))
 
 
 @bp.post("/<int:t_id>/markieren")

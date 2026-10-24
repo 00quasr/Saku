@@ -109,6 +109,8 @@ def _sprint_aufgaben() -> list[tuple]:
 @bp.route("/sprint/lauf", methods=["GET", "POST"])
 def sprint_lauf():
     """GET: alle Aufgaben mit Timer; POST (Abgabe oder Zeit um): Punkte je Aufgabe anteilig nach Feldern, Note, Rechenwege."""
+    if request.method == "GET" and not request.args.getlist("a"):  # Lesezeichen oder Zurück ohne Aufgaben
+        return redirect(url_for("rechnen.sprint"))
     aufgaben = _sprint_aufgaben()
     start = request.values.get("start", type=int) or int(time.time())
     kontext = {"aufgaben": aufgaben, "start": start, "ende": start + SPRINT_MINUTEN * 60, "minuten": SPRINT_MINUTEN,

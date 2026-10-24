@@ -1,6 +1,34 @@
-{# Begriffs-Karte: Vorderseite der Begriff, Rückseite die Definition. Kontext: karte, faellig, neu, runde #}
+{# Begriffs-Karte: Vorderseite der Begriff, Rückseite die Definition. Umgekehrt: die Definition (ohne den Namen) und
+   Begriffe zur Wahl. Kontext: karte, faellig, neu, runde, umgekehrt; umgekehrt dazu definition, optionen, rueckmeldung #}
 {% import "_makros.html" as m %}
-{% if karte %}
+{% set eben %}{% if rueckmeldung %}
+<p class="hinweis tusche{{ ' hinweis--fehler' if not rueckmeldung.richtig }}" role="status">
+  {% if rueckmeldung.richtig %}Richtig: {{ rueckmeldung.name }}.{% else %}Gesucht war {{ rueckmeldung.name }}{% if rueckmeldung.gewaehlt %}, nicht {{ rueckmeldung.gewaehlt }}{% endif %}.{% endif %}
+</p>
+{% endif %}{% endset %}
+{% if karte and umgekehrt %}
+<form id="karte" class="karte begriff-karte" onsubmit="event.preventDefault()" aria-label="Welcher Begriff ist gemeint?">
+  <input type="hidden" name="runde" value="{{ runde|join(',') }}">
+  {{ eben }}
+  <div class="zeile zwischen">
+    <p class="etikett">Grundwissen umgekehrt · {{ faellig }} fällig · {{ neu }} neu</p>
+    {{ m.status(karte.status) }}
+  </div>
+  <div class="prosa begriff-definition">{{ definition|markdown }}</div>
+  {% if optionen|length > 1 %}
+  <p class="etikett">Welcher Begriff ist gemeint? · Zifferntasten</p>
+  <div class="begriff-wahl" role="group" aria-label="Begriffe zur Wahl">
+    {% for o in optionen %}
+    <button type="button" class="btn" data-variant="outline" data-taste="{{ loop.index }}"
+            hx-post="{{ url_for('keiko.grundwissen_bewerten', begriff_id=karte.id) }}" hx-vals='{"wahl": {{ o.id }}}'
+            hx-target="#karte" hx-swap="outerHTML">{{ m.taste(loop.index) }} {{ o.name }}</button>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="gedaempft">Für die Auswahl braucht es mindestens zwei Begriffe. <a href="{{ url_for('keiko.grundwissen') }}">Begriff → Definition üben</a></p>
+  {% endif %}
+</form>
+{% elif karte %}
 <form id="karte" class="karte begriff-karte" onsubmit="event.preventDefault()" aria-label="Begriff {{ karte.name }}">
   <input type="hidden" name="runde" value="{{ runde|join(',') }}">
   <div class="zeile zwischen">
@@ -26,6 +54,7 @@
 </form>
 {% else %}
 <section id="karte" class="keiko-abschluss tusche" aria-live="polite">
+  {{ eben }}
   <p class="ueberschrift">{{ 'Grundwissen für heute geschafft.' if runde else 'Noch keine Begriffs-Karten.' }}</p>
   {% if not runde %}<p class="gedaempft">Die Definitionen entstehen mit <code>python -m saku analyse --schritt wissen</code>.</p>{% endif %}
   <nav class="zeile keiko-weiter" aria-label="Weiter">

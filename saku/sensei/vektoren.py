@@ -55,13 +55,22 @@ def speichern(con: sqlite3.Connection, art: str, ids: list[int], matrix: np.ndar
 def laden(con: sqlite3.Connection, art: str) -> tuple[list[int], np.ndarray]:
     """Alle Vektoren einer Art; zwischengespeichert, bis sich die Anzahl ändert."""
     anzahl = con.execute("SELECT COUNT(*) FROM vektor WHERE art = ?", (art,)).fetchone()[0]
-    schluessel = (str(config.db_pfad()), art, anzahl)
+    schluessel = (con.execute("PRAGMA database_list").fetchone()[2], art, anzahl)  # die Datei dieser Verbindung
     if schluessel not in _cache:
         zeilen = con.execute("SELECT id, daten FROM vektor WHERE art = ? ORDER BY id", (art,)).fetchall()
         matrix = np.frombuffer(b"".join(z[1] for z in zeilen), dtype=np.float32).reshape(len(zeilen), -1) \
             if zeilen else np.zeros((0, 0), dtype=np.float32)
         _cache[schluessel] = ([z[0] for z in zeilen], matrix)
     return _cache[schluessel]
+
+
+def nachbarn(con: sqlite3.Connection, art: str, id_: int, erlaubt: set[int] | None = None) -> list[int]:
+    """Gespeicherte Einträge nach Ähnlichkeit zu einem anderen gespeicherten, ohne Modell; leer, wenn er keinen Vektor hat."""
+    ids, matrix = laden(con, art)
+    if id_ not in ids:
+        return []
+    werte = matrix @ matrix[ids.index(id_)]
+    return [ids[i] for i in np.argsort(-werte) if ids[i] != id_ and (erlaubt is None or ids[i] in erlaubt)]
 
 
 def suchen(con: sqlite3.Connection, art: str, anfrage: str, n: int = 20, erlaubt: set[int] | None = None,
