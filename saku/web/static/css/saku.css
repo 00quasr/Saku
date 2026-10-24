@@ -179,7 +179,8 @@ a:not(.btn) { color: inherit; text-underline-offset: 3px; }
   html { scroll-padding-bottom: calc(var(--tab-hoehe) + env(safe-area-inset-bottom)); }
   .app { grid-template-columns: minmax(0, 1fr); }
   /* clip: was noch zu breit ist, darf die Seite nicht seitlich verschieben (Chrome zoomt sonst heraus) */
-  .app > main { padding-bottom: calc(var(--tab-hoehe) + env(safe-area-inset-bottom)); overflow-x: clip; }
+  .app > main { overflow-x: clip; }
+  .seitenleiste ~ main { padding-bottom: calc(var(--tab-hoehe) + env(safe-area-inset-bottom)); }  /* die Einführung hat keine Leiste */
   .seite { padding: 24px var(--rand) 48px; }
   .seitenleiste {
     position: fixed; inset: auto 0 0; height: auto; overflow: visible; display: block;
