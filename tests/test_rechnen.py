@@ -1267,6 +1267,11 @@ def test_sql_musterloesung_laeuft_und_typische_fehler_fallen_auf(art):
         assert not rechnen.pruefen(a, {"sql": "SELECT 1"})["sql"] and not rechnen.pruefen(a, {"sql": "SELEKT"})["sql"]
 
 
+def test_sql_erklaerung_schreibt_nur_den_satzanfang_gross():
+    weg = next(a.rechenweg for _, a in _alle("aendern", "DELETE") if "Karten bereits abgeholt" in a.frage)
+    assert "Deren Karten bereits abgeholt sind:" in weg  # str.capitalize machte daraus „Deren karten …“
+
+
 def test_sql_daten_lassen_typische_fehler_auffallen():
     from saku.lernen.rechnen.datenbanken import SZENARIEN
     for s in SZENARIEN:
