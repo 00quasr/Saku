@@ -114,7 +114,7 @@ def stimmt(feld: Feld, eingabe: str, toleranz: float = 0.0) -> bool:
         basis, praefix = (2, "0b") if feld.typ == "binaer" else (16, "0x")
         ist = _ganzzahl(eingabe, basis, praefix)
         return ist is not None and ist == int(soll, basis)
-    return re.sub(r"\s", "", eingabe).casefold() == re.sub(r"\s", "", soll).casefold()
+    return any(re.sub(r"\s", "", eingabe).casefold() == re.sub(r"\s", "", s).casefold() for s in (soll, *feld.auch))
 
 
 def pruefen(aufgabe: Aufgabe, eingaben: dict[str, str]) -> dict[str, bool]:

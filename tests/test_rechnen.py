@@ -205,6 +205,8 @@ def test_passende_art_zu_themen():
         "vlsm": ["IP-Adresskonzept für den Standort", "VLSM in der Praxis"],
         "routing": ["Statisches Routing", "Router und Gateways"],
         "eui64": ["SLAAC und EUI-64", "Autokonfiguration von Clients"],
+        "ports": ["Portnummern und Dienste", "Firewallregeln", "Well-known Ports"],
+        "osi": ["ISO/OSI-Referenzmodell", "OSI-Schichtenmodell", "Kopplungselemente im LAN", "TCP/IP-Modell"],
     }
     for slug, namen in passt.items():
         for name in namen:
@@ -710,6 +712,7 @@ def test_umfang_je_lernpfad():
     assert algorithmen <= ae and "schreibtisch" in ae and "subnetz" not in ae
     assert {"subnetz", "energie", "verfuegbarkeit", "kalkulation"} <= si and not si & algorithmen and "schreibtisch" not in si
     assert all(g in rechnen.GRUPPEN for gruppen in UMFANG.values() for g in gruppen)
+    assert {"ports", "osi"} <= ap1 & si and not {"ports", "osi"} & ae
 
 
 def test_gemischt_bevorzugt_faellige(client, con):
@@ -938,3 +941,51 @@ def test_eui64_unabhaengig_ueber_zeichenketten():
     assert re.search(r"^:is\(\.rechnen-feld--text, \.rechnen-feld--ipv6\) \.input \{ width: 24rem; \}", css, re.M)
     # wie bei IPv4 („10.0.0.0/24“) zählt die Adresse, eine angehängte Präfixlänge stört nicht
     assert rechnen.stimmt(feld, "2001:db8::21a:2bff:fe3c:4d5e/64") and rechnen.stimmt(Feld("n", "Netz", "10.0.0.0", typ="ip"), "10.0.0.0/24")
+
+
+# --- Ports und OSI ---------------------------------------------------------------------
+
+# unabhängig von saku: IANA-Standardports, die mit UDP und die von Anfang an verschlüsselten
+IANA = {20: "FTP", 21: "FTP", 22: "SSH", 23: "Telnet", 25: "SMTP", 53: "DNS", 67: "DHCP", 68: "DHCP", 69: "TFTP", 80: "HTTP", 110: "POP3",
+        123: "NTP", 143: "IMAP", 161: "SNMP", 389: "LDAP", 443: "HTTPS", 445: "SMB", 465: "SMTPS", 514: "Syslog", 587: "SMTP", 636: "LDAPS",
+        993: "IMAPS", 995: "POP3S", 3389: "RDP"}
+UDP_PORTS, TLS_PORTS = {67, 68, 69, 123, 161, 514}, {22, 443, 465, 636, 993, 995}
+
+
+def test_ports_wie_iana():
+    besondere = {"FTP-Datenverbindung (aktiver Modus)": 20, "FTP-Steuerverbindung": 21, "DHCP-Server": 67, "DHCP-Client": 68,
+                 "SMTP zwischen Mailservern": 25, "SMTP-Submission (Einlieferung mit STARTTLS)": 587, "SMTPS (Einlieferung, TLS von Anfang an)": 465}
+    for seed, a in _alle("ports"):
+        for f in a.felder:
+            if a.titel == "Port → Protokoll":
+                port = int(f.label.removeprefix("Port "))
+                assert f.loesung == IANA[port] and rechnen.stimmt(f, f" {IANA[port].lower()} ")  # Groß- und Kleinschreibung egal
+                assert not rechnen.stimmt(f, "HTTP" if port != 80 else "HTTPS")
+            elif a.titel == "Protokoll → Port":
+                assert f.loesung == besondere[f.label] if f.label in besondere else f.label.split(" ")[0] == IANA[f.loesung]
+                assert not rechnen.stimmt(f, str(f.loesung + 1))
+            else:
+                name, frage = f.label.split(": ")
+                port = besondere.get(name) or next(p for p, n in IANA.items() if n == name.split(" ")[0])
+                assert {"Port": port, "TCP oder UDP?": "UDP" if port in UDP_PORTS else "TCP",
+                        "von Anfang an verschlüsselt?": "Ja" if port in TLS_PORTS else "Nein"}[frage] == f.loesung
+                # nicht eindeutig, also nie gefragt: DNS und HTTPS auch über die andere Transportart, SNMP und SMB je nach Version
+                assert not (frage == "TCP oder UDP?" and port in (53, 443)) and not (frage.startswith("von") and port in (161, 445))
+    feld = next(f for _, a in _alle("ports", "Port → Protokoll") for f in a.felder if f.label == "Port 22")
+    assert all(rechnen.stimmt(feld, t) for t in ["SSH", "ssh", "SFTP", "scp"]) and not rechnen.stimmt(feld, "Telnet")
+
+
+def test_osi_schichten():
+    schicht = {"Hub": 1, "Repeater": 1, "Twisted-Pair-Kabel": 1, "Glasfaserkabel": 1, "Bit": 1, "Switch": 2, "Bridge": 2, "MAC-Adresse": 2,
+               "Frame (Rahmen)": 2, "PPP": 2, "Router": 3, "IP": 3, "ICMP": 3, "IP-Adresse": 3, "Paket": 3, "TCP": 4, "UDP": 4,
+               "Portnummer": 4, "Segment": 4, "HTTP": 7, "DNS": 7, "SMTP": 7, "FTP": 7, "DHCP": 7}
+    namen = {1: "Bitübertragungsschicht", 2: "Sicherungsschicht", 3: "Vermittlungsschicht", 4: "Transportschicht", 7: "Anwendungsschicht"}
+    tcp_ip = {1: "Netzzugangsschicht", 2: "Netzzugangsschicht", 3: "Internetschicht", 4: "Transportschicht", 7: "Anwendungsschicht"}
+    for seed, a in _alle("osi"):
+        for f in a.felder:
+            if a.titel == "OSI-Schicht zuordnen":
+                assert f.loesung == schicht[f.label] and rechnen.stimmt(f, f"Schicht {schicht[f.label]}")
+                assert not rechnen.stimmt(f, str(schicht[f.label] % 7 + 1))
+            else:
+                begriff, art = f.label.split(": ")
+                assert f.loesung == (namen if art == "OSI-Schicht" else tcp_ip)[schicht[begriff]] and f.loesung in f.optionen

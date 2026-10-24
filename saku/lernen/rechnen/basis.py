@@ -22,7 +22,7 @@ class Feld:
     wochentage („Mo, Di, Mi“ oder „Montag und Dienstag“: die Tage in Reihenfolge zählen);
     verhaeltnis („16:10“, „8:5“, „16/10“, „1,6:1“ sind gleich: verglichen als Bruch); ipv6 (nach Wert, auch Interface-ID).
     Lösung "" heißt: das Feld bleibt leer.
-    optionen: Auswahl statt Eingabe."""
+    optionen: Auswahl statt Eingabe. auch: weitere richtige Antworten eines Textfelds (SSH auch als SFTP)."""
     name: str
     label: str
     loesung: float | str
@@ -30,6 +30,7 @@ class Feld:
     typ: str = "zahl"
     stellen: int = 2  # so genau steht die Lösung da; wer auf diese Stellen rundet, liegt immer richtig
     optionen: list[str] = field(default_factory=list)
+    auch: tuple[str, ...] = ()
 
     @property
     def anzeige(self) -> str:
