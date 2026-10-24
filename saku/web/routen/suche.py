@@ -21,6 +21,7 @@ BEFEHLE = [
     ("circle-x", "Fehlerkorb üben", "fehler rot wackelig wiederholen", ("keiko.index", {"modus": "fehler"})),
     ("book-open", "Grundwissen üben", "begriffe karten definitionen vokabeln", ("keiko.grundwissen", {})),
     ("calendar", "Prüfungstermin setzen", "termin datum countdown ihk", ("kern.einstellungen", {"_anchor": "termin"})),
+    ("route", "Fahrplan bis zur Prüfung", "prognose tempo wiederholungen abdeckung countdown plan", ("heute.fahrplan", {})),
     ("sparkles", "Neue Teilaufgaben üben", "neu unbekannt", ("keiko.index", {"modus": "neu"})),
     ("star", "Markierte üben", "markiert gemerkt", ("keiko.index", {"modus": "markiert"})),
     ("list-checks", "Verlauf", "bewertungen gemacht erledigt historie protokoll", ("keiko.verlauf", {})),
