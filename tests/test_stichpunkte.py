@@ -76,6 +76,25 @@ def test_stamm_abkuerzungen_und_komposita():
     assert sp.abgleichen("es sind 4", loesung, "Führen Sie eine Nutzwertanalyse durch.")["erkannt"] == 0
 
 
+
+def test_komposita_streng_flexion_weiter():
+    """Nach dem gemeinsamen Anfang zählen nur Endungen: ein anderes Grundwort oder eine andere Ableitung ist ein anderes Wort."""
+    anders = [("datensicherung", "datensicherheit"), ("netzwerk", "netzwerkkarte"), ("netzwerkkarte", "netzwerkkabel"),
+              ("verschluesselung", "entschluesselung"), ("programmierer", "programmierung"), ("rechner", "rechnung")]
+    gleich = [("datensicherung", "datensicherungen"), ("gesichert", "sichern"), ("gesichert", "sicherung"), ("gesicherte", "gesichert"),
+              ("verschluesselungen", "verschluesselt"), ("vertraulich", "vertraulichkeit"), ("netzwerk", "netzwerke")]
+    for a, b in anders:
+        assert not sp._gleich(a, b) and not sp._gleich(b, a), (a, b)
+    for a, b in gleich:
+        assert sp._gleich(a, b) and sp._gleich(b, a), (a, b)
+    loesung = "- Regelmäßige Datensicherung auf ein externes Medium\n- Netzwerkkarte tauschen"
+    aufgabe = "Nennen Sie Maßnahmen für den Ausfall des Demo-Servers."
+    r = sp.abgleichen("Datensicherheit, Netzwerkkabel prüfen", loesung, aufgabe)
+    assert r["erkannt"] == 0 and all(not p["treffer"] for p in r["punkte"])
+    r = sp.abgleichen("Die Datensicherungen liegen extern, die Netzwerkkarten werden getauscht", loesung, aufgabe)
+    assert r["erkannt"] == 2
+
+
 def test_hervorheben_und_leere_faelle():
     r = sp.abgleichen("Verschlüsselung", VPN_LOESUNG, VPN)
     assert ("verschlüsselt", True) in r["punkte"][0]["teile"] and "".join(t for t, _ in r["punkte"][0]["teile"]) == r["punkte"][0]["text"]
