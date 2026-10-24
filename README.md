@@ -142,6 +142,13 @@ python -m saku analyse --ki claude-code  # Erstlauf: KI-Schritte über das lokal
 python -m saku start                   # App im eigenen Fenster öffnen (--browser: im Browser)
 ```
 
+Saku sichert die Datenbank beim Start und vor jeder Analyse einmal am Tag nach `data/backups/` (die letzten sieben bleiben). Der Lernstand lässt sich zusätzlich als Datei mitnehmen, die nicht an internen IDs hängt und auch einen Neuaufbau der Datenbank übersteht:
+
+```bash
+python -m saku lernstand export lernstand.json   # auch in den Einstellungen unter Daten
+python -m saku lernstand import lernstand.json   # mehrfach importieren ändert nichts
+```
+
 Beim ersten Start führt eine kurze Tour durch Saku: was die Analyse gefunden hat, Prüfungstermin, Lernweg, Tastatur und Sensei. Später erreichbar über die Einstellungen oder die Tastaturhilfe (`?`).
 
 Die einmaligen KI-Schritte der Analyse (Deckblätter, Aufgaben neu aufbauen, Klassifikation, Wissensseiten und Begriffe, Lernpfad, Einführungen) laufen beim Erstlauf über das lokal installierte [Claude Code](https://code.claude.com) (`claude -p`, eigenes Login, kein API-Schlüssel nötig). Spätere Läufe und Sensei nutzen die Claude-API. Beide Wege teilen sich denselben Cache, eine schon beantwortete Anfrage kostet also nichts mehr. `python -m saku analyse --ohne-ki` läuft komplett lokal.

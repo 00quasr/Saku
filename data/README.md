@@ -11,6 +11,7 @@ data/
 ├── pdfs/                 Prüfungen und Lösungshinweise     (selbst anlegen oder per sammeln)
 ├── bilder/               Originale der Kopfzeilen-Bilder   (optional)
 ├── aufgaben/             Bildausschnitte                   (erzeugt die Pipeline)
+├── backups/              tägliche Sicherungen, die letzten 7 (erzeugt Saku beim Start)
 └── saku.db               Katalog und Lernstand             (erzeugt python -m saku init)
 ```
 

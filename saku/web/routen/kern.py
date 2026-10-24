@@ -1,5 +1,6 @@
 """Bereichsübergreifend: Bildausschnitte aus data/aufgaben und Einstellungen."""
 
+import json
 import sqlite3
 from datetime import date, datetime
 
@@ -75,6 +76,14 @@ def sicherung_info() -> str:
     if not datei:
         return "Noch keine Sicherung. Saku sichert beim Start einmal am Tag."
     return f"Zuletzt am {datetime.fromtimestamp(datei.stat().st_mtime):%d.%m.%Y um %H:%M}: data/backups/{datei.name}"
+
+
+@bp.get("/einstellungen/lernstand.json")
+def lernstand_export():
+    from saku.lernen import lernstand
+    return json.dumps(lernstand.exportieren(db()), ensure_ascii=False, indent=1), 200, {
+        "Content-Type": "application/json; charset=utf-8",
+        "Content-Disposition": f"attachment; filename=saku-lernstand-{date.today().isoformat()}.json"}
 
 
 @bp.post("/einstellungen/sichern")
