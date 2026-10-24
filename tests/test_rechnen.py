@@ -783,7 +783,8 @@ def test_lernpfad_zeigt_rechentraining(client, con):
     con.commit()
     html = " ".join(client.get(f"/michi/{nach_name['Projektmanagement']}").get_data(as_text=True).split())
     assert '<span class="zahl">4 von 5</span> zuletzt richtig' in html
-    assert "Rechentraining" not in client.get(f"/michi/{nach_name['Anforderungen']}").get_data(as_text=True)
+    assert 'href="/rechnen/usecase"' in client.get(f"/michi/{nach_name['Anforderungen']}").get_data(as_text=True)  # Use-Case-Diagramm
+    assert "Rechentraining" not in client.get(f"/michi/{nach_name['Qualitätssicherung']}").get_data(as_text=True)
 
 
 def test_rechnen_verlinkt_die_echten_pruefungsaufgaben(client, con):
