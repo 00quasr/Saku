@@ -13,7 +13,7 @@
   {% if ergebnis < 3 %}
   {% for erwartet, eigenes in vergleich.tabellen %}
   <div class="sql-vergleich">
-    {% for t in (erwartet, eigenes) %}{% if t %}{{ k.sql_tabelle(t) }}{% else %}<p class="klein gedaempft">{{ 'Keine Tabelle erwartet.' if loop.first else 'Bei dir fehlt sie.' }}</p>{% endif %}{% endfor %}
+    {% for t in (erwartet, eigenes) %}{% if t %}{{ k.sql_tabelle(t) }}{% else %}<p class="klein gedaempft">{{ 'Nichts erwartet.' if loop.first else 'Bei dir: nichts.' }}</p>{% endif %}{% endfor %}
   </div>
   {% endfor %}
   {% endif %}
