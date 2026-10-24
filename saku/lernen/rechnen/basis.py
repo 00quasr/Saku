@@ -3,7 +3,7 @@
 from dataclasses import dataclass, field
 from typing import Callable
 
-GRUPPEN = ["Netzwerk", "Daten & Medien", "Strom & Hardware", "Wirtschaft", "WiSo", "Projekt", "Programmieren", "Algorithmen"]
+GRUPPEN = ["Netzwerk", "Daten & Medien", "Strom & Hardware", "IT-Sicherheit", "Wirtschaft", "WiSo", "Projekt", "Programmieren", "Algorithmen"]
 
 # alles erfunden, wie in der Demo-Datenbank
 FIRMEN = ["Demo GmbH", "Muster AG", "Beispiel KG", "Fiktiv Systemhaus GmbH", "Probe & Partner OHG"]

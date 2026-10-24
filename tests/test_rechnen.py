@@ -207,6 +207,12 @@ def test_passende_art_zu_themen():
         "eui64": ["SLAAC und EUI-64", "Autokonfiguration von Clients"],
         "ports": ["Portnummern und Dienste", "Firewallregeln", "Well-known Ports"],
         "osi": ["ISO/OSI-Referenzmodell", "OSI-Schichtenmodell", "Kopplungselemente im LAN", "TCP/IP-Modell"],
+        "passwort": ["Passwortrichtlinien", "Brute-Force-Angriffe", "Sichere Kennwörter", "Passwörter speichern"],
+        "schluessel": ["Symmetrische und asymmetrische Verschlüsselung", "Kryptografie im Alltag", "Public-Key-Verfahren"],
+        "schutzbedarf": ["Schutzbedarfsfeststellung", "Schutzziele der Informationssicherheit", "IT-Grundschutz nach BSI"],
+        "risiko": ["Risikoanalyse", "Risikomanagement im Projekt", "Risiken bewerten"],
+        "pruefziffer": ["Paritätsprüfung", "Prüfziffern bei Barcodes", "ISBN und EAN-13"],
+        "dsgvo": ["DSGVO und BDSG", "Meldung einer Datenpanne", "Bußgelder im Datenschutz"],
     }
     for slug, namen in passt.items():
         for name in namen:
@@ -217,7 +223,10 @@ def test_passende_art_zu_themen():
                  "Datenstrom-Verarbeitung", "Speicherverwaltung im Betriebssystem", "Netzwerkmonitoring", "Elektrische Sicherheit prüfen",
                  "Energielabel und Gütesiegel", "NAT mit privaten Adressen", "Vertragsarten im Kaufrecht", "Laufzeit und Speicherbedarf",
                  "Fehlersuche im Netzwerk", "Hashwerte und digitale Signaturen", "Gruppenrichtlinien", "Netzwerkmonitoring",
-                 "Bildschirmmasken entwerfen", "Namensauflösung mit DNS", "Qualitätssicherung", "Sozialversicherung", None]:
+                 "Bildschirmmasken entwerfen", "Namensauflösung mit DNS", "Qualitätssicherung", "Sozialversicherung",
+                 # Stichworte der IT-Sicherheit und Ports nicht als Teilwort anderer Begriffe: Port, OSI, EAN, Schlüssel, Gefährdung
+                 "Report mit SQL erstellen", "Import und Export", "Git-Repository anlegen", "Clean Code", "Primärschlüssel und Fremdschlüssel",
+                 "Gefährdungsbeurteilung am Arbeitsplatz", None]:
         assert rechnen.passend([name]) is None, name
     # mehrere Themen: das erste passende (Keiko sortiert nach Gewicht)
     assert rechnen.passend(["Scrum", "Netzplantechnik", "RAID-Level"]).slug == "netzplan"
@@ -712,6 +721,9 @@ def test_umfang_je_lernpfad():
     assert algorithmen <= ae and "schreibtisch" in ae and "subnetz" not in ae
     assert {"subnetz", "energie", "verfuegbarkeit", "kalkulation"} <= si and not si & algorithmen and "schreibtisch" not in si
     assert all(g in rechnen.GRUPPEN for gruppen in UMFANG.values() for g in gruppen)
+    # IT-Sicherheit prüfen AP1 und AP2 beider Berufe; Ports und OSI gehören zum Netzwerk (AP1, Systemintegration)
+    sicherheit = {a for a, art in rechnen.ARTEN.items() if art.gruppe == "IT-Sicherheit"}
+    assert len(sicherheit) == 6 and sicherheit <= ap1 & ae & si
     assert {"ports", "osi"} <= ap1 & si and not {"ports", "osi"} & ae
 
 
@@ -943,7 +955,204 @@ def test_eui64_unabhaengig_ueber_zeichenketten():
     assert rechnen.stimmt(feld, "2001:db8::21a:2bff:fe3c:4d5e/64") and rechnen.stimmt(Feld("n", "Netz", "10.0.0.0", typ="ip"), "10.0.0.0/24")
 
 
-# --- Ports und OSI ---------------------------------------------------------------------
+# --- IT-Sicherheit, Ports und OSI ------------------------------------------------------
+
+def _mit(a, **eingaben) -> dict[str, bool]:
+    """Die Musterlösung, nur die genannten Felder anders eingegeben: welche Felder gelten als richtig?"""
+    return rechnen.pruefen(a, {f.name: f.anzeige for f in a.felder} | eingaben)
+
+
+def _zeichenvorrat(text: str) -> int:
+    n = sum(z for klasse, z in (("Kleinbuchstaben", 26), ("Großbuchstaben", 26), ("Ziffern", 10)) if klasse in text)
+    return n + (int(m[1]) if (m := re.search(r"(\d+) erlaubten Sonderzeichen", text)) else 0)
+
+
+def test_passwortstaerke_nachgerechnet():
+    import math
+    raten = {"1.000": 1e3, "1 Million": 1e6, "1 Milliarde": 1e9, "10 Milliarden": 1e10, "100 Milliarden": 1e11}
+    einheiten = {"Jahren": 365 * 24 * 3600, "Tagen": 24 * 3600, "Stunden": 3600, "Minuten": 60}
+    for seed, a in _alle("passwort"):
+        l = a.loesung
+        if a.titel == "Brute-Force-Dauer":
+            n = _zeichenvorrat(re.search(r"erlaubt sind (.*?)\.", a.frage)[1])
+            laenge = int(re.search(r"genau \*\*(\d+) Zeichen", a.frage)[1])
+            rate = raten[re.search(r"\*\*(1\.000|1 Million|1 Milliarde|10 Milliarden|100 Milliarden)", a.frage)[1]]
+            einheit = einheiten[re.search(r"Angriffs in (\w+) im", a.frage)[1]]
+            assert l["vorrat"] == n and l["kombinationen"] == n ** laenge
+            assert l["max"] == pytest.approx(n ** laenge / rate / einheit) and l["mittel"] == pytest.approx(l["max"] / 2)
+            assert rechnen.stimmt(a.felder[1], f"{n}^{laenge}")  # als Potenz getippt
+            falsch = _mit(a, kombinationen=str(n * laenge), mittel=de(l["max"]), vorrat=str(n - 10))
+            assert not (falsch["kombinationen"] or falsch["mittel"] or falsch["vorrat"]) and falsch["max"]
+        elif a.titel == "Entropie und Mindestlänge":
+            n = _zeichenvorrat(re.search(r"Passwörter aus (.*?)\.", a.frage)[1])
+            laenge, ziel = int(re.search(r"\*\*(\d+) Zeichen\*\*", a.frage)[1]), int(re.search(r"\*\*(\d+) Bit\*\*", a.frage)[1])
+            mindest = next(m for m in range(1, 200) if m * math.log(n, 2) >= ziel)
+            assert (l["vorrat"], l["mindest"]) == (n, mindest) and l["bisher"] == pytest.approx(laenge * math.log(n) / math.log(2))
+            assert not _mit(a, mindest=str(mindest - 1))["mindest"]  # abgerundet reicht nicht
+        else:
+            (la, ta), (lb, tb) = re.findall(r"\*\*Regel [AB]:\*\* (\d+) Zeichen aus (.*)", a.frage)
+            ea, eb = int(la) * math.log2(_zeichenvorrat(ta)), int(lb) * math.log2(_zeichenvorrat(tb))
+            assert (l["a"], l["b"]) == (pytest.approx(ea), pytest.approx(eb)) and l["staerker"] == ("Regel A" if ea > eb else "Regel B")
+            assert not _mit(a, staerker="Regel B" if ea > eb else "Regel A")["staerker"]
+    assert {a.loesung["staerker"] for _, a in _alle("passwort", "Passwortregeln vergleichen")} == {"Regel A", "Regel B"}
+
+
+def test_schluesselanzahl_und_welcher_schluessel():
+    zehn = next(a for s in range(5000) if (a := rechnen.erzeugen("schluessel", s)).titel == "Schlüssel zählen" and "**10 Personen**" in a.frage)
+    assert zehn.loesung == {"symmetrisch": 45, "asymmetrisch": 20}
+    erwartet = {"Nachricht verschlüsseln": "Öffentlicher Schlüssel des Empfängers", "Nachricht entschlüsseln": "Privater Schlüssel des Empfängers",
+                "Sitzungsschlüssel verschlüsseln": "Öffentlicher Schlüssel des Empfängers",
+                "Sitzungsschlüssel entschlüsseln": "Privater Schlüssel des Empfängers",
+                "Nachrichtentext verschlüsseln": "Symmetrischer Sitzungsschlüssel", "Nachrichtentext entschlüsseln": "Symmetrischer Sitzungsschlüssel",
+                "Nachricht signieren (ihren Hashwert)": "Privater Schlüssel des Absenders", "Signatur prüfen": "Öffentlicher Schlüssel des Absenders"}
+    for seed, a in _alle("schluessel"):
+        l = a.loesung
+        if a.titel == "Schlüssel zählen":
+            n = int(re.search(r"\*\*(\d+) Personen", a.frage)[1])
+            assert l == {"symmetrisch": len(list(itertools.combinations(range(n), 2))), "asymmetrisch": 2 * n}
+            assert not _mit(a, symmetrisch=str(n * (n - 1)))["symmetrisch"]  # Paare doppelt gezählt
+        elif a.titel == "Neue Teilnehmer":
+            n = int(re.search(r"ihre \*\*(\d+) Standorte", a.frage)[1])
+            k = int(m[1]) if (m := re.search(r"\*\*(\d+) neue Standorte", a.frage)) else 1
+            vorher, nachher = (len(list(itertools.combinations(range(x), 2))) for x in (n, n + k))
+            assert l == {"dazu": nachher - vorher, "gesamt": nachher, "asymmetrisch": 2 * k}
+            falsch = _mit(a, dazu=str(k * (k - 1) // 2), asymmetrisch=str(2 * (n + k)))  # nur die Neuen untereinander; alle neu
+            assert not falsch["dazu"] and not falsch["asymmetrisch"] and falsch["gesamt"]
+        else:
+            assert all(f.loesung == erwartet[f.label] and f.loesung in f.optionen for f in a.felder)
+            assert ("Symmetrischer Sitzungsschlüssel" in a.felder[0].optionen) == ("hybrid" in a.frage)
+            andere = [f.name for f in a.felder if f.loesung != "Privater Schlüssel des Absenders"]
+            assert not any(_mit(a, **dict.fromkeys(andere, "Privater Schlüssel des Absenders"))[x] for x in andere)
+
+
+STUFE = {"normal": 0, "hoch": 1, "sehr hoch": 2}
+
+
+def test_schutzbedarf_maximumprinzip_ueber_die_kette():
+    hinweise = set()
+    for seed, a in _alle("schutzbedarf", "Schutzbedarf vererben"):
+        zeilen = re.findall(r"^\| ([^|]+) \| (normal|hoch|sehr hoch) \| (normal|hoch|sehr hoch) \| (normal|hoch|sehr hoch) \| ([^|]+) \|$",
+                            a.frage, re.M)
+        auf = {name: re.findall(r"S\d", server) for name, *_, server in zeilen}
+        werte = {name: [STUFE[w] for w in (v, i, av)] for name, v, i, av, _ in zeilen}
+        raum = set(re.search(r"Die Server (S\d) und (S\d) stehen im Serverraum", a.frage).groups())
+        ziel = re.search(r"des Servers \*\*(S\d)\*\*", a.frage)[1]
+        for g in range(3):
+            server = max(werte[x][g] for x in werte if ziel in auf[x])
+            im_raum = max(werte[x][g] for x in werte if raum & set(auf[x]))
+            assert (STUFE[a.loesung[f"s{g}"]], STUFE[a.loesung[f"r{g}"]]) == (server, im_raum)
+        # typisch falsch: der Raum wie der Server (Maximum nur über ein System)
+        assert not all(_mit(a, **{f"r{g}": a.loesung[f"s{g}"] for g in range(3)}).values())
+        assert "(Cluster)" in a.frage or "Verteilungseffekt" not in a.rechenweg
+        hinweise |= {h for h in ("Kumulationseffekt", "Verteilungseffekt") if h in a.rechenweg}
+    assert hinweise == {"Kumulationseffekt", "Verteilungseffekt"}
+    woerter = {"Vertraulichkeit": ("öffnen", "Verteiler", "liest", "liegen", "Konkurrent"),
+               "Integrität": ("ändert", "doppelt", "verfälscht", "beschädigt"),
+               "Verfügbarkeit": ("nicht erreichbar", "nicht arbeiten", "fällt", "steht", "ausgefallen")}
+    for seed, a in _alle("schutzbedarf", "Grundwerte erkennen"):
+        vorfaelle = re.findall(r"^\d\. (.*)$", a.frage, re.M)
+        for f, text in zip(a.felder, vorfaelle):
+            assert [g for g, w in woerter.items() if any(x in text for x in w)] == [f.loesung], text
+
+
+def _haeufigkeit(text: str) -> float:
+    if m := re.fullmatch(r"einmal in (\d+) Jahren", text):
+        return 1 / int(m[1])
+    if m := re.fullmatch(r"mit (\d+) % Wahrscheinlichkeit im Jahr", text):
+        return int(m[1]) / 100
+    return {"einmal im Jahr": 1, "zweimal im Jahr": 2, "viermal im Jahr": 4}[text]
+
+
+def test_risikobewertung_nachgerechnet():
+    for seed, a in _alle("risiko"):
+        l = a.loesung
+        if a.titel == "Risiko pro Jahr":
+            zeilen = re.findall(r"^\| ([A-D]) \| [^|]+ \| ([^|]+) \| ([\d.,]+) € \|$", a.frage, re.M)
+            risiko = {x: _haeufigkeit(t) * _zahl(s) for x, t, s in zeilen}
+            assert all(l[x] == pytest.approx(r) for x, r in risiko.items())
+            rang = sorted(risiko, key=risiko.get, reverse=True)
+            assert rechnen.stimmt(a.felder[-1], "".join(rang)) and not rechnen.stimmt(a.felder[-1], "".join(reversed(rang)))
+        elif a.titel == "Lohnt sich die Maßnahme?":
+            h1 = _haeufigkeit(re.search(r"rechnet man (.*?) mit einem", a.frage)[1])
+            schaden = _zahl(re.search(r"Schaden je Fall beträgt \*\*([\d.,]+) €", a.frage)[1])
+            einmalig, jahre = re.search(r"einmalig \*\*([\d.,]+) €\*\* bei einer Nutzungsdauer von \*\*(\d) Jahren", a.frage).groups()
+            laufend = _zahl(m[1]) if (m := re.search(r"laufend \*\*([\d.,]+) € pro Jahr", a.frage)) else 0
+            h2 = _haeufigkeit(m[1]) if (m := re.search(r"Häufigkeit auf \*\*(.*?)\*\*", a.frage)) else h1
+            s2 = _zahl(m[1]) if (m := re.search(r"Schaden je Fall auf \*\*([\d.,]+) €", a.frage)) else schaden
+            kosten = _zahl(einmalig) / int(jahre) + laufend
+            nutzen = h1 * schaden - h2 * s2 - kosten
+            assert (l["vorher"], l["nachher"], l["kosten"], l["nutzen"]) == pytest.approx((h1 * schaden, h2 * s2, kosten, nutzen))
+            assert l["lohnt"] == ("Ja" if nutzen > 0 else "Nein") and abs(nutzen) >= 100
+            falsch = _mit(a, kosten=de(_zahl(einmalig) + laufend), lohnt="Nein" if nutzen > 0 else "Ja")
+            assert not falsch["kosten"] and not falsch["lohnt"]  # einmalige Kosten nicht verteilt
+        else:
+            niedrig, mittel = map(int, re.search(r"1 bis (\d+): niedrig, \d+ bis (\d+): mittel", a.frage).groups())
+            w = {"selten": 1, "möglich": 2, "wahrscheinlich": 3, "häufig": 4}
+            s = {"gering": 1, "spürbar": 2, "erheblich": 3, "existenzbedrohend": 4}
+            for i, (_, ws, ss) in enumerate(re.findall(r"^\| ([^|]+) \| (\w+) \| (\w+) \|$", a.frage, re.M)[1:]):
+                wert = w[ws] * s[ss]
+                assert l[f"w{i}"] == wert and l[f"k{i}"] == ("niedrig" if wert <= niedrig else "mittel" if wert <= mittel else "hoch")
+                assert not _mit(a, **{f"w{i}": str(w[ws] + s[ss])}).get(f"w{i}") or w[ws] * s[ss] == w[ws] + s[ss]
+
+
+def _ean_gueltig(ziffern: str) -> bool:
+    z = [int(c) for c in ziffern]
+    return (sum(z[0::2]) + 3 * sum(z[1::2])) % 10 == 0
+
+
+def test_pruefziffern_paritaet_xor_gegenproben():
+    from saku.lernen.rechnen.sicherheit import pruefziffer
+    # selbst durchgerechnet: 4·1 + 0·3 + 1·1 + 2·3 + … + 0·3 = 89 → 1; 9·1 + 7·3 + 8·1 + 3·3 + … + 8·3 = 123 → 7
+    assert pruefziffer([4, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0]) == 1 and _ean_gueltig("4012345678901")
+    assert pruefziffer([9, 7, 8, 3, 1, 2, 3, 4, 5, 6, 7, 8]) == 7 and not _ean_gueltig("9783123456788")
+    for seed, a in _alle("pruefziffer"):
+        l = a.loesung
+        if a.titel.endswith("-Prüfziffer"):
+            zwoelf = re.search(r"`(\d{12})`", a.frage)[1]
+            assert _ean_gueltig(zwoelf + str(l["pz"])) and not any(_ean_gueltig(zwoelf + str(d)) for d in range(10) if d != l["pz"])
+        elif a.titel.endswith(" prüfen"):
+            assert l["gueltig"] == ("Ja" if _ean_gueltig(re.search(r"`(\d{13})`", a.frage)[1]) else "Nein")
+            assert not _mit(a, gueltig="Nein" if l["gueltig"] == "Ja" else "Ja")["gueltig"]
+        elif a.titel == "Paritätsbit":
+            wort, empfangen = re.findall(r"`([01]+)`", a.frage)
+            assert (l["gerade"], l["ungerade"]) == (wort.count("1") % 2, 1 - wort.count("1") % 2)
+            assert l["fehler"] == ("Ja" if empfangen.count("1") % 2 else "Nein")
+            assert not _mit(a, gerade=str(l["ungerade"]))["gerade"]
+        else:
+            eingang, schluessel = (int(b.replace(" ", ""), 2) for b in re.findall(r"`([01 ]{9})`", a.frage))
+            assert int(l["binaer"], 2) == int(l["hex"], 16) == eingang ^ schluessel
+            if eingang | schluessel != eingang ^ schluessel:  # mit ODER statt XOR gerechnet
+                assert not _mit(a, binaer=f"{eingang | schluessel:08b}")["binaer"]
+
+
+def test_dsgvo_bussgeld_und_meldefrist():
+    from datetime import datetime, timedelta
+    monate = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"]
+    tage = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"]
+    for seed, a in _alle("dsgvo"):
+        l = a.loesung
+        if a.titel == "Bußgeldrahmen":
+            artikel = int(re.search(r"\(Art\. (\d+) DSGVO\)", a.frage)[1])
+            absatz = 4 if artikel in (8, 11, 42, 43) or 25 <= artikel <= 39 else 5
+            assert absatz == 5 or artikel not in (5, 6, 7, 9) and not 12 <= artikel <= 22 and not 44 <= artikel <= 49
+            wert, groesse = re.search(r"betrug \*\*([\d.,]+) (Mio|Mrd)\. €", a.frage).groups()
+            umsatz = _zahl(wert) * (1000 if groesse == "Mrd" else 1)
+            fest, prozent = (10, 2) if absatz == 4 else (20, 4)
+            assert l["absatz"] == f"Art. 83 Abs. {absatz}" and l["anteil"] == pytest.approx(umsatz * prozent / 100)
+            assert l["hoechst"] == pytest.approx(max(fest, umsatz * prozent / 100))
+            assert not _mit(a, hoechst=de(min(fest, umsatz * prozent / 100)))["hoechst"]  # der niedrigere Betrag
+        else:
+            def zeitpunkt(text):
+                m = re.search(rf"{text} \**\w+, (\d+)\. (\w+) (\d+) um (\d\d):(\d\d) Uhr", a.frage)
+                return datetime(int(m[3]), monate.index(m[2]) + 1, int(m[1]), int(m[4]), int(m[5]))
+            kenntnis, vorfall = zeitpunkt("erst am"), zeitpunkt("und zwar am")
+            frist = kenntnis + timedelta(hours=72)
+            assert frist.hour == kenntnis.hour and vorfall < kenntnis  # keine Zeitumstellung dazwischen
+            assert (l["datum"], l["uhrzeit"], l["tag"]) == (frist.strftime("%d.%m.%Y"), frist.strftime("%H:%M"), tage[frist.weekday()])
+            ab_vorfall = vorfall + timedelta(hours=72)  # typisch falsch: ab dem Vorfall gerechnet
+            assert not all(_mit(a, datum=ab_vorfall.strftime("%d.%m.%Y"), uhrzeit=ab_vorfall.strftime("%H:%M")).values())
+            assert rechnen.stimmt(a.felder[1], f"{frist.hour}.{frist:%M} Uhr") and rechnen.stimmt(a.felder[2], tage[frist.weekday()][:2])
+
 
 # unabhängig von saku: IANA-Standardports, die mit UDP und die von Anfang an verschlüsselten
 IANA = {20: "FTP", 21: "FTP", 22: "SSH", 23: "Telnet", 25: "SMTP", 53: "DNS", 67: "DHCP", 68: "DHCP", 69: "TFTP", 80: "HTTP", 110: "POP3",
@@ -989,3 +1198,21 @@ def test_osi_schichten():
             else:
                 begriff, art = f.label.split(": ")
                 assert f.loesung == (namen if art == "OSI-Schicht" else tcp_ip)[schicht[begriff]] and f.loesung in f.optionen
+
+
+def test_sicherheit_auf_der_seite(client):
+    html = client.get("/rechnen/").get_data(as_text=True)
+    assert "IT-Sicherheit" in html and 'href="/rechnen/dsgvo"' in html and 'href="/rechnen/ports"' in html
+    assert all(f'id="{art}"' in client.get("/rechnen/formeln").get_data(as_text=True) for art in ("passwort", "schutzbedarf", "osi"))
+    from saku.web.routen.suche import befehle
+    assert befehle("passwort")[0][:2] == ("calculator", "Rechnen: Passwortstärke")
+    seed, a = next(x for x in _alle("ports", "Port → Protokoll"))
+    karte = client.get(f"/rechnen/ports?seed={seed}").get_data(as_text=True)
+    assert all(f'name="feld-{f.name}"' in karte for f in a.felder)
+    klein = {f"feld-{f.name}": f.loesung.lower() for f in a.felder}  # tolerant: „https“ wie „HTTPS“
+    assert "Richtig." in client.post("/rechnen/ports/pruefen", data={"seed": seed} | klein, headers=HTMX).get_data(as_text=True)
+    seed, a = next(x for x in _alle("schutzbedarf", "Schutzbedarf vererben"))
+    karte = client.get(f"/rechnen/schutzbedarf?seed={seed}").get_data(as_text=True)
+    assert karte.count('<select class="select"') == 6 and ">sehr hoch</option>" in karte
+    weg = client.post("/rechnen/schutzbedarf/pruefen", data={"seed": seed, "aufgeben": "1"}, headers=HTMX).get_data(as_text=True)
+    assert "Hier ist der Rechenweg." in weg and "Maximumprinzip" in weg and "Formeln: Schutzbedarf" in weg
