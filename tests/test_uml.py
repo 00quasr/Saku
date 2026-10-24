@@ -477,7 +477,8 @@ def test_uml_passt_zu_themen():
 def test_uml_im_umfang_und_auf_den_seiten(client):
     ap1, ae, si = (set(rechnen.im_umfang(p)) for p in ("AP1", "AP2-1201", "AP2-1202"))
     uml = {a for a, x in rechnen.ARTEN.items() if x.gruppe == "UML"}
-    assert uml == {"zustand", "klassen", "usecase", "sequenz"} and uml <= ae and not uml & (ap1 | si)
+    assert uml == {"zustand", "klassen", "usecase", "sequenz"} and uml <= ae and not uml & si
+    assert uml & ap1 == {"klassen", "usecase"}  # die AP1 fragt Klassen- und Anwendungsfalldiagramme, nie Zustand oder Sequenz
     assert "schreibtisch" in ap1 & ae  # das Aktivitätsdiagramm gehört zum Schreibtischtest
     assert all(rechnen.ARTEN[a].sprint and "Beispiel" in rechnen.ARTEN[a].formeln for a in uml)
     assert "Aktivitätsdiagramm" in rechnen.ARTEN["schreibtisch"].formeln
