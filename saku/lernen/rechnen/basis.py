@@ -57,7 +57,7 @@ class Aufgabe:
     # Pseudocode-Feld: Eingaben je Testfall (der erste ist das Beispiel der Frage) und die Ergebnisvariable, "" = die AUSGABE zählt;
     # was herauskommen soll, liefert die Musterlösung (Feld.loesung)
     testfaelle: tuple[list[dict], str] | None = None
-    # Struktogramme als HTML (programmieren.struktogramm): das Programm der Frage bzw. die Musterlösung unter dem Rechenweg
+    # Bild als HTML (Struktogramm, Aktivitäts- und UML-Diagramme als SVG): zur Frage bzw. die Musterlösung unter dem Rechenweg
     struktogramm: str = ""
     weg_struktogramm: str = ""
 
