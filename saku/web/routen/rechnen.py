@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from flask import Blueprint, abort, make_response, redirect, render_template, request, url_for
 
 from saku.db import einstellung
-from saku.lernen import rechnen, simulation
+from saku.lernen import rechnen, simulation, sql
 from saku.web import db, ganzzahl, ist_fragment, seite_oder_fragment
 
 bp = Blueprint("rechnen", __name__, url_prefix="/rechnen")
@@ -130,7 +130,7 @@ def sprint_neu():
     in der Adresse."""
     con = db()
     rng, arten, quoten = random.Random(), [], _quoten(con)
-    ausserhalb = [a for a in rechnen.ARTEN if a not in rechnen.im_umfang(_pfad(con))]
+    ausserhalb = [a for a in rechnen.ARTEN if a not in rechnen.im_umfang(_pfad(con)) or not rechnen.ARTEN[a].sprint]
     for _ in range(SPRINT_AUFGABEN):
         arten.append(rechnen.gemischt(rng, quoten, ohne=arten + ausserhalb))
     return redirect(url_for("rechnen.sprint_lauf", a=[f"{art}:{rng.randrange(SEEDS)}" for art in arten], start=int(time.time())))
@@ -206,16 +206,51 @@ def pruefen(art):
     if seed is None:
         abort(400)
     aufgabe = rechnen.erzeugen(art, seed)
-    eingaben = {f.name: request.form.get(f"feld-{f.name}", "")[:200] for f in aufgabe.felder}
+    eingaben = {f.name: request.form.get(f"feld-{f.name}", "")[:sql.ZEICHEN if f.typ == "sql" else 200] for f in aufgabe.felder}
     aufgegeben = request.form.get("aufgeben") == "1"
     gemischt = request.form.get("gemischt") == "1"
     start = request.form.get("start", type=int)
     if not aufgegeben and not any(e.strip() for e in eingaben.values()):  # ↵ zu früh oder doppelt: nichts speichern
         return render_template("rechnen/_karte.html", **_kontext(art, seed, gemischt) | {"start": start or int(time.time()), "leer": True})
+    vergleich = None
+    if aufgabe.sandbox:  # SQL: was abweicht; beim Aufgeben das Ergebnis der Musterlösung
+        feld = aufgabe.felder[0]
+        if aufgegeben:
+            vergleich = {"muster": sql.ausfuehren(*aufgabe.sandbox, feld.loesung)["tabellen"]}
+        elif "fehler" in (vergleich := rechnen.sql_vergleich(aufgabe, eingaben[feld.name])):
+            # läuft nicht: keine Bewertung, nichts gespeichert, die Anweisung bleibt zum Korrigieren stehen
+            return render_template("rechnen/_karte.html", **_kontext(art, seed, gemischt, eingaben)
+                                   | {"start": start or int(time.time()), "sql_fehler": vergleich["fehler"]})
     werte = rechnen.pruefen(aufgabe, eingaben)
     dauer = min(max(int(time.time()) - start, 0), 3600) if start else None
     con = db()
     con.execute("INSERT INTO rechenuebung (art, seed, richtig, felder_richtig, felder_gesamt, dauer_s) VALUES (?, ?, ?, ?, ?, ?)",
                 (art, seed, int(not aufgegeben and all(werte.values())), sum(werte.values()), len(werte), dauer))
     con.commit()
-    return render_template("rechnen/_karte.html", **_kontext(art, seed, gemischt, eingaben, werte, aufgegeben))
+    return render_template("rechnen/_karte.html", **_kontext(art, seed, gemischt, eingaben, werte, aufgegeben), vergleich=vergleich)
+
+
+def _sql_aufgabe_oder_404(art: str, seed: int | None) -> rechnen.Aufgabe:
+    _art_oder_404(art)
+    if seed is None:
+        abort(400)
+    aufgabe = rechnen.erzeugen(art, seed)
+    return aufgabe if aufgabe.sandbox else abort(404)
+
+
+@bp.post("/<art>/sql")
+def sql_ausfuehren(art):
+    """SQL-Aufgabe: die eigene Anweisung in der Sandbox ausführen, wie in Üben (Ergebnis oder die Meldung von SQLite)."""
+    aufgabe = _sql_aufgabe_oder_404(art, request.form.get("seed", type=int))
+    try:
+        eigene = request.form.get(f"feld-{aufgabe.felder[0].name}", "")
+        return render_template("keiko/_sql.html", **sql.ausfuehren(*aufgabe.sandbox, eigene))
+    except sql.SqlFehler as fehler:
+        return render_template("keiko/_sql.html", fehler=str(fehler))
+
+
+@bp.get("/<art>/tabellen")
+def sql_tabellen(art):
+    """Die erfundenen Beispieldaten einer SQL-Aufgabe."""
+    aufgabe = _sql_aufgabe_oder_404(art, request.args.get("seed", type=int))
+    return render_template("keiko/_sql.html", meldung="Beispieldaten", tabellen=sql.tabellen(*aufgabe.sandbox))

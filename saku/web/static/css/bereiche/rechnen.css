@@ -47,6 +47,14 @@
 .rechnen-feld--falsch .rechnen-marke > [aria-label] { color: var(--beni); }
 .rechnen-marke strong { font-family: var(--schrift-code); font-weight: 600; }
 
+/* SQL-Aufgabe: Editor, Ausführen und Beispieldaten wie in Üben (.editor, .sql-*), darunter ✓ oder ✕ */
+.rechnen-sql { display: grid; gap: 8px; }
+.rechnen-sql .editor:disabled { opacity: 1; cursor: default; }
+.rechnen-sql--richtig .editor { border-color: var(--matcha); }
+.rechnen-sql--falsch .editor { border-color: var(--beni); }
+.rechnen-sql--richtig .rechnen-marke { color: var(--matcha); }
+.rechnen-sql--falsch .rechnen-marke { color: var(--beni); }
+
 /* Eingabetabelle (Wertetabelle, Array): die Grundform kommt aus Üben (.tabelle-eingabe) */
 .rechnen-tabelle { max-width: max-content; }
 .rechnen-tabelle th[scope="row"] { background: none; font-weight: 500; color: var(--sumi-mittel); }

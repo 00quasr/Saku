@@ -1,7 +1,9 @@
 {# Eingabefelder einer Rechenaufgabe, für die Karte und den Sprint.
    a: Aufgabe · eingaben: {Feld: Text} · werte: {Feld: richtig?} oder None (noch nicht geprüft)
-   praefix: Formularname vor jedem Feld (Sprint: a1-, a2-, …) · fokus: erstes Feld bekommt autofocus #}
-{% macro felder(a, eingaben, werte, praefix="feld-", fokus=True) %}
+   praefix: Formularname vor jedem Feld (Sprint: a1-, a2-, …) · fokus: erstes Feld bekommt autofocus
+   seed: nur auf der Karte, dann bekommt ein SQL-Feld „Ausführen“ und „Tabellen ansehen“ #}
+{% import "_makros.html" as m %}
+{% macro felder(a, eingaben, werte, praefix="feld-", fokus=True, seed=None) %}
 {% set fertig = werte is not none %}
 {% set erstes = a.felder[0].name if fokus and not fertig else None %}
 {% if a.tabelle %}
@@ -23,9 +25,33 @@
 </div>
 {% endif %}
 
-{% if a.felder|length > a.tabellen_felder|length %}
+{% for f in a.felder if f.typ == 'sql' %}
+{# SQL: Editor wie in Üben; geprüft wird in der Sandbox, die Abweichung steht in der Auswertung #}
+{% set ok = fertig and werte[f.name] %}
+{% set werkzeuge = seed is not none and not fertig %}
+<div class="rechnen-sql{{ (' rechnen-sql--richtig' if ok else ' rechnen-sql--falsch') if fertig }}">
+  <label class="etikett" for="{{ praefix }}{{ f.name }}">{{ f.label }} · Tab rückt ein{{ ', ⌘↵ führt aus' if werkzeuge }}, Esc verlässt das Feld</label>
+  <textarea class="textarea editor" id="{{ praefix }}{{ f.name }}" name="{{ praefix }}{{ f.name }}" rows="8" spellcheck="false" autocapitalize="off"
+            autocomplete="off" placeholder="SELECT …" onkeydown="saku.editorTaste(event)" {{ 'disabled' if fertig }} {{ 'autofocus' if f.name == erstes }}>{{ eingaben.get(f.name, '') }}</textarea>
+  {% if werkzeuge %}
+  <div class="zeile sql-werkzeuge">
+    <button type="button" class="btn" data-variant="outline" data-size="sm" data-sql-ausfuehren
+            hx-post="{{ url_for('rechnen.sql_ausfuehren', art=a.art) }}" hx-target="#sql-ergebnis">
+      {{ m.icon('play') }} Ausführen {{ m.taste('⌘↵') }}
+    </button>
+    <button type="button" class="btn" data-variant="ghost" data-size="sm"
+            hx-get="{{ url_for('rechnen.sql_tabellen', art=a.art, seed=seed) }}" hx-target="#sql-ergebnis">{{ m.icon('table') }} Tabellen ansehen</button>
+  </div>
+  <div id="sql-ergebnis" class="sql-ergebnis" aria-live="polite"></div>
+  {% endif %}
+  {% if fertig %}<p class="rechnen-marke">{% if ok %}<span aria-label="richtig">✓</span>{% else %}<span aria-label="falsch">✕</span>{% endif %}</p>{% endif %}
+</div>
+{% endfor %}
+
+{% set uebrige = a.felder|rejectattr('name', 'in', a.tabellen_felder)|rejectattr('typ', 'equalto', 'sql')|list %}
+{% if uebrige %}
 <div class="rechnen-felder" role="group" aria-label="Deine Ergebnisse">
-  {% for f in a.felder if f.name not in a.tabellen_felder %}
+  {% for f in uebrige %}
   {% set ok = fertig and werte[f.name] %}
   {# gleiche Beschriftung, andere Einheit (Dauer in s und in min): vorgelesen wird beides #}
   {% set name = f.label ~ (' in ' ~ f.einheit if f.einheit else '') %}

@@ -24,7 +24,7 @@ window.saku = {
   editorTaste(e) {
     const feld = e.target;
     if (e.key === "Escape") return feld.blur();
-    const ausfuehren = e.key === "Enter" && (e.metaKey || e.ctrlKey) && feld.closest(".keiko-antwort")?.querySelector("[data-sql-ausfuehren]");
+    const ausfuehren = e.key === "Enter" && (e.metaKey || e.ctrlKey) && feld.closest(".keiko-antwort, .rechnen-sql")?.querySelector("[data-sql-ausfuehren]");
     if (ausfuehren) {
       e.preventDefault();
       return ausfuehren.click();
