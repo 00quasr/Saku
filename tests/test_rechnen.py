@@ -987,6 +987,8 @@ def test_passwortstaerke_nachgerechnet():
             assert l["vorrat"] == n and l["kombinationen"] == n ** laenge
             assert l["max"] == pytest.approx(n ** laenge / rate / einheit) and l["mittel"] == pytest.approx(l["max"] / 2)
             assert rechnen.stimmt(a.felder[1], f"{n}^{laenge}")  # als Potenz getippt
+            mantisse, exponent = f"{n ** laenge:.2e}".split("e")  # gerundet wie im Rechenweg: 2,18 · 10^14
+            assert rechnen.stimmt(a.felder[1], f"{mantisse.replace('.', ',')} · 10^{int(exponent)}", a.toleranz)
             falsch = _mit(a, kombinationen=str(n * laenge), mittel=de(l["max"]), vorrat=str(n - 10))
             assert not (falsch["kombinationen"] or falsch["mittel"] or falsch["vorrat"]) and falsch["max"]
         elif a.titel == "Entropie und Mindestlänge":
