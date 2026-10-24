@@ -24,11 +24,11 @@ Die Palette stammt aus traditionellen japanischen Farben: Papier, Tusche und ein
 | `--sumi` | `#1F1D1A` | 墨 Tusche | Text, primäre Knöpfe |
 | `--sumi-mittel` | `#6B665D` | | Sekundärtext |
 | `--linie` | `#E4DFD5` | | Linien, Rahmen |
-| `--shu` | `#C2452D` | 朱 Zinnoberrot | **die** Akzentfarbe: Fokus, Stempel, aktuelle Station, Logo |
+| `--shu` | `#B8422B` | 朱 Zinnoberrot | **die** Akzentfarbe: Fokus, Stempel, aktuelle Station, Logo |
 | `--ai` | `#2F4A63` | 藍 Indigo | alles von Sensei |
 | `--beni` | `#A63A3A` | 紅 Karmin | Status „wackelig“, Fehler |
-| `--yamabuki` | `#A97A22` | 山吹 Goldgelb | Status „im Aufbau“ |
-| `--matcha` | `#5E7F4F` | 抹茶 Matcha | Status „sicher“ |
+| `--yamabuki` | `#88621B` | 山吹 Goldgelb | Status „im Aufbau“ |
+| `--matcha` | `#547147` | 抹茶 Matcha | Status „sicher“ |
 
 ### Dunkel: Sumi (Tusche)
 
@@ -39,7 +39,7 @@ Die Palette stammt aus traditionellen japanischen Farben: Papier, Tusche und ein
 | `--sumi` (Text) | `#ECE8DF` |
 | `--sumi-mittel` | `#A39E92` |
 | `--linie` | `#2E2B27` |
-| `--shu` | `#E0603F` |
+| `--shu` | `#E06241` |
 | `--ai` | `#8FA9C4` |
 | `--beni` | `#D46A5E` |
 | `--yamabuki` | `#D9AE4F` |
