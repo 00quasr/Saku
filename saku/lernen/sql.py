@@ -286,12 +286,13 @@ def schluessel(ddl: str, daten: str, anweisung: str) -> set[tuple[str, str, str]
     with closing(_datenbank(ddl, daten)) as con:
         _eigene(con, anweisung)
         con.set_authorizer(None)  # die Anweisung ist durch, das Schema liest nur Saku (PRAGMA bleibt ihr gesperrt)
+        # main. und 'main': temporäre Tabellen (unsichtbar im Vergleich) verdecken weder die Funktion noch die Tabelle
         raus = set()
         for (t,) in con.execute("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'").fetchall():
-            for _, spalte, _, pflicht, _, pk in con.execute("SELECT * FROM pragma_table_info(?)", (t,)).fetchall():
+            for _, spalte, _, pflicht, _, pk in con.execute("SELECT * FROM main.pragma_table_info(?, 'main')", (t,)).fetchall():
                 if pk or pflicht:
                     raus.add((t.lower(), spalte.lower(), "Primärschlüssel" if pk else "NOT NULL"))
-            for ziel, spalte in con.execute('SELECT "table", "from" FROM pragma_foreign_key_list(?)', (t,)).fetchall():
+            for ziel, spalte in con.execute("""SELECT "table", "from" FROM main.pragma_foreign_key_list(?, 'main')""", (t,)).fetchall():
                 raus.add((t.lower(), spalte.lower(), f"Fremdschlüssel auf {ziel.lower()}"))
     return raus
 

@@ -1296,6 +1296,11 @@ def test_create_table_prueft_schluessel_nicht_die_datentypen():
     assert ohne_pflicht["ergebnis"] == 2 and any("NOT NULL fehlt" in h for h in ohne_pflicht["hinweise"])
     assert "Primärschlüssel fehlt" in " ".join(rechnen.sql_vergleich(a, re.sub(r" PRIMARY KEY|,\n    PRIMARY KEY \([^)]*\)", "", loesung))["hinweise"])
     assert rechnen.sql_vergleich(a, "PRAGMA foreign_keys = ON")["fehler"].startswith("Nicht erlaubt")  # die Sandbox bleibt dicht
+    # temporäre Tabellen (im Vergleich unsichtbar) verdecken weder die Schema-Abfragen (sonst Fehler 500) noch die eigene Tabelle
+    verdeckt = "\nCREATE TEMP TABLE pragma_table_info (x);\nCREATE TEMP TABLE pragma_foreign_key_list (x);"
+    assert rechnen.sql_vergleich(a, loesung + verdeckt)["ergebnis"] == 3
+    ohne_schluessel = re.sub(r"\s+(PRIMARY KEY|NOT NULL)\b|,\n    (PRIMARY|FOREIGN) KEY [^\n]*", "", loesung)
+    assert rechnen.sql_vergleich(a, f"{ohne_schluessel}\n{loesung.replace('CREATE TABLE', 'CREATE TEMP TABLE')}")["ergebnis"] == 2
     with pytest.raises(sql.SqlFehler):
         sql.schluessel(*a.sandbox, "SELECT * FROM pragma_table_info('kunde')")
 
