@@ -4,6 +4,7 @@ import ipaddress
 import itertools
 import random
 import re
+from pathlib import Path
 
 import pytest
 
@@ -673,6 +674,8 @@ def test_sprint_nur_im_umfang(client, con):
             adresse = client.get("/rechnen/sprint/neu").headers["Location"]
             arten = [w.split(":")[0] for w in parse_qs(urlparse(adresse).query)["a"]]
             assert len(set(arten)) == 5 and set(arten) <= erlaubt, (pfad, arten)
+    start = client.get("/rechnen/sprint").get_data(as_text=True)  # die Startseite sagt dasselbe
+    assert "aus allen Arten" not in start and "Arten deiner Prüfung" in start
 
 
 def test_gemischt_ohne_doppelte():
@@ -809,6 +812,23 @@ def test_backup_nachgerechnet():
     assert not any(rechnen.stimmt(tage_feld, t) for t in ["Do, Mo", "Montag", "Mo, Di, Do", ""])
 
 
+def test_backup_saetze_vollstaendig():
+    for seed, a in _alle("backup"):
+        if a.titel.startswith("Datenmenge"):  # „Inkrementell sichert, was sich seit der letzten Sicherung geändert hat, …“
+            assert re.match(r"1\. \w+ sichert, was sich seit der letzten (Voll)?[Ss]icherung geändert hat, also", a.rechenweg), a.rechenweg
+        elif a.titel == "Großvater-Vater-Sohn":
+            assert "wie viele Daten stehen höchstens auf allen Bändern zusammen?" in a.frage
+
+
+def test_wochentage_mit_endung_und_ohne_artikel():
+    """„Montags“ und „Dienstagabend“ beginnen mit einem Wochentag und zählen; „die“ und „mit“ sind keine Abkürzungen."""
+    feld = Feld("t", "Tage", "Montag, Donnerstag", typ="wochentage")
+    assert all(rechnen.stimmt(feld, t) for t in ["Montags, Donnerstags", "Montag, Donnerstagabend", "Mo., Do.",
+                                                 "Die Vollsicherung vom Montag und die Differenzielle vom Donnerstag",
+                                                 "Montag mit Donnerstag"])
+    assert not any(rechnen.stimmt(feld, t) for t in ["Montag, die Mittwochssicherung, Donnerstag", "Donnerstags, Montags"])
+
+
 def test_monitor_und_bandbreite_nachgerechnet():
     import math
     for seed, a in _alle("monitor"):
@@ -842,6 +862,21 @@ def test_monitor_und_bandbreite_nachgerechnet():
         else:
             gb = int(re.search(r"\*\*(\d+) GB\*\*", f)[1])
             assert l["sata"] == pytest.approx(gb * 1000 / 600) and l["faktor"] > 5
+
+
+def test_seitenverhaeltnis_verlangt_das_exakte_und_erklaert_gerundete_namen():
+    """1366 × 768 ist exakt 683:384, im Handel heißt es 16:9 (wie 21:9 für 3440 × 1440, exakt 43:18). Die Frage darf deshalb
+    nicht „die übliche Schreibweise“ anbieten, die die Kontrolle dann ablehnt; der Rechenweg nennt den gerundeten Namen."""
+    gesehen = set()
+    for seed in range(1500):
+        a = rechnen.erzeugen("monitor", seed)
+        if a.titel != "Seitenverhältnis":
+            continue
+        assert "exakte" in a.frage and "üblichen Schreibweise" not in a.frage
+        if gerundet := {"683:384": "16:9", "43:18": "21:9"}.get(a.loesung["verhaeltnis"]):
+            gesehen.add(gerundet)
+            assert f"als {gerundet} bezeichnet, das ist aber gerundet" in a.rechenweg and not rechnen.stimmt(a.felder[0], gerundet)
+    assert gesehen == {"16:9", "21:9"}
 
 
 # --- VLSM, Routing, EUI-64 (Runde 8) -------------------------------------------------------
@@ -898,3 +933,8 @@ def test_eui64_unabhaengig_ueber_zeichenketten():
     assert all(rechnen.stimmt(feld, t) for t in ["2001:db8::21a:2bff:fe3c:4d5e", "2001:0DB8:0:0:021A:2BFF:FE3C:4D5E"])
     assert not rechnen.stimmt(feld, "2001:db8::21a:2bff:fe3c:4d5f") and not rechnen.stimmt(feld, "kein")
     assert rechnen.stimmt(Feld("i", "Interface-ID", "21a:2bff:fe3c:4d5e", typ="ipv6"), "021A:2BFF:FE3C:4D5E")
+    # IPv6-Felder (EUI-64) so breit wie die IPv6-Textfelder (Kürzen, Ausschreiben): eine globale Adresse hat bis zu 39 Zeichen
+    css = (Path(__file__).parents[1] / "saku" / "web" / "static" / "css" / "bereiche" / "rechnen.css").read_text(encoding="utf-8")
+    assert re.search(r"^:is\(\.rechnen-feld--text, \.rechnen-feld--ipv6\) \.input \{ width: 24rem; \}", css, re.M)
+    # wie bei IPv4 („10.0.0.0/24“) zählt die Adresse, eine angehängte Präfixlänge stört nicht
+    assert rechnen.stimmt(feld, "2001:db8::21a:2bff:fe3c:4d5e/64") and rechnen.stimmt(Feld("n", "Netz", "10.0.0.0", typ="ip"), "10.0.0.0/24")

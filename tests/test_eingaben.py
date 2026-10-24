@@ -33,3 +33,25 @@ def test_kaputte_eingaben_in_jeder_rechenart(client):
         for wert in ("x", "1e309", "nan", "2^999", "a" * 5000, "１２", "ffff:" * 20):
             antwort = client.post(f"/rechnen/{art}/pruefen", data={"seed": "11", **{f"feld-{f}": wert for f in felder}}, headers=HTMX)
             assert antwort.status_code == 200, (art, wert)
+
+
+LANG = "9" * 5000  # mehr Ziffern, als int() annimmt
+
+
+@pytest.mark.parametrize("methode, url, formular", [
+    ("get", "/rechnen/sprint/lauf?a=subnetz:²", None),  # „²“.isdigit() ist wahr, int(„²“) scheitert
+    ("post", "/rechnen/sprint/lauf", {"a": f"subnetz:{LANG}", "start": "1"}),
+    ("get", "/keiko/?thema=²", None),
+    ("get", f"/keiko/?thema={LANG}", None),
+    ("post", "/sensei/punkte", {"teilaufgabe": "²"}),
+    ("post", "/rechnen/vlsm/pruefen", {"seed": "3", "feld-0_netz": "10.0.0.²"}),
+    ("post", "/rechnen/subnetz/pruefen", {"seed": "2", "feld-netz": "10.0.0.²"}),
+], ids=["sprint-hoch", "sprint-lang", "thema-hoch", "thema-lang", "sensei-hoch", "vlsm-ip", "subnetz-ip"])
+def test_hochgestellte_und_ueberlange_ziffern_ohne_absturz(client, methode, url, formular):
+    assert getattr(client, methode)(url, data=formular, headers=HTMX).status_code in (200, 400)
+
+
+def test_simulation_speichert_auch_bei_kaputten_feldnamen(client):
+    url = client.post("/shiken/neu", data={"bereich": "Entwicklung und Umsetzung von Algorithmen"}).headers["Location"]
+    antwort = client.post(url + "/speichern", data={"antwort-²": "x", f"antwort-{LANG}": "x", f"antwort-{LANG}-art": "wahl"}, headers=HTMX)
+    assert antwort.status_code == 200

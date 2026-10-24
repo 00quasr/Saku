@@ -47,11 +47,11 @@ def _seitenverhaeltnis(rng):
     b, h = rng.choice(AUFLOESUNGEN + [(1280, 1024), (1600, 900), (1680, 1050)])
     t = math.gcd(b, h)
     frage = (f"Im Datenblatt eines Monitors der {rng.choice(FIRMEN)} steht die Auflösung **{de(b)} × {de(h)}**.\n\n"
-             "Geben Sie das Seitenverhältnis an (in kleinsten ganzen Zahlen oder der üblichen Schreibweise wie 16:10) und die "
-             "Gesamtzahl der Pixel.")
+             "Geben Sie das exakte Seitenverhältnis an (gekürzt wie 8:5 oder gleichwertig wie 16:10) und die Gesamtzahl der Pixel.")
     weg = schritte(f"Größter gemeinsamer Teiler von {b} und {h}: {t}",
                    f"{b} : {t} = {b // t}, {h} : {t} = {h // t} → **{b // t}:{h // t}**"
                    + {(43, 18): " (im Handel als 21:9 bezeichnet, das ist aber gerundet)",
+                      (683, 384): " (im Handel als 16:9 bezeichnet, das ist aber gerundet)",
                       (8, 5): " (gleichwertig und üblicher: 16:10)"}.get((b // t, h // t), ""),
                    f"Pixel: {de(b)} · {de(h)} = **{de(b * h)}**")
     felder = [Feld("verhaeltnis", "Seitenverhältnis", f"{b // t}:{h // t}", typ="verhaeltnis"), Feld("pixel", "Pixel", b * h, stellen=0)]

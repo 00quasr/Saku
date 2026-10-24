@@ -42,7 +42,7 @@
   {% endfor %}
 </ol>
 {% else %}
-<p class="einfuehrung-text">Noch kam kein Thema in fast jedem der {{ zahlen.termine }} Termine dran. Mit mehr Prüfungen stehen hier die Dauerbrenner.</p>
+<p class="einfuehrung-text">{% if zahlen.termine %}Noch kam kein Thema in fast jedem der {{ zahlen.termine }} Termine dran.{% else %}Zu deinem Prüfungsteil gibt es noch keine Prüfungen.{% endif %} Mit mehr Prüfungen stehen hier die Dauerbrenner.</p>
 {% endif %}
 <p class="klein gedaempft">Alle Zahlen stehen unter <span lang="ja">析</span> Analyse.</p>
 {% endcall %}

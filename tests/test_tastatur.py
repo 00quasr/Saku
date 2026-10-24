@@ -77,3 +77,13 @@ def test_geteilte_bausteine_stehen_in_saku_css():
         assert re.search(rf"^\.{klasse}[\s{{>\[.:-]", gemeinsam, re.M), klasse
         for datei in css.joinpath("bereiche").glob("*.css"):
             assert not re.search(rf"^\.{klasse}(?![\w-])", datei.read_text(encoding="utf-8"), re.M), (klasse, datei.name)
+
+
+def test_luft_der_station_trifft_nicht_die_teilaufgaben_im_mini_test(client):
+    """Auch die Mini-Test-Seite trägt .michi-station. Die Luft für die Abschnitte der Station (Einführung, Übungen) darf
+    die Teilaufgaben im Test-Formular nicht treffen, sonst rutscht jede Kopfzeile dort 16 px tiefer."""
+    css = (Path(__file__).parents[1] / "saku" / "web" / "static" / "css" / "bereiche" / "michi.css").read_text(encoding="utf-8")
+    assert re.search(r"^(.+?) \{ margin-top: 16px; \}.*Einführung", css, re.M)[1] == ".michi-station > .abschnitt > * + *"
+    test = client.get("/michi/1/test").get_data(as_text=True)
+    assert 'class="seite eng michi-station"' in test
+    assert test.index('<form id="test"') < test.index('<section class="abschnitt michi-testaufgabe"')  # im Formular, nicht direkt darunter

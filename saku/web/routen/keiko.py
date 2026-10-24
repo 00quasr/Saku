@@ -7,7 +7,7 @@ from datetime import date, datetime, timezone
 from flask import Blueprint, abort, make_response, render_template, request, url_for
 
 from saku.lernen import antwort, karten, rechnen, rueckblick, sql, stichpunkte, tagesziel
-from saku.web import db, seite_oder_fragment
+from saku.web import db, ganzzahl, seite_oder_fragment
 from saku.web.routen.heute import datum_lang
 
 bp = Blueprint("keiko", __name__, url_prefix="/keiko")
@@ -49,7 +49,7 @@ def wann(faellig_am: str, jetzt: datetime | None = None) -> str:
 
 
 def _zahlen(werte) -> list[int]:
-    return [int(x) for w in werte for x in str(w).replace(",", " ").split() if x.isdigit()]
+    return [n for w in werte for x in str(w).replace(",", " ").split() if (n := ganzzahl(x)) is not None]
 
 
 def _zustand() -> dict:

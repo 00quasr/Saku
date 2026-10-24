@@ -13,7 +13,7 @@ from flask import Blueprint, abort, current_app, redirect, render_template, requ
 from werkzeug.datastructures import MultiDict
 
 from saku.lernen import antwort, hochrechnung, karten, simulation, stichpunkte
-from saku.web import db
+from saku.web import db, ganzzahl
 
 bp = Blueprint("shiken", __name__, url_prefix="/shiken")
 
@@ -57,11 +57,11 @@ def _antworten_speichern(con, sim) -> None:
     werden als JSON gespeichert, damit die Auswertung sie prüfen kann."""
     if sim["note"] is not None:
         return
-    werte = [(wert if wert.strip() else None, sim["id"], int(name[8:]))  # Einrückung bleibt (Pseudocode)
-             for name, wert in request.form.items() if name.startswith("antwort-") and name[8:].isdigit()]
+    werte = [(wert if wert.strip() else None, sim["id"], t_id)  # Einrückung bleibt (Pseudocode)
+             for name, wert in request.form.items() if name.startswith("antwort-") and (t_id := ganzzahl(name[8:])) is not None]
     for name in request.form:
-        if treffer := re.fullmatch(r"antwort-(\d+)-art", name):
-            werte.append((json.dumps(antwort.eingabe(request.form, f"antwort-{treffer[1]}-")), sim["id"], int(treffer[1])))
+        if (treffer := re.fullmatch(r"antwort-(\d+)-art", name)) and (t_id := ganzzahl(treffer[1])) is not None:
+            werte.append((json.dumps(antwort.eingabe(request.form, f"antwort-{treffer[1]}-")), sim["id"], t_id))
     con.executemany("UPDATE simulation_teilaufgabe SET antwort = ? WHERE simulation_id = ? AND teilaufgabe_id = ?", werte)
     con.commit()
 

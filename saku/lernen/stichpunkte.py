@@ -68,7 +68,7 @@ def zerlegen(loesung: str) -> list[str]:
     elif len(tabelle) >= 2:  # erste Zeile ist der Kopf
         punkte = [" – ".join(c.strip() for c in z.strip("|").split("|") if c.strip()) for z in tabelle[1:]]
     else:
-        text = " ".join(z for z in zeilen if not FLOSKEL.match(z))
+        text = " ".join(re.sub(r"^[-*•–]\s+", "", z) for z in zeilen if not FLOSKEL.match(z))  # ein einzelner Spiegelstrich
         text = re.sub(r"\b([A-Za-z])\.\s+([A-Za-z])\.", r"\1.\2.", text)  # „z. B.“, „d. h.“, „u. a.“ ohne Leerzeichen
         # Satzende nach zwei Buchstaben oder Ziffern („Netze.“, „WAN.“), nicht nach einer Abkürzung wie „z.B.“
         punkte = re.split(r"(?<=[A-Za-zÄÖÜäöüß0-9)]{2}[.!?;])(?<![A-Za-z]\.[A-Za-z]\.)\s+(?=[A-ZÄÖÜ0-9])", text)
