@@ -94,20 +94,41 @@
       <header><h2 id="hilfe-titel" class="ueberschrift">Tastenkürzel</h2></header>
       <section>
         <table class="table tasten-tabelle">
+          {# nur Kürzel, die es gibt: data-taste in den Templates, Editor und Wissensgraph in saku.js #}
           <tbody>
+            <tr><th colspan="2" class="etikett">Überall</th></tr>
             <tr><td>{{ m.taste('⌘K') }} / {{ m.taste('Strg K') }}</td><td>Suche öffnen</td></tr>
             <tr><td>{{ m.taste('S') }}</td><td>Sensei öffnen oder schließen</td></tr>
             <tr><td>{{ m.taste('?') }}</td><td>diese Hilfe</td></tr>
-            <tr><td>{{ m.taste('Esc') }}</td><td>schließen, zurück</td></tr>
-            <tr><td>{{ m.taste('↵') }}</td><td>Heute: Los geht's</td></tr>
-            <tr><td>{{ m.taste('␣') }}</td><td>Üben: Lösung zeigen</td></tr>
-            <tr><td>{{ m.taste('1') }} {{ m.taste('2') }} {{ m.taste('3') }}</td><td>Üben: Nicht gewusst, Teilweise, Gewusst</td></tr>
-            <tr><td>{{ m.taste('U') }} · {{ m.taste('1') }} – {{ m.taste('4') }}</td><td>Grundwissen: Richtung umkehren; umgekehrt den Begriff wählen</td></tr>
-            <tr><td>{{ m.taste('T') }} {{ m.taste('E') }} {{ m.taste('P') }} {{ m.taste('V') }}</td><td>Üben: Sensei Tipp, Erklären, Prüfen, Variante</td></tr>
-            <tr><td>{{ m.taste('M') }}</td><td>Üben: markieren</td></tr>
-            <tr><td>{{ m.taste('⌘↵') }} / {{ m.taste('Strg ↵') }}</td><td>Üben: SQL in der Sandbox ausführen (im Editor)</td></tr>
-            <tr><td>{{ m.taste('←') }} {{ m.taste('→') }}</td><td>Üben: zurück (Bewertung wird zurückgenommen), überspringen</td></tr>
-            <tr><td>{{ m.taste('↵') }} {{ m.taste('␣') }}</td><td>Rechnen: prüfen, dann nächste Aufgabe; Rechenweg zeigen</td></tr>
+            <tr><td>{{ m.taste('↵') }}</td><td>der Knopf mit {{ m.taste('↵') }}: Los geht's, Weiter, Übernehmen, Nächste Aufgabe</td></tr>
+            <tr><td>{{ m.taste('Esc') }}</td><td>schließen; in einem Eingabefeld: Feld verlassen</td></tr>
+          </tbody>
+          <tbody>
+            <tr><th colspan="2" class="etikett">Üben</th></tr>
+            <tr><td>{{ m.taste('␣') }}</td><td>Lösung zeigen</td></tr>
+            <tr><td>{{ m.taste('↵') }}</td><td>anklickbare Antwort oder SQL prüfen, danach den Vorschlag übernehmen</td></tr>
+            <tr><td>{{ m.taste('1') }} {{ m.taste('2') }} {{ m.taste('3') }}</td><td>Nicht gewusst, Teilweise, Gewusst; vor dem Prüfen wählen Ziffern die Antwort</td></tr>
+            <tr><td>{{ m.taste('←') }} {{ m.taste('→') }}</td><td>zurück (Bewertung wird zurückgenommen), überspringen</td></tr>
+            <tr><td>{{ m.taste('M') }}</td><td>markieren</td></tr>
+            <tr><td>{{ m.taste('T') }} {{ m.taste('E') }} {{ m.taste('P') }} {{ m.taste('V') }}</td><td>Sensei: Tipp, Erklären, Prüfen, Variante</td></tr>
+            <tr><td>{{ m.taste('⌘↵') }} / {{ m.taste('Strg ↵') }}</td><td>SQL in der Sandbox ausführen (im Editor; {{ m.taste('Tab') }} rückt dort ein)</td></tr>
+          </tbody>
+          <tbody>
+            <tr><th colspan="2" class="etikett">Grundwissen</th></tr>
+            <tr><td>{{ m.taste('␣') }} · {{ m.taste('1') }} – {{ m.taste('3') }}</td><td>Definition aufdecken, dann bewerten</td></tr>
+            <tr><td>{{ m.taste('U') }}</td><td>Richtung umkehren: Definition → Begriff</td></tr>
+            <tr><td>{{ m.taste('1') }} – {{ m.taste('4') }}</td><td>umgekehrt: den Begriff wählen</td></tr>
+          </tbody>
+          <tbody>
+            <tr><th colspan="2" class="etikett">Rechnen</th></tr>
+            <tr><td>{{ m.taste('↵') }}</td><td>prüfen, dann nächste Aufgabe; in der Übersicht: gemischt üben</td></tr>
+            <tr><td>{{ m.taste('␣') }}</td><td>Rechenweg zeigen (zählt als nicht gelöst)</td></tr>
+            <tr><td>{{ m.taste('↵') }}</td><td>Sprint: starten; während des Sprints ins nächste Feld</td></tr>
+          </tbody>
+          <tbody>
+            <tr><th colspan="2" class="etikett">Verlauf und Themen</th></tr>
+            <tr><td>{{ m.taste('0') }} – {{ m.taste('3') }}</td><td>Verlauf: alle, Nicht gewusst, Teilweise, Gewusst</td></tr>
+            <tr><td>{{ m.taste('↵') }} · {{ m.taste('Esc') }}</td><td>Wissensgraph, im Suchfeld: Treffer wählen, Suche leeren</td></tr>
           </tbody>
         </table>
         <p class="klein gedaempft">In Eingabefeldern sind die Einzeltasten abgeschaltet. <a href="{{ url_for('heute.willkommen') }}">Einführung noch einmal ansehen</a></p>
