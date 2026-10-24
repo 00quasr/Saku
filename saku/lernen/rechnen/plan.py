@@ -15,6 +15,9 @@ from saku.lernen.rechnen.basis import ARTEN, GRUPPEN
 #   (Netzwerk, Strom & Hardware), Daten, Wirtschaft; WiSo prüfen alle. Datenbanken nicht: SQL schreiben oder normalisieren
 #   prüft die AP2 Systemintegration kaum, das bleibt bei der AP1.
 # IT-Sicherheit und Datenschutz verlangt die Verordnung von 2020 in der AP1 und in der AP2 beider Berufe.
+# Recht & Verträge (Angebot, Vertragsarten, Störungen des Kaufvertrags, Lizenzmodelle) gehört zum Kundenauftrag aus Lernfeld 2
+#   „Arbeitsplätze nach Kundenwunsch ausstatten“ und damit sicher zur AP1. Die AP2 setzt es voraus, fragt es aber nur selten eigens
+#   (Lizenzen am ehesten bei „Planen eines Softwareproduktes“): bewusst nicht im AP2-Umfang, frei üben geht immer.
 UMFANG = {
     "AP1": [g for g in GRUPPEN if g != "Algorithmen"],
     "AP2-1201": ["Programmieren", "Algorithmen", "Datenbanken", "Wirtschaft", "Projekt", "WiSo", "Daten & Medien", "IT-Sicherheit"],
