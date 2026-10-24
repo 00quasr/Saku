@@ -29,9 +29,22 @@ window.saku = {
       e.preventDefault();
       return ausfuehren.click();
     }
-    if (e.key !== "Tab" || e.shiftKey) return;
+    // ↵ behält den Einzug der Zeile, nach DANN, SONST, FÜR … und SOLANGE … eine Stufe mehr
+    if (e.key === "Enter" && !(e.shiftKey || e.altKey || e.metaKey || e.ctrlKey)) {
+      const zeile = feld.value.slice(feld.value.lastIndexOf("\n", feld.selectionStart - 1) + 1, feld.selectionStart);
+      const einzug = zeile.match(/^\s*/)[0] + (/\b(dann|sonst)\s*$|^\s*(für|fuer|solange)\b/i.test(zeile) ? "    " : "");
+      if (!einzug) return;
+      e.preventDefault();
+      feld.setRangeText("\n" + einzug, feld.selectionStart, feld.selectionEnd, "end");
+      return feld.dispatchEvent(new Event("input", { bubbles: true }));  // Zeilennummern
+    }
+    if (e.key !== "Tab") return;
     e.preventDefault();
-    feld.setRangeText("    ", feld.selectionStart, feld.selectionEnd, "end");
+    if (!e.shiftKey) return feld.setRangeText("    ", feld.selectionStart, feld.selectionEnd, "end");
+    // ⇧Tab rückt die Zeile eine Stufe aus (z. B. vor ENDE WENN)
+    const anfang = feld.value.lastIndexOf("\n", feld.selectionStart - 1) + 1;
+    const weg = feld.value.slice(anfang).match(/^ {0,4}/)[0].length;
+    if (weg) feld.setRangeText("", anfang, anfang + weg, "preserve");
   },
   // Zeilennummern neben dem Pseudocode-Editor (die Meldungen nennen die Zeile), mitgescrollt
   zeilen(feld) {

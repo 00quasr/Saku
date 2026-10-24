@@ -177,7 +177,7 @@
   <textarea name="antwort" hidden></textarea>
 {% elif art in ('code', 'sql') %}
   {% set sandbox = art == 'sql' and t.sandbox and not praefix %}
-  <label class="etikett" for="antwort">{{ 'Deine SQL-Anweisung' if art == 'sql' else 'Dein Code' }} · Tab rückt ein{{ ', ⌘↵ führt aus' if sandbox }}, Esc verlässt das Feld</label>
+  <label class="etikett" for="antwort">{{ 'Deine SQL-Anweisung' if art == 'sql' else 'Dein Code' }} · Tab rückt ein, ⇧Tab aus{{ ', ⌘↵ führt aus' if sandbox }}, Esc verlässt das Feld</label>
   <textarea class="textarea editor" id="antwort" name="antwort" rows="9" spellcheck="false" autocapitalize="off" autocomplete="off"
             placeholder="{{ 'SELECT …' if art == 'sql' else '' }}" onkeydown="saku.editorTaste(event)">{{ a.vorlage }}</textarea>
   {# SQL-Sandbox: auf erfundenen Beispieldaten ausführen (Schritt sandbox) #}

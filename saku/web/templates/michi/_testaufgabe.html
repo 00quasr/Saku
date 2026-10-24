@@ -9,7 +9,7 @@
   {% if (klick or (t.loesung_sql and t.sandbox)) and not v %}
   {% if klick %}{{ k.antwortfeld(t, praefix='antwort-' ~ t.id ~ '-') }}
   {% else %}
-  <label class="etikett" for="antwort-{{ t.id }}">Deine SQL-Anweisung · Tab rückt ein, Esc verlässt das Feld</label>
+  <label class="etikett" for="antwort-{{ t.id }}">Deine SQL-Anweisung · Tab rückt ein, ⇧Tab aus, Esc verlässt das Feld</label>
   <textarea class="textarea editor" id="antwort-{{ t.id }}" name="antwort-{{ t.id }}" rows="6" spellcheck="false" autocapitalize="off"
             autocomplete="off" placeholder="SELECT …" onkeydown="saku.editorTaste(event)">{{ t.antwort.vorlage if t.antwort }}</textarea>
   {% endif %}
