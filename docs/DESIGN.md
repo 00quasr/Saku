@@ -148,8 +148,8 @@ Makro: `{{ m.kopf('heute', '今日', 'Heute', 'Titel') }}` in `templates/_makros
 
 ## Layout und Abstände
 
-- **Zwei Breiten:** Lesebreite 680 px (Keiko, Michi, Texte von Sensei) und weite Breite 1040 px (Heute, Bunseki, Niwa), jeweils zentriert
-- **Navigation:** eine schmale Leiste oben (56 px) mit Logo, den Bereichen als Kanji und Wort und ⌘K rechts. In Keiko schrumpft sie auf eine dünne Fortschrittslinie.
+- **Zwei Breiten:** Lesebreite 47,5 rem (Keiko, Michi, Verlauf, Texte von Sensei) und weit bis 110 rem, so breit wie das Bildband (Heute, Bunseki, Niwa), jeweils linksbündig neben der Seitenleiste; beide wachsen mit der Schrift
+- **Navigation:** eine Seitenleiste links (232 px) mit Logo, dem Schalter für Beruf und Prüfungsteil, den Bereichen als Kanji und Wort und unten Sensei, Suche, Einstellungen und Tastenkürzel. Unter 1100 px bleiben nur die Zeichen (64 px), die Beschriftung steht im Tooltip.
 - **Sensei:** ein Seitenpanel rechts (400 px), das über den Inhalt gleitet
 - **Abstände:** nur aus der Reihe 4 · 8 · 12 · 16 · 24 · 32 · 48 · 64 · 96 px
 - **Flächen:** 1 px Linien in `--linie`, Ecken mit 6 px Radius, keine Schatten. Einzige Ausnahme sind schwebende Ebenen wie Suche und Sensei-Panel mit einem sehr weichen Schatten.
@@ -212,7 +212,7 @@ Skizzen der drei wichtigsten Ansichten. Alle Inhalte sind Beispiele.
 
    ┌──────────────────────────────────────────────────────────────────┐
    │                                                                  │
-   │          Bildausschnitt der Teilaufgabe aus dem Original-PDF     │
+   │   Aufgabe als Text, aus den PDF-Ausschnitten neu aufgebaut       │
    │                                                                  │
    └──────────────────────────────────────────────────────────────────┘
 
@@ -222,7 +222,7 @@ Skizzen der drei wichtigsten Ansichten. Alle Inhalte sind Beispiele.
 
    Lösungshinweis
    ┌──────────────────────────────────────────────────────────────────┐
-   │          Bildausschnitt des Lösungshinweises                     │
+   │   Lösungshinweis als Text, das Original einen Klick entfernt    │
    └──────────────────────────────────────────────────────────────────┘
 
    Wie lief's?      1 Nicht gewusst      2 Teilweise      3 Gewusst
@@ -340,7 +340,7 @@ Ist das Tagesziel erreicht, zeigt Saku eine ruhige Abschlussseite: was heute sic
 | Stempel | 350 ms | leicht federnd |
 | Ensō | 1,4 s | ease-in-out |
 
-- Seitenwechsel nutzen View-Transitions (`hx-swap="… transition:true"`).
+- Bereichswechsel blenden den neuen Inhalt 150 ms ein, nur über die Deckkraft. Keine View-Transitions: In WebKit ruckeln dabei die Bilder.
 - Bewegung nur mit Bedeutung: Sie zeigt, dass etwas erscheint, sich ändert oder geschafft ist.
 - Bei `prefers-reduced-motion: reduce` sind alle Animationen aus:
 
@@ -357,15 +357,19 @@ Ist das Tagesziel erreicht, zeigt Saku eine ruhige Abschlussseite: was heute sic
 | `Strg K` / `⌘K` | überall | Suche öffnen |
 | `S` | überall | Sensei öffnen oder schließen |
 | `?` | überall | alle Tastenkürzel anzeigen |
-| `Esc` | überall | schließen, zurück |
-| `Enter` | Heute | Weiterlernen |
-| `Leertaste` | Keiko | Lösung zeigen |
-| `1` `2` `3` | Keiko | Nicht gewusst, Teilweise, Gewusst |
+| `Esc` | überall | schließen; in einem Eingabefeld: Feld verlassen |
+| `Enter` | überall | der Knopf mit ↵: Los geht's, Prüfen, Übernehmen, Weiter, Nächste Aufgabe |
+| `Leertaste` | Keiko, Grundwissen | Lösung zeigen, Definition aufdecken |
+| `1` `2` `3` | Keiko, Grundwissen | Nicht gewusst, Teilweise, Gewusst; vor dem Prüfen wählen Ziffern die Antwort |
 | `T` `E` `P` `V` | Keiko | Sensei: Tipp, Erklären, Prüfen, Variante |
 | `M` | Keiko | markieren |
-| `→` | Keiko | überspringen |
+| `←` `→` | Keiko | zurück (Bewertung wird zurückgenommen), überspringen |
+| `⌘↵` / `Strg ↵` | Keiko, SQL-Editor | SQL in der Sandbox ausführen |
+| `U`, `1` – `4` | Grundwissen | Richtung umkehren; umgekehrt den Begriff wählen |
+| `Leertaste` | Rechnen | Rechenweg zeigen |
+| `0` – `3` | Verlauf | nach Ergebnis filtern |
 
-In Eingabefeldern sind die Einzeltasten abgeschaltet.
+Bedienelemente tragen ihre Taste als `data-taste`; `saku.js` klickt bei der passenden Taste das sichtbare Element. Die Hilfe (`?`) in `base.html` nennt alle Kürzel, ein Test gleicht sie mit den Templates ab. In Eingabefeldern sind die Einzeltasten abgeschaltet.
 
 ## Sprache und Ton
 
