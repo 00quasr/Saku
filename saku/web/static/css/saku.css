@@ -198,6 +198,7 @@ a:not(.btn) { color: inherit; text-underline-offset: 3px; }
 /* Fahrschul-Status: nie nur Farbe, immer mit Symbol */
 .status { display: inline-flex; align-items: center; gap: 6px; font-size: 0.8125rem; white-space: nowrap; }
 .status-punkt { width: 8px; height: 8px; border-radius: 50%; background: var(--status-farbe); flex: none; }
+.status-punkt + span { width: 1em; text-align: center; }  /* ✓ ◐ ✕ ○ gleich breit: Text in Listen und Legenden steht bündig */
 .status--neu   { --status-farbe: var(--linie); color: var(--sumi-mittel); }
 .status--rot   { --status-farbe: var(--beni); }
 .status--gelb  { --status-farbe: var(--yamabuki); }
