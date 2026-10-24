@@ -179,6 +179,9 @@ a:not(.btn) { color: inherit; text-underline-offset: 3px; }
 .kopf--schmal { height: 64px; align-items: center; }
 .kopf--schmal .kopf-inhalt { padding-bottom: 0; display: flex; align-items: baseline; gap: 16px; }
 .kopf--schmal .titel { margin-top: 0; font-size: 1.25rem; line-height: 1.75rem; }
+/* einzeilig: in schmalen Fenstern liefe ein langer Titel (Prüfungsbereich, Themen) aus dem Band; ganz steht er im Tooltip */
+.kopf--schmal .kopf-inhalt > * { white-space: nowrap; }
+.kopf--schmal .titel { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 
 /* --- Bausteine ------------------------------------------------------------ */
 /* Karten: nur Linie, keine Schatten */

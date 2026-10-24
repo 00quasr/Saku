@@ -52,6 +52,7 @@
 .hochrechnung-urteil--offen { color: var(--sumi-mittel); border: 1px solid var(--linie); }
 .hochrechnung-tabelle td, .hochrechnung-tabelle th { padding: 6px 8px; vertical-align: middle; }
 .hochrechnung-tabelle .rechts { text-align: right; }
+.hochrechnung-tabelle td:first-child { white-space: normal; }  /* lange Bereichsnamen brechen um, sonst läuft die Tabelle unter 1100 px aus der Fläche */
 .hochrechnung-eingabe { width: 96px; }
 .hochrechnung-regeln { display: grid; gap: 4px; }
 .hochrechnung-regeln .ok span { color: var(--matcha); }

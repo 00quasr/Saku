@@ -75,6 +75,7 @@
 .formel-arten { display: grid; grid-template-columns: repeat(auto-fill, minmax(26rem, 1fr)); gap: 16px; align-items: start; }
 .formel-art { padding: 16px 20px; background: var(--washi-hell); border: 1px solid var(--linie); border-radius: 10px; scroll-margin-top: 16px; }
 .formel-art:target { border-color: var(--shu); }
+.formel-art:has(table) { grid-column: 1 / -1; }  /* breite Tabellen (Ports, OSI) passen nicht in eine halbe Spalte */
 .formel-titel { font-family: var(--schrift-titel); font-weight: 600; font-size: 1.125rem; margin-bottom: 8px; }
 .formel-titel a { text-decoration: none; }
 .formel-titel a:hover { text-decoration: underline; text-decoration-color: var(--linie); }

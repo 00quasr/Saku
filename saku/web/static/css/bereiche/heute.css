@@ -173,8 +173,8 @@ a.flaeche:hover { border-color: var(--sumi-mittel); }
 .fahrplan-gewinn { display: grid; gap: 2px; margin-inline: -8px; }
 .fahrplan-gewinn li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 12px; padding: 6px 8px; border-radius: 8px; }
 .fahrplan-gewinn li:hover { background: var(--flaeche); }
-.fahrplan-gewinn-text { display: grid; min-width: 0; }
-.fahrplan-gewinn-name { font-weight: 500; line-height: 1.35; text-wrap: pretty; }  /* Themennamen sind lang: umbrechen statt abschneiden */
+.fahrplan-gewinn-text { display: grid; grid-template-columns: minmax(0, 1fr); }
+.fahrplan-gewinn-name { font-weight: 500; line-height: 1.35; text-wrap: pretty; hyphens: auto; overflow-wrap: break-word; }  /* Themennamen sind lang: umbrechen statt abschneiden, in der schmalen Spalte auch im Wort */
 .fahrplan-gewinn-punkte { font-size: 0.875rem; color: var(--shu); }
 
 /* Heute: Countdown führt zum Fahrplan */
