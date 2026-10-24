@@ -1,10 +1,12 @@
 """Prüfungssimulation (Shiken): Zusammenstellung, Umrechnung auf 100 Punkte und IHK-Notenschlüssel."""
 
+import json
 import math
 import random
 import sqlite3
 from statistics import median
 
+from saku.lernen import antwort
 from saku.lernen.karten import bewerten, ergebnis_aus_punkten
 
 # (ab Punkten, Note) nach KONZEPT.md
@@ -91,13 +93,22 @@ def auswerten(con: sqlite3.Connection, sim_id: int, punkte: dict[int, float]) ->
                     "WHERE simulation_id = ? AND teilaufgabe_id = ?", (p, sim_id, z["teilaufgabe_id"]))
         erreicht, moeglich = erreicht + p, moeglich + z["maximal"]
         if z["maximal"]:
-            bewerten(con, z["teilaufgabe_id"], ergebnis_aus_punkten(p, z["maximal"]), quelle="simulation", antwort=z["antwort"])
+            bewerten(con, z["teilaufgabe_id"], ergebnis_aus_punkten(p, z["maximal"]), quelle="simulation", antwort=_als_text(z["antwort"]))
     punkte_100 = umrechnen(erreicht, moeglich)
     con.execute(
         "UPDATE simulation SET beendet_am = COALESCE(beendet_am, datetime('now')), punkte_erreicht = ?, "
         "punkte_moeglich = ?, note = ?, bestanden = ? WHERE id = ?",
         (erreicht, moeglich, note(punkte_100), int(punkte_100 >= BESTANDEN_AB), sim_id))
     con.commit()
+
+
+def _als_text(eigene: str | None) -> str | None:
+    """Anklickbare Antworten liegen als JSON vor (antwort.eingabe); in den Verlauf kommt „Gewählt: …“."""
+    try:
+        wert = json.loads(eigene or "")
+    except ValueError:
+        return eigene
+    return antwort.zusammenfassung(wert) if isinstance(wert, dict) and "wahl" in wert else eigene
 
 
 def kosten(con: sqlite3.Connection, sim_id: int, anzahl: int = 2) -> list[str]:

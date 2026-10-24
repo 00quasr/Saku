@@ -1,8 +1,10 @@
 """SQLite-Verbindung, Schema und Einstellungen."""
 
 import json
+import logging
 import sqlite3
 from contextlib import contextmanager
+from datetime import date
 from pathlib import Path
 
 from saku import config
@@ -52,6 +54,42 @@ def init(pfad: Path | None = None) -> bool:
         return False
     finally:
         con.close()
+
+
+def sichern(pfad: Path | None = None, erzwingen: bool = False, behalten: int = 7) -> Path | None:
+    """Sicherung nach backups/saku-JJJJ-MM-TT.db neben der Datenbank, über die Backup-API von SQLite (sicher bei WAL).
+    Eine je Tag (erzwingen überschreibt die von heute), die letzten `behalten` bleiben. None, wenn nichts zu tun war."""
+    pfad = Path(pfad or config.db_pfad())
+    ordner = pfad.parent / "backups"
+    ziel = ordner / f"saku-{date.today().isoformat()}.db"
+    if not pfad.exists() or (ziel.exists() and not erzwingen):
+        return None
+    ordner.mkdir(exist_ok=True)
+    teil = ziel.with_suffix(".teil")  # erst fertig schreiben, dann umbenennen: nie eine halbe Sicherung
+    teil.unlink(missing_ok=True)
+    quelle, kopie = sqlite3.connect(pfad), sqlite3.connect(teil)
+    try:
+        quelle.backup(kopie)
+    finally:
+        kopie.close()
+        quelle.close()
+    teil.replace(ziel)
+    for alt in sorted(ordner.glob("saku-????-??-??.db"))[:-behalten]:
+        alt.unlink()
+    return ziel
+
+
+def taeglich_sichern(pfad: Path | None = None) -> None:
+    """Beim Start und vor der Analyse; eine fehlgeschlagene Sicherung hält beides nicht auf."""
+    try:
+        sichern(pfad)
+    except Exception:  # bewusst breit: ohne Sicherung weiterarbeiten ist besser als gar nicht
+        logging.getLogger(__name__).exception("Sicherung der Datenbank fehlgeschlagen")
+
+
+def letzte_sicherung(pfad: Path | None = None) -> Path | None:
+    sicherungen = sorted((Path(pfad or config.db_pfad()).parent / "backups").glob("saku-????-??-??.db"))
+    return sicherungen[-1] if sicherungen else None
 
 
 def einstellung(con: sqlite3.Connection, schluessel: str, standard: str = "") -> str:

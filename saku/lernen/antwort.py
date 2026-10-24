@@ -51,6 +51,26 @@ def auswerten(antwort: dict, eingabe: dict) -> tuple[int, dict[str, bool]]:
     raise ValueError(f"nicht automatisch prüfbar: {art}")
 
 
+def eingabe(form, praefix: str = "") -> dict:
+    """Eingabe für auswerten aus einem Formular (MultiDict); praefix trennt mehrere Felder auf einer Seite (Simulation)."""
+    def felder(art: str) -> dict:
+        return {k.removeprefix(praefix + art): v for k, v in form.items() if k.startswith(praefix + art)}
+    return {"wahl": form.getlist(praefix + "wahl"), "zahl": form.get(praefix + "zahl", ""),
+            "position": felder("position-"), "ziel": felder("ziel-")}
+
+
+def zusammenfassung(eingabe: dict) -> str:
+    """„Gewählt: A, C“ für Verlauf und Sensei; leer, wenn nichts eingegeben ist."""
+    text = ", ".join(eingabe["wahl"]) or eingabe["zahl"] or ", ".join(
+        f"{k}={v}" for k, v in (eingabe["position"] | eingabe["ziel"]).items() if v)
+    return f"Gewählt: {text}" if text else ""
+
+
+def punkte(ergebnis: int, moeglich: float) -> float:
+    """Punkte für ein automatisches Ergebnis, auf halbe Punkte gerundet: alles, die Hälfte oder nichts."""
+    return round(moeglich * {3: 1, 2: 0.5, 1: 0}[ergebnis] * 2) / 2
+
+
 def als_text(antwort: dict | None) -> str:
     """Auswahl, Ziele und Vorlage als Markdown (Sensei, Simulation, Mini-Test zeigen kein Antwortfeld)."""
     if not antwort:

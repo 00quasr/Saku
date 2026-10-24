@@ -1,8 +1,10 @@
-"""Befehle: python -m saku init | assets | analyse | start"""
+"""Befehle: python -m saku init | assets | analyse | start | lernstand"""
 
 import argparse
+import json
 import threading
 import webbrowser
+from pathlib import Path
 
 from saku import config, db
 
@@ -23,6 +25,10 @@ def main() -> None:
     start = befehle.add_parser("start", help="App öffnen")
     start.add_argument("--browser", action="store_true", help="im Standardbrowser statt im eigenen Fenster")
 
+    lernstand = befehle.add_parser("lernstand", help="Lernstand als Datei sichern oder übernehmen, übersteht einen Neuaufbau")
+    lernstand.add_argument("aktion", choices=["export", "import"])
+    lernstand.add_argument("datei", type=Path, help="JSON-Datei")
+
     args = parser.parse_args()
 
     if args.befehl == "init":
@@ -35,16 +41,43 @@ def main() -> None:
 
     elif args.befehl == "analyse":
         from saku.pipeline import ausfuehren
+        db.taeglich_sichern()  # vor Migrationen und Analyse
         db.init()
         ausfuehren(schritt=args.schritt, ohne_ki=args.ohne_ki, ki=args.ki)
 
     elif args.befehl == "start":
         starten(browser=args.browser)
 
+    elif args.befehl == "lernstand":
+        lernstand_datei(args.aktion, args.datei)
+
+
+def lernstand_datei(aktion: str, datei: Path) -> None:
+    from saku.lernen import lernstand
+
+    if aktion == "import":
+        db.taeglich_sichern()  # vor dem Import, falls er etwas Ungewolltes übernimmt
+    db.init()
+    con = db.verbinden()
+    try:
+        if aktion == "export":
+            datei.write_text(json.dumps(lernstand.exportieren(con), ensure_ascii=False, indent=1), encoding="utf-8")
+            print(f"Lernstand exportiert: {datei}")
+            return
+        try:
+            zahlen = lernstand.importieren(con, json.loads(datei.read_text(encoding="utf-8")))
+        except (OSError, ValueError, KeyError, TypeError) as fehler:
+            raise SystemExit(f"Import abgebrochen, nichts geändert: {fehler!r}")
+        for bereich, (uebernommen, uebersprungen) in zahlen.items():
+            print(f"{bereich}: {uebernommen} übernommen, {uebersprungen} übersprungen")
+    finally:
+        con.close()
+
 
 def starten(browser: bool = False) -> None:
     from saku.web import create_app
 
+    db.taeglich_sichern()  # vor den Migrationen von init
     db.init()
     app = create_app()
     url = f"http://127.0.0.1:{config.PORT}/"
@@ -56,6 +89,7 @@ def starten(browser: bool = False) -> None:
 
     import webview
 
+    webview.settings["ALLOW_DOWNLOADS"] = True  # „Lernstand exportieren“ in den Einstellungen
     app.config["FENSTER"] = True
     threading.Thread(
         target=app.run,

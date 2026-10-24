@@ -10,6 +10,13 @@
 .keiko-fortschritt .linie-fortschritt { flex: 1; }
 
 .keiko-kopf { display: grid; gap: 4px; }
+.keiko-stand { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; }
+.keiko-warum { display: inline-flex; align-items: center; gap: 6px; }
+.keiko-warum .icon { width: 14px; height: 14px; }
+.ergebnis { font-weight: 600; }
+.ergebnis--1 { color: var(--beni); }
+.ergebnis--2 { color: var(--yamabuki); }
+.ergebnis--3 { color: var(--matcha); }
 .keiko-werkzeuge { gap: 4px; }
 .keiko-werkzeuge .btn { gap: 6px; }
 .keiko-markieren[aria-pressed="true"] .icon { fill: currentColor; }
@@ -171,3 +178,12 @@
   .keiko-spalten--material { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 40px; align-items: start; }
   .keiko-material { position: sticky; top: 16px; max-height: calc(100dvh - 32px); overflow: auto; }
 }
+
+/* Verlauf: alle Bewertungen nach Tagen */
+.verlauf-filter { flex-wrap: wrap; }
+.verlauf-tag { display: grid; gap: 12px; margin-top: 40px; }
+.verlauf-kopf { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 16px; }
+.verlauf-tabelle td { vertical-align: top; }
+.verlauf-tabelle .verlauf-rechts { text-align: right; }
+.verlauf-bereich { display: block; }
+.verlauf-seiten { gap: 8px; }

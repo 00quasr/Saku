@@ -29,7 +29,7 @@
       <ul class="heft-hinweise klein">
         <li>Lies jede Aufgabe ganz, bevor du anfängst. Plane etwa {{ '%.1f'|format(minuten_je_punkt)|replace('.', ',') }} Minuten je Punkt.</li>
         <li>Beachte die Operatoren: „nennen“ verlangt Stichworte, „erläutern“ eine Begründung.</li>
-        <li>Deine Antworten werden laufend gespeichert. Die Bewertung machst du nach der Abgabe, auf Wunsch mit Sensei.</li>
+        <li>Deine Antworten werden laufend gespeichert. Ankreuz-, Zuordnungs- und Rechenaufgaben prüft Saku nach der Abgabe selbst, den Rest bewertest du, auf Wunsch mit Sensei.</li>
       </ul>
     </header>
     {% for gruppe in aufgaben %}
@@ -48,11 +48,17 @@
       <div class="heft-teil">
         <div class="heft-text">
           <span class="heft-kennung">{{ t.kennung }})</span>
-          <div class="heft-inhalt">{{ k.aufgabe(t) }}</div>
+          <div class="heft-inhalt">{{ k.aufgabe(t, interaktiv=t.eingabe is not none) }}</div>
         </div>
         <span class="heft-punkte zahl">{% if t.punkte %}{{ k.punkte(t.punkte) }} Punkte{% endif %}</span>
+        {% if t.eingabe is not none %}
+        {# anklickbar wie in Üben; nach der Abgabe prüft Saku diese Teilaufgabe selbst #}
+        <input type="hidden" name="antwort-{{ t.id }}-art" value="{{ t.antwort.art }}">
+        {{ k.antwortfeld(t, t.eingabe, praefix='antwort-' ~ t.id ~ '-') }}
+        {% else %}
         <label class="bunseki-versteckt" for="antwort-{{ t.id }}">Antwort zu {{ t.kennung }})</label>
         <textarea class="heft-linien" id="antwort-{{ t.id }}" name="antwort-{{ t.id }}" rows="6">{{ t.eigene or '' }}</textarea>
+        {% endif %}
       </div>
       {% endfor %}
       </div>
