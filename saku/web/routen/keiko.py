@@ -6,7 +6,7 @@ from datetime import date, datetime, timezone
 
 from flask import Blueprint, abort, make_response, render_template, request, url_for
 
-from saku.lernen import antwort, karten, rechnen, sql, tagesziel
+from saku.lernen import antwort, karten, rechnen, rueckblick, sql, tagesziel
 from saku.web import db
 from saku.web.routen.heute import datum_lang
 
@@ -363,7 +363,7 @@ def verlauf():
         f"FROM bewertung WHERE date(zeitpunkt, 'localtime') IN ({','.join('?' * len(tage))}) GROUP BY 1", tage)}
     heute = date.today()
     return render_template(
-        "keiko/verlauf.html", ergebnis=ergebnis, seite=seite, weiter=weiter, quellen=QUELLEN,
+        "keiko/verlauf.html", ergebnis=ergebnis, seite=seite, weiter=weiter, quellen=QUELLEN, rueckblick=rueckblick.woche(con),
         zahlen=con.execute("SELECT COUNT(*), SUM(ergebnis = 1), SUM(ergebnis = 2), SUM(ergebnis = 3) FROM bewertung").fetchone(),
         tage=[{"name": _tagesname(date.fromisoformat(t), heute), "summe": summen[t], "zeilen": [z for z in zeilen if z["tag"] == t]}
               for t in tage])

@@ -115,23 +115,28 @@ def naechste_aktion(con: sqlite3.Connection, ziel: dict) -> tuple[str, int] | No
     return None
 
 
-def heute_sicher(con: sqlite3.Connection) -> list[int]:
-    """Teilaufgaben, die heute sicher geworden sind: jetzt grün, vor heute laut Verlauf noch nicht."""
+def sicher_geworden(con: sqlite3.Connection, von: date, bis: date) -> list[int]:
+    """Teilaufgaben, die zwischen von und bis (Ortszeit, beide Tage mit) sicher geworden sind: am Ende grün, davor nicht."""
     verlauf = con.execute(
-        f"SELECT b.teilaufgabe_id, b.ergebnis, {_HEUTE.replace('zeitpunkt', 'b.zeitpunkt')} AS heute "
-        "FROM bewertung b JOIN karte k ON k.teilaufgabe_id = b.teilaufgabe_id "
-        f"WHERE k.status = 'gruen' AND b.teilaufgabe_id IN (SELECT teilaufgabe_id FROM bewertung WHERE {_HEUTE}) "
-        "ORDER BY b.teilaufgabe_id, b.zeitpunkt, b.id").fetchall()
+        "SELECT teilaufgabe_id, ergebnis, date(zeitpunkt, 'localtime') >= ?1 AS drin FROM bewertung "
+        "WHERE date(zeitpunkt, 'localtime') <= ?2 AND teilaufgabe_id IN "
+        "(SELECT teilaufgabe_id FROM bewertung WHERE date(zeitpunkt, 'localtime') BETWEEN ?1 AND ?2) "
+        "ORDER BY teilaufgabe_id, zeitpunkt, id", (von.isoformat(), bis.isoformat())).fetchall()
     ids = []
     for t_id, zeilen in groupby(verlauf, key=lambda z: z["teilaufgabe_id"]):
-        status, serie = "neu", 0
+        status, serie, vorher = "neu", 0, "neu"
         for z in zeilen:
-            if z["heute"]:
-                break
             status, serie = fahrschul(serie, z["ergebnis"])
-        if status != "gruen":
+            if not z["drin"]:
+                vorher = status
+        if status == "gruen" and vorher != "gruen":
             ids.append(t_id)
     return ids
+
+
+def heute_sicher(con: sqlite3.Connection) -> list[int]:
+    """Teilaufgaben, die heute sicher geworden sind."""
+    return sicher_geworden(con, date.today(), date.today())
 
 
 def lernserie(con: sqlite3.Connection, heute: date | None = None) -> int:
