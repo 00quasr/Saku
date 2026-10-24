@@ -26,6 +26,8 @@ def test_zerlegen_aufzaehlung_tabelle_fliesstext():
     assert sp.zerlegen("Beispiele:\n- z. B. Firewall\n- Virenscanner") == ["Firewall", "Virenscanner"]
     assert sp.zerlegen("\n".join(f"- Punkt Nummer {i} mit Inhalt" for i in range(15)))[-1].endswith("9 mit Inhalt")  # höchstens 10
     assert sp.zerlegen("") == [] and sp.zerlegen("Lösungshinweis:") == []
+    # nur ein Spiegelstrich ist keine Aufzählung, der Strich gehört trotzdem nicht in den Punkt
+    assert sp.zerlegen("Lösungshinweis:\n- Die Verbindung wird verschlüsselt") == ["Die Verbindung wird verschlüsselt"]
 
 
 def test_nennen_sie_zwei_zaehlt_gegen_zwei():
