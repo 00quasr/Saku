@@ -65,6 +65,11 @@
         <span style="width: {{ [100, 100 * ziel.erledigt / ziel.ziel]|min if ziel.ziel else 100 }}%"></span>
       </div>
       <p class="klein gedaempft">Neue Teilaufgaben kommen in der Reihenfolge deines Lernpfads, fällige Wiederholungen zuerst.</p>
+      {# Rechnen zählt nicht zum Tagesziel, steht aber hier, wenn heute gerechnet wurde #}
+      {% if gerechnet[0] %}
+      <a class="klein heute-rechnen" href="{{ url_for('rechnen.index') }}" title="{{ gerechnet[1] }} von {{ gerechnet[0] }} richtig">
+        <span lang="ja" aria-hidden="true">算</span> Heute gerechnet: <span class="zahl">{{ gerechnet[0] }} · {{ (100 * gerechnet[1] / gerechnet[0])|round|int }} %</span> →</a>
+      {% endif %}
     </section>
 
     <a class="flaeche heute-reife" href="{{ url_for('bunseki.index') }}" aria-labelledby="reife-titel">

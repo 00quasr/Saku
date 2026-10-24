@@ -241,6 +241,7 @@ def test_aufgabe_hat_feste_adresse(client):
 
 
 def test_pruefen_speichert_den_versuch(client, con):
+    assert "Heute gerechnet" not in client.get("/").get_data(as_text=True)  # erst, wenn heute gerechnet wurde
     a = rechnen.erzeugen("subnetz", 7)
     n, erstes = len(a.felder), a.felder[0]
     richtig = {f"feld-{f.name}": f.anzeige for f in a.felder}
@@ -256,6 +257,8 @@ def test_pruefen_speichert_den_versuch(client, con):
     zeilen = [tuple(z) for z in con.execute("SELECT art, seed, richtig, felder_richtig, felder_gesamt FROM rechenuebung ORDER BY id")]
     assert zeilen == [("subnetz", 7, 1, n, n), ("subnetz", 7, 0, n - 1, n), ("subnetz", 7, 0, 0, n)]
     assert "1 von 3 zuletzt · 3 gerechnet" in client.get("/rechnen/").get_data(as_text=True)
+    heute = client.get("/").get_data(as_text=True)
+    assert 'Heute gerechnet: <span class="zahl">3 · 33 %</span>' in heute and 'href="/rechnen/"' in heute
     assert client.post("/rechnen/subnetz/pruefen", data={}).status_code == 400
 
 

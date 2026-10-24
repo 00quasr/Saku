@@ -9,6 +9,7 @@ from saku.db import einstellung, setze_einstellung
 from saku.lernen import karten, operatoren, pfad, simulation, tagesziel
 from saku.web import db
 from saku.web.routen.bunseki import dauerbrenner
+from saku.web.routen.rechnen import heute_gerechnet
 
 bp = Blueprint("heute", __name__)
 
@@ -92,6 +93,7 @@ def index():
         luecken=luecken(con),
         grundwissen=karten.begriffe(con, []),
         laufend=simulation.laufende(con),
+        gerechnet=heute_gerechnet(con),
     )
 
 
