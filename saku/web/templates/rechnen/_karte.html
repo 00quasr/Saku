@@ -22,27 +22,55 @@
   </header>
 
   <div class="prosa aufgabe-inhalt rechnen-frage">{{ a.frage|markdown }}</div>
+  {{ a.struktogramm }}
 
   {{ r.felder(a, eingaben, werte, seed=seed) }}
 
   {% if not fertig %}
   {% if leer %}<p class="hinweis hinweis--fehler klein" role="status">Noch nichts eingetragen. Rechne erst, oder hol dir mit {{ m.taste('Esc') }} und {{ m.taste('␣') }} den Rechenweg.</p>{% endif %}
   {% if sql_fehler %}<p class="hinweis hinweis--fehler klein sql-fehler" role="status">{{ sql_fehler }} Korrigier die Anweisung oder hol dir mit {{ m.taste('Esc') }} und {{ m.taste('␣') }} die Musterlösung.</p>{% endif %}
+  {% if code_fehler %}<p class="hinweis hinweis--fehler klein sql-fehler" role="status">{{ code_fehler }} Korrigier den Pseudocode oder hol dir mit {{ m.taste('Esc') }} und {{ m.taste('␣') }} die Musterlösung.</p>{% endif %}
   <div class="zeile rechnen-aktionen">
     <button type="submit" class="btn" data-taste="Enter">Prüfen {{ m.taste('↵') }}</button>
     <button type="button" class="btn" data-variant="ghost" data-taste=" " title="Zählt als nicht gelöst"
             hx-post="{{ url_for('rechnen.pruefen', art=art.slug) }}" hx-vals='{"aufgeben": "1"}' hx-target="#karte" hx-swap="outerHTML">
       Rechenweg zeigen {{ m.taste('␣') }}</button>
-    <span class="klein gedaempft">{% if a.sandbox %}Esc verlässt den Editor, danach prüft {{ m.taste('↵') }}{% else %}Tab: nächstes Feld · Komma oder Punkt, die Einheit darf dahinter stehen{% endif %}</span>
+    <span class="klein gedaempft">{% if a.sandbox or a.testfaelle %}Esc verlässt den Editor, danach prüft {{ m.taste('↵') }}{% else %}Tab: nächstes Feld · Komma oder Punkt, die Einheit darf dahinter stehen{% endif %}</span>
   </div>
+  {% if a.testfaelle and art.formeln %}
+  <details class="kontext rechnen-formeln">
+    <summary>Merkblatt: Pseudocode und Struktogramm</summary>
+    <div class="prosa formel-text">{{ art.formeln|markdown }}</div>
+  </details>
+  {% endif %}
   {% else %}
   {% set n = werte.values()|select|list|length %}
+  {# Pseudocode: Teilpunkte nach Testfällen (Stufe 2, wenn einige bestehen), wie die Stufen bei SQL #}
+  {% set faelle = vergleich.faelle if vergleich and vergleich.faelle else [] %}
+  {% set stufe = vergleich.ergebnis if faelle else 3 if n == werte|length else 2 if n else 1 %}
   <section class="tusche rechnen-ergebnis" aria-label="Auswertung">
-    <p class="keiko-urteil{{ '' if aufgegeben else ' keiko-urteil--' ~ (3 if n == werte|length else 2 if n else 1) }}" id="rechnen-urteil" role="status">
-      {% if aufgegeben %}Hier ist der Rechenweg.{% elif n == werte|length %}Richtig.{% elif n %}{{ n }} von {{ werte|length }} richtig.{% else %}Leider falsch.{% endif %}
+    <p class="keiko-urteil{{ '' if aufgegeben else ' keiko-urteil--' ~ stufe }}" id="rechnen-urteil" role="status">
+      {% if aufgegeben %}Hier ist der Rechenweg.{% elif n == werte|length %}Richtig.{% elif faelle %}{{ faelle|selectattr('ok')|list|length }} von {{ faelle|length }} Testfällen bestanden.{% elif n %}{{ n }} von {{ werte|length }} richtig.{% else %}Leider falsch.{% endif %}
       {% if aufgegeben %}<span class="klein gedaempft">Zählt als nicht gelöst. Rechne die nächste selbst.</span>{% endif %}
     </p>
-    {% if vergleich %}
+    {% if faelle and n < werte|length %}
+    {# Pseudocode: je Testfall erwartet und erhalten, ein Abbruch mit seiner Meldung #}
+    <div class="tabelle-rahmen code-faelle">
+      <table class="table">
+        <thead><tr><th scope="col">Eingaben</th><th scope="col">Erwartet</th><th scope="col">Dein Programm</th></tr></thead>
+        <tbody>
+          {% for f in faelle %}
+          <tr class="code-fall--{{ 'richtig' if f.ok else 'falsch' }}">
+            <td><code>{{ f.eingaben }}</code></td>
+            <td><code>{{ f.erwartet or '(keine Ausgabe)' }}</code></td>
+            <td><span class="rechnen-marke" aria-label="{{ 'richtig' if f.ok else 'falsch' }}">{{ '✓' if f.ok else '✕' }}</span>
+              {% if f.abbruch %}<span class="code-abbruch">{{ f.erhalten }}</span>{% else %}<code>{{ f.erhalten or '(keine Ausgabe)' }}</code>{% endif %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% elif vergleich and not faelle %}
     {# SQL: was abweicht und beide Ergebnisse; aufgegeben das Ergebnis der Musterlösung #}
     <div class="stapel rechnen-sql-vergleich">
       {% if vergleich.hinweise %}<ul class="sql-hinweise">{% for h in vergleich.hinweise %}<li>{{ h }}</li>{% endfor %}</ul>{% endif %}
@@ -54,6 +82,7 @@
     {% endif %}
     <p class="etikett">Rechenweg</p>
     <div class="prosa aufgabe-inhalt rechnen-weg">{{ a.rechenweg|markdown }}</div>
+    {{ a.weg_struktogramm }}
     {% if in_pruefungen %}{% with p = in_pruefungen %}{% include "rechnen/_in_pruefungen.html" %}{% endwith %}{% endif %}
     {% if art.formeln %}
     <details class="kontext rechnen-formeln">

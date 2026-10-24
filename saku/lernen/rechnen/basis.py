@@ -22,7 +22,8 @@ class Feld:
     liste (Zahlenfolge wie „3, 8, 1“: nur die Zahlen zählen); datum (TT.MM.JJJJ, auch „3.3.27“ oder „2027-03-03“);
     wochentage („Mo, Di, Mi“ oder „Montag und Dienstag“: die Tage in Reihenfolge zählen);
     verhaeltnis („16:10“, „8:5“, „16/10“, „1,6:1“ sind gleich: verglichen als Bruch); ipv6 (nach Wert, auch Interface-ID);
-    sql (SQL-Anweisung, ausgeführt in der Sandbox der Aufgabe: Ergebnis bzw. Tabellen wie nach der Musterlösung).
+    sql (SQL-Anweisung, ausgeführt in der Sandbox der Aufgabe: Ergebnis bzw. Tabellen wie nach der Musterlösung);
+    code (Pseudocode, ausgeführt mit den Testfällen der Aufgabe: dasselbe Ergebnis wie die Musterlösung).
     Lösung "" heißt: das Feld bleibt leer.
     optionen: Auswahl statt Eingabe. auch: weitere richtige Antworten eines Textfelds (SSH auch als SFTP)."""
     name: str
@@ -53,6 +54,12 @@ class Aufgabe:
     # Eingabetabelle (Wertetabelle, Array): erste Zeile Kopf, danach Zellen als Text oder Feld; die Felder stehen auch in felder
     tabelle: list[list] | None = None
     sandbox: tuple[str, str] | None = None  # SQL-Aufgabe: (ddl, daten) für lernen/sql, frisch je Ausführung
+    # Pseudocode-Feld: Eingaben je Testfall (der erste ist das Beispiel der Frage) und die Ergebnisvariable, "" = die AUSGABE zählt;
+    # was herauskommen soll, liefert die Musterlösung (Feld.loesung)
+    testfaelle: tuple[list[dict], str] | None = None
+    # Struktogramme als HTML (programmieren.struktogramm): das Programm der Frage bzw. die Musterlösung unter dem Rechenweg
+    struktogramm: str = ""
+    weg_struktogramm: str = ""
 
     @property
     def loesung(self) -> dict:

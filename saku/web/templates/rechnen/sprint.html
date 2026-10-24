@@ -9,7 +9,7 @@
   {# Startseite #}
   <section class="stapel">
     <p class="ueberschrift">{{ anzahl }} Aufgaben, {{ minuten }} Minuten.</p>
-    <p>Gemischt aus den Arten deiner Prüfung (je nach Lernpfad; ohne SQL, das braucht Ausführen und mehr Zeit), was zuletzt oft falsch war, kommt häufiger. Jede Aufgabe bringt {{ punkte }} Punkte, anteilig nach richtig
+    <p>Gemischt aus den Arten deiner Prüfung (je nach Lernpfad; ohne SQL und eigenen Pseudocode, die brauchen Ausführen und mehr Zeit), was zuletzt oft falsch war, kommt häufiger. Jede Aufgabe bringt {{ punkte }} Punkte, anteilig nach richtig
       gelösten Feldern, zusammen 100 wie in der Prüfung. Am Ende stehen Punkte, Note nach dem IHK-Schlüssel und zu jeder Aufgabe der
       Rechenweg. Läuft die Zeit ab, gibt Saku selbst ab.</p>
     <p class="klein gedaempft">{{ m.taste('↵') }} springt im Sprint zum nächsten Feld, abgegeben wird mit dem Knopf am Ende.</p>
@@ -64,6 +64,7 @@
         <span class="klein zahl">{% if fertig %}{{ ('%g' % punkte_je[i - 1])|replace('.', ',') }} von {{ punkte }} Punkten{% else %}{{ punkte }} Punkte{% endif %}</span>
       </header>
       <div class="prosa aufgabe-inhalt rechnen-frage">{{ a.frage|markdown }}</div>
+      {{ a.struktogramm }}
       {{ r.felder(a, eingaben[i - 1], werte[i - 1] if fertig else none, praefix='a' ~ i ~ '-', fokus=loop.first) }}
       {% if fertig %}
       <details class="kontext" {{ 'open' if punkte_je[i - 1] < punkte }}>

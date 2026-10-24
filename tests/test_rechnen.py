@@ -1,5 +1,6 @@
 """Rechentrainer: Generatoren, Kontrolle und Routen (nur erfundene Aufgaben)."""
 
+import html
 import ipaddress
 import itertools
 import random
@@ -355,7 +356,12 @@ def test_schreibtisch_wie_python_und_wie_beschrieben():
                                                                           sum(1 for i in range(int(a), int(b) + 1) if i % int(k))]),
     ]
     for seed, a in _alle("schreibtisch"):
-        code = re.search(r"```\n(.*?)```", a.frage, re.S)[1]
+        # am Struktogramm steht derselbe Code erst im Rechenweg; das Struktogramm zeigt dieselben Zeilen
+        code = re.search(r"```\n(.*?)```", a.frage if not a.struktogramm else a.rechenweg, re.S)[1]
+        assert ("```" in a.frage) != bool(a.struktogramm) and a.titel.endswith("am Struktogramm") == bool(a.struktogramm)
+        for zeile in code.splitlines():
+            befehl = html.escape(re.sub(r"^\s*\d+  \s*", "", zeile), quote=False)
+            assert befehl.startswith(("ENDE", "SONST")) or (befehl.removeprefix("WENN ").removesuffix(" DANN") in a.struktogramm) == bool(a.struktogramm)
         ausgabe, variablen = _pseudocode_ausfuehren(code)
         if a.titel == "Fehlersuche":
             nummer = a.loesung["zeile"]
@@ -365,9 +371,9 @@ def test_schreibtisch_wie_python_und_wie_beschrieben():
             continue
         assert ausgabe == _folge(re.search(r"Ausgabe: \*\*(.*?)\*\*", a.rechenweg)[1]), seed
         for name, wert in a.loesung.items():
-            if a.titel == "Endwerte bestimmen":
+            if a.titel.startswith("Endwerte"):
                 assert _folge(str(wert)) == _folge(str(variablen[name])), (seed, name)
-        if a.titel == "Ausgabe bestimmen":
+        if a.titel.startswith("Ausgabe"):
             assert _folge(str(a.loesung["ausgabe"])) == ausgabe
         zweck = a.frage.split("\n")[0].split("Es soll ")[1]
         for muster, erwartet in zwecke:
@@ -1356,7 +1362,7 @@ def test_datenbanken_im_umfang_und_nicht_im_sprint(client, con):
     ap1, ae, si = (set(rechnen.im_umfang(p)) for p in ("AP1", "AP2-1201", "AP2-1202"))
     datenbanken = {a for a, x in rechnen.ARTEN.items() if x.gruppe == "Datenbanken"}
     assert datenbanken == {*SQL_ARTEN, "ermodell", "normalform"} and datenbanken <= ae and datenbanken <= ap1 and not datenbanken & si
-    assert {a for a, x in rechnen.ARTEN.items() if not x.sprint} == set(SQL_ARTEN)
+    assert {a for a, x in rechnen.ARTEN.items() if not x.sprint} == {*SQL_ARTEN, "algorithmus"}  # Pseudocode schreiben auch nicht
     for _ in range(25):  # Demo: AP2 AE, Datenbanken gehören dazu, SQL aber nicht in den Sprint
         arten = {w.split(":")[0] for w in parse_qs(urlparse(client.get("/rechnen/sprint/neu").headers["Location"]).query)["a"]}
         assert not arten & set(SQL_ARTEN)

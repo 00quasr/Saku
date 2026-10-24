@@ -1,0 +1,10 @@
+{# Pseudocode: Ergebnis von „Ausführen“ mit dem Beispiel der Frage, oder die Meldung mit Zeilennummer #}
+{% if fehler %}
+<p class="hinweis hinweis--fehler sql-fehler">{{ fehler }}</p>
+{% else %}
+<p class="klein gedaempft">Ausgeführt mit dem Beispiel <code>{{ eingaben }}</code></p>
+<dl class="code-lauf">
+  <dt>Ausgabe</dt><dd><code>{{ ausgabe or '(keine)' }}</code></dd>
+  {% if ziel %}<dt>{{ ziel[0] }} am Ende</dt><dd><code>{{ ziel[1] }}</code></dd>{% endif %}
+</dl>
+{% endif %}

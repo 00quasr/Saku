@@ -1,15 +1,18 @@
 """Programmieren: Schreibtischtest und Fehlersuche in IHK-Pseudocode.
-Ein Programm ist ein kleiner Syntaxbaum: derselbe Baum wird als Pseudocode geschrieben und ausgeführt (kein eval),
-die Lösung kommt aus dem Ausführen.
+Ein Programm ist ein kleiner Syntaxbaum: derselbe Baum wird als Pseudocode geschrieben, als Struktogramm gezeichnet und
+ausgeführt (kein eval), die Lösung kommt aus dem Ausführen. Eigenen Pseudocode liest pseudocode.parsen in denselben Baum.
 
-Ausdrücke: Zahl, Variablenname, ("[]", array, index), ("länge", array), ("liste", [zahlen]), (op, links, rechts)
+Ausdrücke: Zahl, WAHR/FALSCH (True/False), Variablenname, ("[]", array, index), ("länge", array), ("liste", [zahlen]),
+           ("NICHT", ausdruck), (op, links, rechts) mit op auch UND, ODER
 Anweisungen: ("setze", ziel, ausdruck), ("ausgabe", [ausdrücke]), ("wenn", bedingung, dann, sonst),
              ("solange", bedingung, rumpf), ("fuer", variable, von, bis, rumpf)"""
 
 import copy
 import operator
 
-from saku.lernen.rechnen.basis import FIRMEN, Aufgabe, Feld, art, tabelle
+from markupsafe import Markup, escape
+
+from saku.lernen.rechnen.basis import FIRMEN, Aufgabe, Feld, art, de, tabelle
 
 # Formeln und Merksätze je Art: Formelsammlung und Karte zeigen sie nach dem Rechenweg
 FORMELN = {
@@ -18,17 +21,20 @@ FORMELN = {
 - `a DIV b` ganzzahlige Division (17 DIV 5 = 3), `a MOD b` Rest (17 MOD 5 = 2)
 - `FÜR i ← 1 BIS n` läuft n-mal, einschließlich n; Arrays beginnen bei Index 0, der letzte ist länge − 1
 - Typische Fehler: falscher Startwert (Summe mit 1 statt 0), Schleife einen Durchlauf zu kurz oder zu lang, falsche Abbruchbedingung, `>` statt `≥`
+- Am Struktogramm genauso, von oben nach unten: Verzweigung links ja, rechts nein; der Rumpf einer Schleife steht eingerückt unter ihrem Kopf
 
 *Beispiel:* `zahl ← 345`, `SOLANGE zahl > 0`: quersumme 5, 9, 12; zahl 34, 3, 0""",
 }
 
 
-RANG = {"=": 1, "<>": 1, "<": 1, "<=": 1, ">": 1, ">=": 1, "+": 2, "-": 2, "*": 3, "DIV": 3, "MOD": 3}
+RANG = {"ODER": 1, "UND": 2, "NICHT": 3, "=": 4, "<>": 4, "<": 4, "<=": 4, ">": 4, ">=": 4, "+": 5, "-": 5, "*": 6, "DIV": 6, "MOD": 6}
 ZEICHEN = {"<>": "≠", "<=": "≤", ">=": "≥"}
 OPS = {"+": operator.add, "-": operator.sub, "*": operator.mul, "DIV": operator.floordiv, "MOD": operator.mod,
        "=": operator.eq, "<>": operator.ne, "<": operator.lt, "<=": operator.le, ">": operator.gt, ">=": operator.ge}
 NOTATION = ("Schreibweise: `←` Zuweisung, `=` Vergleich, `DIV` ganzzahlige Division, `MOD` Rest der Division, "
             "Arrays beginnen bei Index 0, `FÜR i ← a BIS b` zählt einschließlich b.")
+# Grenzen beim Ausführen: Schritte (Anweisungen und Schleifendurchläufe), Betrag einer Zahl, Werte in der Ausgabe
+SCHRITTE, GROESSTE, AUSGABEN = 20_000, 10 ** 12, 1000
 
 
 def setze(ziel, wert):
@@ -42,6 +48,8 @@ def wenn(bedingung, dann, sonst=()):
 # --- schreiben ------------------------------------------------------------
 
 def ausdruck(e, rang: int = 0) -> str:
+    if isinstance(e, bool):
+        return "WAHR" if e else "FALSCH"
     if isinstance(e, int):
         return str(e)
     if isinstance(e, str):
@@ -52,6 +60,9 @@ def ausdruck(e, rang: int = 0) -> str:
         return f"länge({e[1]})"
     if e[0] == "liste":
         return "[" + ", ".join(map(str, e[1])) + "]"
+    if e[0] == "NICHT":  # Klammern um alles außer einzelnen Werten, „NICHT a = b“ läse sich zweideutig
+        text = f"NICHT {ausdruck(e[1], 99)}"
+        return f"({text})" if RANG["NICHT"] < rang else text
     op, links, rechts = e
     r = RANG[op]
     text = f"{ausdruck(links, r)} {ZEICHEN.get(op, op)} {ausdruck(rechts, r + 1)}"  # rechts bei gleichem Rang klammern
@@ -84,58 +95,138 @@ def code(programm: list) -> str:
     return "```\n" + "\n".join(f"{n:>2}  {text}" for n, (text, _) in enumerate(zeilen(programm), start=1)) + "\n```"
 
 
+def quelltext(programm: list) -> str:
+    """Der Pseudocode ohne Zeilennummern, so wie man ihn selbst tippt."""
+    return "\n".join(text for text, _ in zeilen(programm))
+
+
 def zeile_von(programm: list, anweisung) -> int:
     return next(n for n, (_, s) in enumerate(zeilen(programm), start=1) if s is anweisung)
 
 
+# Dreieck der Verzweigung: von den oberen Ecken zur Mitte unten, gestreckt auf die Breite des Kastens
+_DREIECK = ('<svg class="sg-dreieck" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">'
+            '<path d="M0 0 L50 100 L100 0" vector-effect="non-scaling-stroke"/></svg>')
+
+
+def _sg(block: list) -> str:
+    teile = []
+    for s in block:
+        kopf = escape(zeilen([s])[0][0])  # die erste Zeile im Code: Anweisung oder Schleifenkopf
+        if s[0] in ("setze", "ausgabe"):
+            teile.append(f'<div class="sg sg-anweisung">{kopf}</div>')
+        elif s[0] == "wenn":
+            teile.append(f'<div class="sg sg-wenn"><div class="sg-bedingung">{_DREIECK}<span class="sg-text">{escape(ausdruck(s[1]))}</span>'
+                         '<span class="sg-ja" aria-hidden="true">ja</span><span class="sg-nein" aria-hidden="true">nein</span></div>'
+                         f'<div class="sg-zweige"><div class="sg-zweig" role="group" aria-label="ja">{_sg(s[2])}</div>'
+                         f'<div class="sg-zweig" role="group" aria-label="nein">{_sg(s[3])}</div></div></div>')
+        else:
+            teile.append(f'<div class="sg sg-schleife"><div class="sg-kopf">{kopf}</div>'
+                         f'<div class="sg-rumpf">{_sg(s[2] if s[0] == "solange" else s[4])}</div></div>')
+    return "".join(teile)
+
+
+def struktogramm(programm: list) -> Markup:
+    """Nassi-Shneiderman-Diagramm als HTML (Aussehen in rechnen.css): Anweisung als Kasten, Verzweigung mit Dreieck, ja links
+    und nein rechts, kopf- und zählergesteuerte Schleife mit Kopf und eingerücktem Rumpf. Texte wie im Pseudocode."""
+    return Markup(f'<div class="struktogramm" role="group" aria-label="Struktogramm">{_sg(programm)}</div>')
+
+
 # --- ausführen ----------------------------------------------------------
 
-class Lauf:
-    """Ein Durchlauf des Programms: Variablen, Ausgabe und je Durchlauf der äußeren Schleife die beobachteten Werte."""
+class Fehler(RuntimeError):
+    """Pseudocode lässt sich nicht lesen oder bricht beim Ausführen ab; anweisung: wo (für die Zeilennummer im eigenen Code)."""
 
-    def __init__(self, programm: list, beobachten: list[str]):
-        self.variablen, self.ausgabe, self.durchlaeufe, self.schritte = {}, [], [], 0
-        self.beobachten = beobachten
+    def __init__(self, text: str, anweisung=None):
+        super().__init__(text)
+        self.anweisung = anweisung
+
+
+class Lauf:
+    """Ein Durchlauf des Programms: Variablen, Ausgabe und je Durchlauf der äußeren Schleife die beobachteten Werte.
+    variablen: Startwerte (vorgegebene Eingaben), werden kopiert. Fehler beim Ausführen: Fehler mit der Anweisung."""
+
+    def __init__(self, programm: list, beobachten: list[str], variablen: dict | None = None):
+        self.variablen, self.ausgabe, self.durchlaeufe, self.schritte = copy.deepcopy(variablen or {}), [], [], 0
+        self.beobachten, self.jetzt = beobachten, None
         self.block(programm, aussen=True)
+
+    def fehler(self, text: str):
+        raise Fehler(text, self.jetzt)
+
+    def schritt(self, anweisung):
+        self.jetzt, self.schritte = anweisung, self.schritte + 1
+        if self.schritte > SCHRITTE:
+            self.fehler(f"mehr als {de(SCHRITTE, 0)} Schritte, Endlosschleife?")
+
+    def array(self, name: str) -> list:
+        w = self.wert(name)
+        return w if isinstance(w, list) else self.fehler(f"{name} ist kein Array")
+
+    def index(self, name: str, e) -> int:
+        werte, i = self.array(name), self.wert(e)
+        if isinstance(i, list) or not 0 <= i < len(werte):
+            self.fehler(f"{name}[{ausdruck(e)}]: " + (f"{name} ist leer" if not werte else
+                                                     f"Index {_wert(i)} liegt außerhalb von 0 bis {len(werte) - 1}"))
+        return i
 
     def wert(self, e):
         if isinstance(e, int):
             return e
         if isinstance(e, str):
-            return self.variablen[e]
+            return self.variablen[e] if e in self.variablen else self.fehler(f"{e} hat noch keinen Wert")
         if e[0] == "[]":
-            return self.variablen[e[1]][self.wert(e[2])]
+            return self.array(e[1])[self.index(e[1], e[2])]
         if e[0] == "länge":
-            return len(self.variablen[e[1]])
+            return len(self.array(e[1]))
         if e[0] == "liste":
             return list(e[1])
-        return OPS[e[0]](self.wert(e[1]), self.wert(e[2]))
+        if e[0] == "NICHT":
+            return not self.wert(e[1])
+        if e[0] in ("UND", "ODER"):  # kurz geschlossen: „i < länge(zahlen) UND zahlen[i] …“ liest nicht hinter das Ende
+            links = bool(self.wert(e[1]))
+            return links and bool(self.wert(e[2])) if e[0] == "UND" else links or bool(self.wert(e[2]))
+        links, rechts = self.wert(e[1]), self.wert(e[2])
+        if e[0] not in ("=", "<>") and (isinstance(links, list) or isinstance(rechts, list)):
+            self.fehler(f"{ausdruck(e)}: mit einem ganzen Array lässt sich nicht rechnen, nur mit einzelnen Werten")
+        if e[0] in ("DIV", "MOD") and rechts == 0:
+            self.fehler(f"{ausdruck(e)}: Division durch 0")
+        w = OPS[e[0]](links, rechts)
+        return self.fehler(f"{ausdruck(e)}: Zahl zu groß (über 10¹²)") if abs(w) > GROESSTE else w
 
     def block(self, block: list, aussen: bool = False):
         for s in block:
-            self.schritte += 1
-            if self.schritte > 5000:
-                raise RuntimeError("Endlosschleife")
+            self.schritt(s)
             if s[0] == "setze":
                 if isinstance(s[1], str):
                     self.variablen[s[1]] = self.wert(s[2])
                 else:
-                    self.variablen[s[1][1]][self.wert(s[1][2])] = self.wert(s[2])
+                    w = self.wert(s[2])
+                    if isinstance(w, list):
+                        self.fehler("in ein Feld des Arrays passt nur ein einzelner Wert")
+                    self.array(s[1][1])[self.index(s[1][1], s[1][2])] = w
             elif s[0] == "ausgabe":
                 for e in s[1]:
                     w = self.wert(e)
                     self.ausgabe += w if isinstance(w, list) else [w]
+                if len(self.ausgabe) > AUSGABEN:
+                    self.fehler(f"mehr als {AUSGABEN} Werte ausgegeben")
             elif s[0] == "wenn":
                 self.block(s[2] if self.wert(s[1]) else s[3])
             elif s[0] == "solange":
                 while self.wert(s[1]):
                     self.block(s[2])
                     self.merken(aussen)
+                    self.schritt(s)
             else:
-                for i in range(self.wert(s[2]), self.wert(s[3]) + 1):
+                von, bis = self.wert(s[2]), self.wert(s[3])
+                if isinstance(von, list) or isinstance(bis, list):
+                    self.fehler("FÜR zählt nur von einer Zahl bis zu einer Zahl")
+                for i in range(von, bis + 1):
                     self.variablen[s[1]] = i
                     self.block(s[4])
                     self.merken(aussen)
+                    self.schritt(s)
 
     def merken(self, aussen: bool):
         if aussen:
@@ -290,7 +381,7 @@ def _liste(werte) -> str:
 
 
 def _wert(w) -> str:
-    return "–" if w is None else f"[{_liste(w)}]" if isinstance(w, list) else str(w)
+    return "–" if w is None else f"[{_liste(w)}]" if isinstance(w, list) else ausdruck(w)  # ausdruck: WAHR/FALSCH
 
 
 def _wertetabelle(lauf: Lauf) -> str:
@@ -318,25 +409,34 @@ def schreibtisch(rng):
         if fehllauf.ausgabe != lauf.ausgabe:
             return _fehlersuche(rng, p, lauf, falsch, fehllauf, zeile_von(falsch, neu), alt, neu, art_)
     weg = f"Wertetabelle, Werte am Ende jedes Durchlaufs:\n\n{_wertetabelle(lauf)}\n\nAusgabe: **{_liste(lauf.ausgabe)}**"
-    einleitung = (f"Ein Auszubildender der {rng.choice(FIRMEN)} hat ein Programm geschrieben. Es soll {p['zweck']}.\n\n"
-                  f"{code(p['programm'])}\n\n{NOTATION}\n\n")
+    firma = rng.choice(FIRMEN)
+    namen = rng.sample(p["endwerte"], min(2, len(p["endwerte"]))) if variante == "endwerte" else []
+    bild = rng.random() < 0.3  # am Struktogramm; als Letztes gezogen, so bleiben alle übrigen Seeds dieselbe Aufgabe
+    if bild:
+        einleitung = (f"Ein Auszubildender der {firma} hat ein Programm als Struktogramm entworfen (siehe unten). "
+                      f"Es soll {p['zweck']}.\n\n{NOTATION}\n\n")
+        weg += f"\n\nDasselbe Programm in Pseudocode:\n\n{code(p['programm'])}"
+    else:
+        einleitung = (f"Ein Auszubildender der {firma} hat ein Programm geschrieben. Es soll {p['zweck']}.\n\n"
+                      f"{code(p['programm'])}\n\n{NOTATION}\n\n")
+    bild = {"struktogramm": struktogramm(p["programm"])} if bild else {}
+    am = " am Struktogramm" if bild else " bestimmen"
     if variante == "ausgabe":
         feld = Feld("ausgabe", "Ausgabe", _liste(lauf.ausgabe), typ="liste") if len(lauf.ausgabe) > 1 \
             else Feld("ausgabe", "Ausgabe", lauf.ausgabe[0], stellen=0)
         frage = einleitung + "Führen Sie einen Schreibtischtest durch: Welche Ausgabe erzeugt das Programm?" + \
             (" (Werte in der Reihenfolge der Ausgabe, durch Komma getrennt)" if len(lauf.ausgabe) > 1 else "")
-        return Aufgabe(frage, [feld], weg, titel="Ausgabe bestimmen")
+        return Aufgabe(frage, [feld], weg, titel="Ausgabe" + am, **bild)
     if variante == "endwerte":
-        namen = rng.sample(p["endwerte"], min(2, len(p["endwerte"])))
         felder = [Feld(n, f"{n} am Ende", _liste(lauf.variablen[n]), typ="liste") if isinstance(lauf.variablen[n], list)
                   else Feld(n, f"{n} am Ende", lauf.variablen[n], stellen=0) for n in namen]
         frage = einleitung + f"Welche Werte haben {' und '.join(f'`{n}`' for n in namen)} nach dem Ablauf des Programms?"
-        return Aufgabe(frage, felder, weg, titel="Endwerte bestimmen")
+        return Aufgabe(frage, felder, weg, titel="Endwerte" + am, **bild)
     zellen = [[Feld(f"d{n}_{v}", f"{v} nach Durchlauf {n}", z[v], stellen=0) for v in lauf.beobachten]
               for n, z in enumerate(lauf.durchlaeufe, start=1)]
     frage = einleitung + ("Führen Sie einen Schreibtischtest durch und tragen Sie die Werte der Variablen **am Ende jedes "
                           "Durchlaufs** der Schleife in die Wertetabelle ein.")
-    return Aufgabe(frage, [f for zeile in zellen for f in zeile], weg, titel="Wertetabelle",
+    return Aufgabe(frage, [f for zeile in zellen for f in zeile], weg, titel="Wertetabelle" + (am if bild else ""), **bild,
                    tabelle=[["Durchlauf", *lauf.beobachten], *([str(n), *zeile] for n, zeile in enumerate(zellen, start=1))])
 
 

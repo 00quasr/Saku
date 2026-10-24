@@ -1,7 +1,7 @@
 {# Eingabefelder einer Rechenaufgabe, für die Karte und den Sprint.
    a: Aufgabe · eingaben: {Feld: Text} · werte: {Feld: richtig?} oder None (noch nicht geprüft)
    praefix: Formularname vor jedem Feld (Sprint: a1-, a2-, …) · fokus: erstes Feld bekommt autofocus
-   seed: nur auf der Karte, dann bekommt ein SQL-Feld „Ausführen“ und „Tabellen ansehen“ #}
+   seed: nur auf der Karte, dann bekommt ein SQL-Feld „Ausführen“ und „Tabellen ansehen“, ein Pseudocode-Feld „Ausführen“ #}
 {% import "_makros.html" as m %}
 {% macro felder(a, eingaben, werte, praefix="feld-", fokus=True, seed=None) %}
 {% set fertig = werte is not none %}
@@ -25,22 +25,30 @@
 </div>
 {% endif %}
 
-{% for f in a.felder if f.typ == 'sql' %}
-{# SQL: Editor wie in Üben; geprüft wird in der Sandbox, die Abweichung steht in der Auswertung #}
+{% for f in a.felder if f.typ in ('sql', 'code') %}
+{# SQL und Pseudocode: Editor wie in Üben; geprüft wird in der Sandbox bzw. mit Testfällen, die Abweichung steht in der Auswertung.
+   Pseudocode bekommt Zeilennummern: die Meldungen nennen die Zeile #}
 {% set ok = fertig and werte[f.name] %}
 {% set werkzeuge = seed is not none and not fertig %}
-<div class="rechnen-sql{{ (' rechnen-sql--richtig' if ok else ' rechnen-sql--falsch') if fertig }}">
+{% set code = f.typ == 'code' %}
+<div class="rechnen-sql{{ ' rechnen-code' if code }}{{ (' rechnen-sql--richtig' if ok else ' rechnen-sql--falsch') if fertig }}">
   <label class="etikett" for="{{ praefix }}{{ f.name }}">{{ f.label }} · Tab rückt ein{{ ', ⌘↵ führt aus' if werkzeuge }}, Esc verlässt das Feld</label>
-  <textarea class="textarea editor" id="{{ praefix }}{{ f.name }}" name="{{ praefix }}{{ f.name }}" rows="8" spellcheck="false" autocapitalize="off"
-            autocomplete="off" placeholder="SELECT …" onkeydown="saku.editorTaste(event)" {{ 'disabled' if fertig }} {{ 'autofocus' if f.name == erstes }}>{{ eingaben.get(f.name, '') }}</textarea>
+  {% if code %}<div class="code-editor"><pre class="code-zeilen" aria-hidden="true">{% for i in range(1, eingaben.get(f.name, '').split('\n')|length + 1) %}{{ i }}
+{% endfor %}</pre>{% endif %}
+  <textarea class="textarea editor" id="{{ praefix }}{{ f.name }}" name="{{ praefix }}{{ f.name }}" rows="{{ 12 if code else 8 }}" spellcheck="false" autocapitalize="off"
+            autocomplete="off" placeholder="{{ '// dein Pseudocode' if code else 'SELECT …' }}" onkeydown="saku.editorTaste(event)"
+            {% if code %}oninput="saku.zeilen(this)" onscroll="saku.zeilen(this)"{% endif %} {{ 'disabled' if fertig }} {{ 'autofocus' if f.name == erstes }}>{{ eingaben.get(f.name, '') }}</textarea>
+  {% if code %}</div>{% endif %}
   {% if werkzeuge %}
   <div class="zeile sql-werkzeuge">
     <button type="button" class="btn" data-variant="outline" data-size="sm" data-sql-ausfuehren
-            hx-post="{{ url_for('rechnen.sql_ausfuehren', art=a.art) }}" hx-target="#sql-ergebnis">
+            hx-post="{{ url_for('rechnen.code_ausfuehren' if code else 'rechnen.sql_ausfuehren', art=a.art) }}" hx-target="#sql-ergebnis">
       {{ m.icon('play') }} Ausführen {{ m.taste('⌘↵') }}
     </button>
+    {% if not code %}
     <button type="button" class="btn" data-variant="ghost" data-size="sm"
             hx-get="{{ url_for('rechnen.sql_tabellen', art=a.art, seed=seed) }}" hx-target="#sql-ergebnis">{{ m.icon('table') }} Tabellen ansehen</button>
+    {% endif %}
   </div>
   <div id="sql-ergebnis" class="sql-ergebnis" aria-live="polite"></div>
   {% endif %}
@@ -48,7 +56,7 @@
 </div>
 {% endfor %}
 
-{% set uebrige = a.felder|rejectattr('name', 'in', a.tabellen_felder)|rejectattr('typ', 'equalto', 'sql')|list %}
+{% set uebrige = a.felder|rejectattr('name', 'in', a.tabellen_felder)|rejectattr('typ', 'in', ('sql', 'code'))|list %}
 {% if uebrige %}
 <div class="rechnen-felder" role="group" aria-label="Deine Ergebnisse">
   {% for f in uebrige %}
