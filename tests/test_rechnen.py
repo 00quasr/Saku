@@ -372,6 +372,18 @@ def test_wertetabelle_als_eingabetabelle(client):
     assert f"{len(a.felder) - 1} von {len(a.felder)} richtig." in html and html.count("rechnen-zelle--falsch") == 1
 
 
+def test_verhaeltnisse_als_bruch():
+    acht_fuenf = Feld("v", "Seitenverhältnis", "8:5", typ="verhaeltnis")
+    assert all(rechnen.stimmt(acht_fuenf, t) for t in ["8:5", "16:10", "16 : 10", "16/10", "16 zu 10", "1,6:1", "1.6:1", "32:20"])
+    assert not any(rechnen.stimmt(acht_fuenf, t) for t in ["16:9", "5:8", "1,5:1", "16", "16:0", "", "acht zu fünf"])
+    neun = Feld("v", "Seitenverhältnis", "16:9", typ="verhaeltnis")
+    assert rechnen.stimmt(neun, "1,78:1") and rechnen.stimmt(neun, "1,7778:1") and not rechnen.stimmt(neun, "1,7:1")  # auf die getippten Stellen
+    assert not rechnen.stimmt(Feld("v", "Seitenverhältnis", "43:18", typ="verhaeltnis"), "21:9")  # 2,389 ist nicht 2,333
+    for seed, a in _alle("monitor", "Seitenverhältnis"):
+        b, h = map(_zahl, re.search(r"\*\*([\d.]+) × ([\d.]+)\*\*", a.frage).groups())
+        assert rechnen.stimmt(a.felder[0], f"{int(b)}:{int(h)}")  # auch ungekürzt ist das Verhältnis dasselbe
+
+
 def test_listen_und_leere_zellen():
     liste = Feld("a", "Array", "3, 8, 1", typ="liste")
     assert all(rechnen.stimmt(liste, t) for t in ["3, 8, 1", "3 8 1", "[3; 8; 1]", "3-8-1", "03,8,1"])
