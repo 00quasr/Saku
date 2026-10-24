@@ -37,6 +37,16 @@ def _teilaufgaben(con, sim_id: int) -> list[dict]:
             for t in karten.lade(con, list(eigenes))]
 
 
+def _mit_vorschlag(con, sim_id: int) -> list[dict]:
+    """Teilaufgaben mit dem, was Saku selbst prüft: anklickbare und SQL mit Sandbox (auto, Punkte stehen dann schon im Feld),
+    bei Freitext nur ein Hinweis aus dem Stichpunkt-Abgleich; die Punkte vergibt dort der Nutzer."""
+    teilaufgaben = _teilaufgaben(con, sim_id)
+    for t in teilaufgaben:
+        t["auto"] = antwort.vorschlag(con, t, t["eingabe"], t["eigene"])
+        t["stichpunkte"] = None if t["auto"] else stichpunkte.fuer_teilaufgabe(t, t["eigene"])
+    return teilaufgaben
+
+
 def _eingabe(format_: dict | None, eigene: str | None) -> dict | None:
     """Gespeicherte Eingabe einer automatisch prüfbaren Teilaufgabe (JSON aus antwort.eingabe).
     None bei freien Antworten, auch bei einem Freitext von früher, damit er sichtbar bleibt."""
@@ -78,7 +88,12 @@ def index():
     verlauf = [dict(s) | {"punkte_100": simulation.umrechnen(s["punkte_erreicht"] or 0, s["punkte_moeglich"] or 0)}
                for s in con.execute("SELECT *, strftime('%d.%m.%Y', gestartet_am, 'localtime') AS datum "
                                     "FROM simulation ORDER BY id DESC").fetchall()]
-    return render_template("shiken/index.html", bereiche=bereiche, verlauf=verlauf, laufend=laufend,
+    kandidaten = simulation.schnelltest_kandidaten(con)
+    gewaehlt = min(simulation.SCHNELLTEST_ANZAHL, len(kandidaten))
+    schnelltest = {"bereich": simulation.SCHNELLTEST, "anzahl": gewaehlt, "termine": len({k["termin_index"] for k in kandidaten}),
+                   "minuten": round(gewaehlt * sum(k["punkte"] for k in kandidaten) / len(kandidaten)  # im Schnitt der Punkte
+                                    * simulation.minuten_je_punkt(con, simulation.WISO))} if kandidaten else None
+    return render_template("shiken/index.html", bereiche=bereiche, verlauf=verlauf, laufend=laufend, schnelltest=schnelltest,
                            noten=simulation.NOTEN, hochrechnung=hochrechnung.stand(con))
 
 
@@ -87,8 +102,9 @@ def neu():
     con = db()
     if laufend := simulation.laufende(con):
         return redirect(url_for("shiken.simulation", sim_id=laufend["id"]))
+    bereich = request.form.get("bereich", "")
     try:
-        sim_id = simulation.zusammenstellen(con, request.form.get("bereich", ""))
+        sim_id = simulation.schnelltest(con) if bereich == simulation.SCHNELLTEST else simulation.zusammenstellen(con, bereich)
     except ValueError:
         abort(400)
     return redirect(url_for("shiken.simulation", sim_id=sim_id))
@@ -104,7 +120,7 @@ def ansehen(sim_id):
         "SELECT CAST((julianday(gestartet_am, '+' || dauer_min || ' minutes') - julianday('now')) * 86400 AS INTEGER) "
         "FROM simulation WHERE id = ?", (sim_id,)).fetchone()[0]
     teilaufgaben = _teilaufgaben(con, sim_id)
-    return render_template("shiken/simulation.html", sim=sim, rest=max(0, rest),
+    return render_template("shiken/simulation.html", sim=sim, rest=max(0, rest), schnelltest=sim["bereich"] == simulation.SCHNELLTEST,
                            aufgaben=[list(g) for _, g in groupby(teilaufgaben, key=lambda t: t["aufgabe_id"])])
 
 
@@ -118,9 +134,12 @@ def speichern(sim_id):
 @bp.post("/<int:sim_id>/abgeben")
 def abgeben(sim_id):
     con = db()
-    _antworten_speichern(con, _simulation_oder_404(con, sim_id))
+    sim = _simulation_oder_404(con, sim_id)
+    _antworten_speichern(con, sim)
     con.execute("UPDATE simulation SET beendet_am = COALESCE(beendet_am, datetime('now')) WHERE id = ?", (sim_id,))
     con.commit()
+    if sim["bereich"] == simulation.SCHNELLTEST and sim["note"] is None:  # nur Anklickbares: Saku wertet gleich selbst aus
+        simulation.auswerten(con, sim_id, {t["id"]: t["auto"]["punkte"] for t in _mit_vorschlag(con, sim_id) if t["auto"]})
     return redirect(url_for("shiken.auswertung", sim_id=sim_id))
 
 
@@ -145,13 +164,8 @@ def auswertung(sim_id):
         return redirect(url_for("shiken.auswertung", sim_id=sim_id))
 
     punkte_100 = simulation.umrechnen(sim["punkte_erreicht"] or 0, sim["punkte_moeglich"] or 0)
-    teilaufgaben = _teilaufgaben(con, sim_id)
-    for t in teilaufgaben:  # anklickbare Teilaufgaben und SQL mit Sandbox prüft Saku selbst; die Punkte stehen dann schon im Feld
-        t["auto"] = antwort.vorschlag(con, t, t["eingabe"], t["eigene"])
-        # Freitext: nur ein Hinweis aus dem Stichpunkt-Abgleich, die Punkte vergibt der Nutzer
-        t["stichpunkte"] = None if t["auto"] else stichpunkte.fuer_teilaufgabe(t, t["eigene"])
     return render_template(
-        "shiken/auswertung.html", sim=sim, teilaufgaben=teilaufgaben, punkte_100=punkte_100,
+        "shiken/auswertung.html", sim=sim, teilaufgaben=_mit_vorschlag(con, sim_id), punkte_100=punkte_100,
         noten=simulation.NOTEN, kosten=simulation.kosten(con, sim_id) if sim["note"] is not None else [])
 
 

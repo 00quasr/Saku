@@ -9,7 +9,7 @@
        sizes="(min-width: 1100px) calc(100vw - 300px), calc(100vw - 120px)">
   <div class="kopf-inhalt">
     {% if wort %}<p class="etikett"><span lang="ja" aria-hidden="true">{{ kanji }}</span> {{ wort }}</p>{% endif %}
-    {% if titel %}<h1 class="titel">{{ titel }}</h1>{% endif %}
+    {% if titel %}<h1 class="titel"{% if schmal %} title="{{ titel }}"{% endif %}>{{ titel }}</h1>{% endif %}
     {% if caller %}{{ caller() }}{% endif %}
   </div>
 </section>

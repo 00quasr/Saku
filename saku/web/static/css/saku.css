@@ -10,8 +10,8 @@
 :root {
   --washi: #F6F4EF;  --washi-hell: #FBFAF7;  --flaeche: #EDE9E1;
   --sumi: #1F1D1A;   --sumi-mittel: #6B665D; --linie: #E4DFD5;
-  --shu: #C2452D;    --ai: #2F4A63;          --beni: #A63A3A;
-  --yamabuki: #A97A22; --matcha: #5E7F4F;
+  --shu: #B8422B;    --ai: #2F4A63;          --beni: #A63A3A;
+  --yamabuki: #88621B; --matcha: #547147;
 
   --schrift: "Inter", ui-sans-serif, system-ui, sans-serif;
   --schrift-titel: "Shippori Mincho", "Hiragino Mincho ProN", "Yu Mincho", serif;
@@ -37,7 +37,7 @@
 .dark {
   --washi: #141412;  --washi-hell: #1C1B18;  --flaeche: #24221F;
   --sumi: #ECE8DF;   --sumi-mittel: #A39E92; --linie: #2E2B27;
-  --shu: #E0603F;    --ai: #8FA9C4;          --beni: #D46A5E;
+  --shu: #E06241;    --ai: #8FA9C4;          --beni: #D46A5E;
   --yamabuki: #D9AE4F; --matcha: #8DAA7A;
 }
 
@@ -179,6 +179,9 @@ a:not(.btn) { color: inherit; text-underline-offset: 3px; }
 .kopf--schmal { height: 64px; align-items: center; }
 .kopf--schmal .kopf-inhalt { padding-bottom: 0; display: flex; align-items: baseline; gap: 16px; }
 .kopf--schmal .titel { margin-top: 0; font-size: 1.25rem; line-height: 1.75rem; }
+/* einzeilig: in schmalen Fenstern liefe ein langer Titel (Prüfungsbereich, Themen) aus dem Band; ganz steht er im Tooltip */
+.kopf--schmal .kopf-inhalt > * { white-space: nowrap; }
+.kopf--schmal .titel { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 
 /* --- Bausteine ------------------------------------------------------------ */
 /* Karten: nur Linie, keine Schatten */
@@ -245,6 +248,8 @@ a:not(.btn) { color: inherit; text-underline-offset: 3px; }
 .segment > a:hover { color: var(--sumi); }
 .segment input:focus-visible + span { outline: 2px solid var(--shu); outline-offset: 1px; }
 .segment[aria-disabled="true"] { opacity: .7; }
+/* Reiter (Basecoat): 60 % Tusche schafft auf der Fläche nur 4,2 : 1, 65 % reichen für 4,5 : 1 */
+.tabs > [role="tablist"] > [role="tab"] { color: color-mix(in oklab, var(--foreground) 65%, transparent); }
 /* Nur für Screenreader */
 .bunseki-versteckt {
   position: absolute; width: 1px; height: 1px; overflow: hidden;

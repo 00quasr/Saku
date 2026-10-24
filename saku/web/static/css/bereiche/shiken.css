@@ -8,6 +8,8 @@
 .shiken-bereich { display: grid; gap: 8px; align-content: start; }
 .shiken-bereich-name { font-family: var(--schrift-titel); font-weight: 600; font-size: 1.125rem; line-height: 1.5rem; min-height: 3rem; }
 .shiken-bereich form { margin-top: 8px; }
+.shiken-schnelltest { scroll-margin-top: 24px; }
+.shiken-schnelltest:target { border-color: var(--shu); }  /* Sprung aus ⌘K */
 
 .shiken-verlauf { margin-top: 16px; }
 .shiken-verlauf .rechts { text-align: right; }
@@ -52,6 +54,7 @@
 .hochrechnung-urteil--offen { color: var(--sumi-mittel); border: 1px solid var(--linie); }
 .hochrechnung-tabelle td, .hochrechnung-tabelle th { padding: 6px 8px; vertical-align: middle; }
 .hochrechnung-tabelle .rechts { text-align: right; }
+.hochrechnung-tabelle td:first-child { white-space: normal; }  /* lange Bereichsnamen brechen um, sonst läuft die Tabelle unter 1100 px aus der Fläche */
 .hochrechnung-eingabe { width: 96px; }
 .hochrechnung-regeln { display: grid; gap: 4px; }
 .hochrechnung-regeln .ok span { color: var(--matcha); }

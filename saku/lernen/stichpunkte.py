@@ -3,14 +3,17 @@ Die Musterlösung wird in erwartete Punkte zerlegt; ein Punkt gilt als erkannt, 
 eigenen Antwort vorkommen. Nur eine Hilfe: bewertet wird weiter mit 1, 2, 3 von Hand."""
 
 import math
+import os
 import re
 
 from saku.lernen import operatoren
 from saku.lernen.karten import ergebnis_aus_punkten
 
 HOECHSTENS = 10  # Punkte je Musterlösung; mehr sind meist Beispiele derselben Sache
-STAMM = 5  # gleicher Anfang ab so vielen Zeichen …
-STAMM_ANTEIL = 0.7  # … der mindestens 70 % des längeren Worts ausmacht: „verschlüsselt“ ↔ „Verschlüsselung“, nicht „Daten“ ↔ „Datenbank“
+STAMM = 5  # gleicher Anfang ab so vielen Zeichen, danach nur noch Endungen: höchstens eine Ableitung und eine Flexion.
+# „verschlüsselt“ ↔ „Verschlüsselung“, „Datensicherungen“, „vertraulich“ ↔ „Vertraulichkeit“; nicht „Daten“ ↔ „Datenbank“,
+# „Netzwerkkarte“ ↔ „Netzwerkkabel“ (der Rest ist ein eigenes Wort) und nicht „Datensicherung“ ↔ „Datensicherheit“ (zwei Ableitungen)
+ENDUNG = re.compile(r"(ung|heit|keit|er|z)?(e[mnrs]?|n|s|t|et|e?st|te[mnrs]?|nd)?")
 # Erkannt ab der Hälfte der bedeutsamen Wörter, aber nie mehr als drei verlangt: ein langer Lösungssatz soll nicht an einer
 # Stichpunkt-Antwort scheitern, die nur die Kernbegriffe nennt. Ein getroffener Fachbegriff (VPN, IPv6, TCP/IP) reicht allein.
 ANTEIL, HOECHSTENS_NOETIG = 0.5, 3
@@ -94,8 +97,15 @@ def verlangte_anzahl(aufgabe: str) -> int | None:
 def _gleich(a: str, b: str) -> bool:
     if a == b:
         return True
-    gemeinsam = len(next((a[:i] for i in range(min(len(a), len(b)), 0, -1) if a[:i] == b[:i]), ""))
-    return gemeinsam >= STAMM and gemeinsam >= STAMM_ANTEIL * max(len(a), len(b))
+    # Partizip ohne „ge“: „gesichert“ ↔ „sichern“, „Sicherung“
+    return any(_stamm_gleich(x, y) for x in {a, a[2:] if a.startswith("ge") and len(a) > 6 else a}
+               for y in {b, b[2:] if b.startswith("ge") and len(b) > 6 else b})
+
+
+def _stamm_gleich(a: str, b: str) -> bool:
+    n = len(os.path.commonprefix([a, b]))
+    rest_a, rest_b = ENDUNG.fullmatch(a[n:]), ENDUNG.fullmatch(b[n:])
+    return n >= STAMM and bool(rest_a and rest_b) and not (rest_a[1] and rest_b[1])
 
 
 def _teile(wort: str) -> list[str]:

@@ -140,3 +140,16 @@ def test_katalog_als_checkliste(con):
     assert katalog and all(b["gesamt"] >= b["geprueft"] >= b["sicher"] for b in katalog)
     unterthemen = [u for b in katalog for t in b["themen"] for u in t["unterthemen"]]
     assert any(u["termine"] for u in unterthemen)
+
+
+def test_themen_ueberall_gleich_gezaehlt(client, con):
+    """Analyse, Einstellungen und Einführung nennen dieselben Zahlen: Themen (Ebene 2) und Unterthemen (Ebene 3)."""
+    themen, unterthemen = (con.execute("SELECT COUNT(*) FROM v_themen_statistik WHERE ebene = ? AND teilaufgaben > 0", (e,)).fetchone()[0]
+                           for e in (2, 3))
+    assert (themen, unterthemen) == (5, 11)  # Demo-Daten
+    analyse = client.get("/bunseki/").get_data(as_text=True)
+    assert f'<span class="etikett">Themen</span><span class="kennzahl zahl">{themen}</span>' in analyse
+    assert f"mit {unterthemen} Unterthemen" in analyse
+    assert f"{themen} Themen mit {unterthemen} Unterthemen." in client.get("/einstellungen").get_data(as_text=True)
+    willkommen = client.get("/willkommen").get_data(as_text=True)
+    assert f'<dt class="etikett">Themen</dt><dd class="zahl-gross" data-zaehlen="{themen}">' in willkommen

@@ -149,6 +149,22 @@
       <p class="klein gedaempft">Alles sitzt. {{ m.wort('満開', 'Volle Blüte') }}: jetzt helfen Simulationen am meisten.</p>
       {% endif %}
     </section>
+
+    {# Kalender: Prüfungstermine und Meilensteine ganztägig, auf Wunsch ein täglicher Lern-Termin (fahrplan.ics) #}
+    <section class="flaeche fahrplan-kalender" aria-labelledby="kalender-titel">
+      <div class="fahrplan-kalender-text">
+        <header class="karte-kopf"><p class="etikett" id="kalender-titel"><span lang="ja" aria-hidden="true">日</span> Kalender</p></header>
+        <p class="klein gedaempft">Prüfungstermin, Beginn des Puffers und wann du laut Tagesziel jede Station einmal durch hast, als ganztägige Termine. Lädst du die Datei später neu, ersetzt sie die alten Termine.</p>
+      </div>
+      <form class="fahrplan-kalender-form" method="get" action="{{ url_for('heute.fahrplan_kalender') }}">
+        {% if tage is not none and tage > 0 %}
+        <label class="fahrplan-kalender-lernen"><input type="checkbox" name="lernen" value="1" checked> Täglich lernen um</label>
+        <input class="input fahrplan-uhrzeit" type="time" name="uhrzeit" value="18:00" required aria-label="Uhrzeit des Lern-Termins">
+        <label class="fahrplan-kalender-lernen">für <input class="input fahrplan-dauer" type="number" name="dauer" value="30" min="5" max="240" step="5" required aria-label="Dauer in Minuten"> Minuten, mit Erinnerung</label>
+        {% endif %}
+        <button type="submit" class="btn" data-variant="outline">{{ m.icon('calendar-plus') }} In Kalender übernehmen (.ics)</button>
+      </form>
+    </section>
   </div>
 </div>
 {% endif %}

@@ -6,6 +6,7 @@ from datetime import date, timedelta
 from itertools import groupby
 
 from saku.db import einstellung
+from saku.lernen import simulation
 from saku.lernen.karten import fahrschul, termin_schluessel
 
 # Bundeseinheitliche schriftliche Termine der IT-Berufe (Stand 22.10.2026; Quellen: Handelskammer Hamburg,
@@ -30,9 +31,9 @@ NEU_MINDESTENS = 10
 
 _HEUTE = "date(zeitpunkt, 'localtime') = date('now', 'localtime')"
 
-# Neue Teilaufgaben in der Reihenfolge des Lernpfads (frühe Station zuerst, ohne Station ans Ende)
+# Neue Teilaufgaben in der Reihenfolge des Lernpfads (frühe Station zuerst, ohne Station ans Ende), dazu ihre erste Station
 NEU_IM_PFAD_SQL = """
-SELECT v.teilaufgabe_id
+SELECT v.teilaufgabe_id, MIN(COALESCE(s.position, 1e9)) AS station_position, s.id AS station_id, s.titel AS station_titel
 FROM v_teilaufgabe v
 JOIN teilaufgabe t ON t.id = v.teilaufgabe_id
 LEFT JOIN v_zuordnung z    ON z.teilaufgabe_id = v.teilaufgabe_id
@@ -152,9 +153,10 @@ def lernserie(con: sqlite3.Connection, heute: date | None = None) -> int:
 
 
 def pruefungsreife(con: sqlite3.Connection) -> tuple[float, bool]:
-    """(Prozent, mankai): volle Blüte ab 80 % und wenn die letzten zwei Simulationen bestanden sind."""
+    """(Prozent, mankai): volle Blüte ab 80 % und wenn die letzten zwei Simulationen bestanden sind (ohne WiSo-Schnelltest)."""
     prozent = con.execute("SELECT prozent FROM v_pruefungsreife").fetchone()[0] or 0
     letzte = [z[0] for z in con.execute(
-        "SELECT bestanden FROM simulation WHERE note IS NOT NULL ORDER BY gestartet_am DESC, id DESC LIMIT 2"
+        "SELECT bestanden FROM simulation WHERE note IS NOT NULL AND bereich <> ? ORDER BY gestartet_am DESC, id DESC LIMIT 2",
+        (simulation.SCHNELLTEST,)
     )]
     return prozent, prozent >= 80 and letzte == [1, 1]

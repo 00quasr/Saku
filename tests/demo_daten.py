@@ -12,6 +12,7 @@ from pathlib import Path
 import pymupdf
 
 from saku import config, db
+from saku.pipeline.inventar import WISO
 
 THEMEN = {
     "Planen eines Softwareproduktes": {
@@ -29,7 +30,14 @@ THEMEN = {
     },
 }
 
-# (jahr, saison, bereich, aufgaben)  aufgabe = (titel, einleitung, [(kennung, punkte, text, loesung, [unterthema])])
+
+def _wahl(art: str, optionen: list[str], richtig: list[str], ziele: list[str] = (), einheit: str = "") -> dict:
+    """Antwortformat wie aus dem Schritt aufbereiten; Optionen und Ziele werden 1, 2, 3 …"""
+    nummeriert = lambda texte: [{"wert": str(i), "text": t} for i, t in enumerate(texte, start=1)]
+    return {"art": art, "optionen": nummeriert(optionen), "ziele": nummeriert(ziele), "richtig": richtig, "einheit": einheit, "vorlage": ""}
+
+
+# (jahr, saison, bereich, aufgaben)  aufgabe = (titel, einleitung, [(kennung, punkte, text, loesung, [unterthema], antwort?)])
 PRUEFUNGEN = [
     (2023, "Sommer", "Planen eines Softwareproduktes", [
         ("Projektplanung", "Die Demo GmbH plant ein Kundenportal.", [
@@ -59,6 +67,67 @@ PRUEFUNGEN = [
             ("a", 6, "Verbinden Sie Kunde und Ausleihe per JOIN.", "SELECT * FROM kunde k JOIN ausleihe a ON a.kunde_id = k.id;", ["SQL: SELECT, JOIN, GROUP BY"]),
             ("b", 8, "Erstellen Sie ein ER-Modell für den Verleih.", "Kunde 1:n Ausleihe n:1 Fahrrad.", ["ER-Modell"]),
             ("c", 6, "Suchen Sie binär in einer sortierten Liste.", "Mitte vergleichen, Hälfte verwerfen, O(log n).", ["Sortieren und Suchen"]),
+        ]),
+    ]),
+]
+
+# Erfundene WiSo-Prüfungen, nur anklickbare Teilaufgaben wie in der echten Prüfung. Kommen nur mit anlegen(wiso=True) dazu
+# (die Demo-Oberfläche, Tests zum WiSo-Schnelltest), damit die Zahlen der übrigen Tests bleiben.
+WISO_THEMEN = {
+    "Arbeitsrecht": ["Kündigung und Kündigungsschutz", "Arbeitszeit und Mitbestimmung: Arbeitszeitgesetz, Betriebsrat, JAV",
+                     "Rechtsquellen: Rangfolge"],
+    "Berufsausbildung": ["Ausbildungsvertrag: Probezeit, Pflichten"],
+    "Betrieb und Soziales": ["Sozialversicherung: Zweige, Träger, Beiträge", "Rechtsformen und Gehalt"],
+}
+WISO_PRUEFUNGEN = [
+    (2023, "Sommer", "Wirtschafts- und Sozialkunde", [
+        ("Ausbildung", "Sie beginnen Ihre Ausbildung bei der Demo GmbH.", [
+            ("a", 3, "Wie lange darf die Probezeit in der Ausbildung höchstens dauern?", "Vier Monate.", ["Ausbildungsvertrag: Probezeit, Pflichten"],
+             _wahl("einfach", ["Einen Monat", "Vier Monate", "Sechs Monate", "Ein Jahr"], ["2"])),
+            ("b", 4, "Welche Pflichten hat der Ausbildende? Wählen Sie zwei.", "Ausbildungsmittel bereitstellen, für die Berufsschule freistellen.",
+             ["Ausbildungsvertrag: Probezeit, Pflichten"],
+             _wahl("mehrfach", ["Ausbildungsmittel kostenlos bereitstellen", "Für die Berufsschule freistellen",
+                                "Überstunden ohne Ausgleich anordnen", "Private Erledigungen übertragen"], ["1", "2"])),
+        ]),
+        ("Kündigung", "Ein Kollege möchte das Unternehmen verlassen.", [
+            ("a", 3, "Die Grundkündigungsfrist beträgt vier Wochen. Wie viele Tage sind das?", "28 Tage.", ["Kündigung und Kündigungsschutz"],
+             _wahl("zahl", [], ["28"], einheit="Tage")),
+            ("b", 4, "Bringen Sie die Schritte einer Kündigung durch den Arbeitgeber in die richtige Reihenfolge.",
+             "Betriebsrat anhören, Kündigung schriftlich übergeben, Frist läuft, Arbeitsverhältnis endet.", ["Kündigung und Kündigungsschutz"],
+             _wahl("reihenfolge", ["Kündigungsfrist läuft", "Betriebsrat anhören", "Arbeitsverhältnis endet", "Kündigung schriftlich übergeben"],
+                   ["2", "4", "1", "3"])),
+        ]),
+        ("Sozialversicherung", "Ihre erste Gehaltsabrechnung liegt vor.", [
+            ("a", 4, "Ordnen Sie jeder Versicherung ihren Träger zu.", "Kranken: Krankenkasse, Rente: DRV, Unfall: Berufsgenossenschaft.",
+             ["Sozialversicherung: Zweige, Träger, Beiträge"],
+             _wahl("zuordnung", ["Krankenversicherung", "Rentenversicherung", "Unfallversicherung"], ["1=2", "2=3", "3=1"],
+                   ziele=["Berufsgenossenschaft", "Krankenkasse", "Deutsche Rentenversicherung"])),
+            ("b", 3, "Wer zahlt die Beiträge zur gesetzlichen Unfallversicherung?", "Der Arbeitgeber allein.",
+             ["Sozialversicherung: Zweige, Träger, Beiträge"],
+             _wahl("einfach", ["Arbeitnehmer allein", "Arbeitgeber allein", "Beide je zur Hälfte", "Der Staat"], ["2"])),
+        ]),
+    ]),
+    (2023, "Winter", "Wirtschafts- und Sozialkunde", [
+        ("Unternehmen", "Die Demo GmbH ist eine Gesellschaft mit beschränkter Haftung.", [
+            ("a", 3, "Wie hoch ist das Mindeststammkapital einer GmbH?", "25.000 €.", ["Rechtsformen und Gehalt"],
+             _wahl("einfach", ["1 €", "12.500 €", "25.000 €", "50.000 €"], ["3"])),
+            ("b", 3, "Ein Gehalt von 3.000 € steigt um 4 %. Wie hoch ist es danach in Euro?", "3.120 €.", ["Rechtsformen und Gehalt"],
+             _wahl("zahl", [], ["3120"], einheit="€")),
+        ]),
+        ("Mitbestimmung", "Im Betrieb arbeiten 60 Beschäftigte.", [
+            ("a", 4, "Wer darf den Betriebsrat wählen? Wählen Sie alle zutreffenden.", "Arbeitnehmer und Auszubildende ab 16 Jahren.",
+             ["Arbeitszeit und Mitbestimmung: Arbeitszeitgesetz, Betriebsrat, JAV"],
+             _wahl("mehrfach", ["Arbeitnehmer ab 16 Jahren", "Auszubildende ab 16 Jahren", "Der Geschäftsführer", "Kunden des Betriebs"], ["1", "2"])),
+            ("b", 3, "Welches Gremium vertritt die Auszubildenden unter 25 Jahren?", "Die Jugend- und Auszubildendenvertretung.",
+             ["Arbeitszeit und Mitbestimmung: Arbeitszeitgesetz, Betriebsrat, JAV"],
+             _wahl("einfach", ["Aufsichtsrat", "Jugend- und Auszubildendenvertretung", "Wirtschaftsausschuss", "Gewerkschaft"], ["2"])),
+        ]),
+        ("Arbeitsrecht", "Sie prüfen Ihren Arbeitsvertrag.", [
+            ("a", 3, "Wie viele Stunden darf man werktäglich regelmäßig arbeiten (ohne Ausgleich)?", "8 Stunden.",
+             ["Arbeitszeit und Mitbestimmung: Arbeitszeitgesetz, Betriebsrat, JAV"], _wahl("zahl", [], ["8"], einheit="Stunden")),
+            ("b", 4, "Ordnen Sie die Rechtsquellen nach ihrem Rang, die höchste zuerst.", "Grundgesetz, Gesetz, Tarifvertrag, Arbeitsvertrag.",
+             ["Rechtsquellen: Rangfolge"],
+             _wahl("reihenfolge", ["Tarifvertrag", "Grundgesetz", "Arbeitsvertrag", "Gesetz (z. B. BGB)"], ["2", "4", "1", "3"])),
         ]),
     ]),
 ]
@@ -95,7 +164,7 @@ def _bild(pfad: Path, zeilen: list[str]) -> None:
     seite.get_pixmap(dpi=150).save(pfad)
 
 
-def anlegen(daten: Path, pruefungstermin: date | None = None) -> Path:
+def anlegen(daten: Path, pruefungstermin: date | None = None, wiso: bool = False) -> Path:
     pfad = config.db_pfad(daten)
     if pfad.exists():
         pfad.unlink()
@@ -105,7 +174,7 @@ def anlegen(daten: Path, pruefungstermin: date | None = None) -> Path:
     db.setze_einstellung(con, "pruefungstermin", termin.isoformat())
 
     unterthema = {}
-    for p1, (bereich, themen) in enumerate(THEMEN.items()):
+    for p1, (bereich, themen) in enumerate((THEMEN | ({WISO: WISO_THEMEN} if wiso else {})).items()):
         b_id = con.execute("INSERT INTO thema (ebene, name, slug, position) VALUES (1, ?, ?, ?)",
                            (bereich, _slug(bereich), p1)).lastrowid
         for p2, (thema, unter) in enumerate(themen.items()):
@@ -118,31 +187,32 @@ def anlegen(daten: Path, pruefungstermin: date | None = None) -> Path:
                     (t_id, titel, _slug(titel), stichworte or None, p3)).lastrowid
 
     alle = []
-    for jahr, saison, bereich, aufgaben in PRUEFUNGEN:
+    for jahr, saison, bereich, aufgaben in PRUEFUNGEN + (WISO_PRUEFUNGEN if wiso else []):
         p_id = con.execute(
             "INSERT INTO pruefung (jahr, saison, bereich, beruf, format, dauer_min, punkte_gesamt, ausgangssituation) "
-            "VALUES (?, ?, ?, '1201', 'aktuell', 90, 100, ?)",
-            (jahr, saison, bereich, f"Erfundene Ausgangssituation {saison} {jahr}: Sie arbeiten bei der Demo GmbH.")).lastrowid
+            "VALUES (?, ?, ?, '1201', 'aktuell', ?, 100, ?)",
+            (jahr, saison, bereich, 60 if bereich == WISO else 90,
+             f"Erfundene Ausgangssituation {saison} {jahr}: Sie arbeiten bei der Demo GmbH.")).lastrowid
         for nr, (titel, einleitung, teile) in enumerate(aufgaben, start=1):
             a_id = con.execute(
                 "INSERT INTO aufgabe (pruefung_id, nummer, titel, einleitung, punkte) VALUES (?, ?, ?, ?, ?)",
                 (p_id, nr, titel, einleitung, sum(t[1] for t in teile))).lastrowid
-            for pos, (kennung, punkte, text, loesung, themen) in enumerate(teile):
+            for pos, (kennung, punkte, text, loesung, themen, *antwort) in enumerate(teile):
                 ordner = Path("aufgaben") / "demo" / f"{jahr}-{saison}-{nr}{kennung}"
                 _bild(daten / ordner / "aufgabe.png", [f"{nr}. Aufgabe {kennung})  ({punkte} Punkte)", text])
                 _bild(daten / ordner / "loesung.png", ["Lösungshinweis", loesung])
                 t_id = con.execute(
                     "INSERT INTO teilaufgabe (aufgabe_id, kennung, position, text, punkte, seite, bilder, typ, "
-                    "loesung_text, loesung_bilder) VALUES (?, ?, ?, ?, ?, 2, ?, 'erklaeren', ?, ?)",
-                    (a_id, kennung, pos, text, punkte, json.dumps([str(ordner / "aufgabe.png")]),
-                     loesung, json.dumps([str(ordner / "loesung.png")]))).lastrowid
+                    "loesung_text, loesung_bilder, antwort) VALUES (?, ?, ?, ?, ?, 2, ?, ?, ?, ?, ?)",
+                    (a_id, kennung, pos, text, punkte, json.dumps([str(ordner / "aufgabe.png")]), "auswahl" if antwort else "erklaeren",
+                     loesung, json.dumps([str(ordner / "loesung.png")]), json.dumps(antwort[0]) if antwort else None)).lastrowid
                 for name in themen:
                     con.execute("INSERT INTO teilaufgabe_thema (teilaufgabe_id, thema_id, gewicht, sicherheit) "
                                 "VALUES (?, ?, ?, 0.9)", (t_id, unterthema[name], 1 / len(themen)))
                 con.execute("INSERT INTO suche (teilaufgabe_id, titel, text, loesung) VALUES (?, ?, ?, ?)",
                             (t_id, f"{saison} {jahr} · Aufgabe {nr} {kennung} · {titel}", f"{einleitung} {text}", loesung))
                 alle.append((t_id, themen[0]))
-            if (jahr, saison, nr) in SANDBOXEN:
+            if bereich != WISO and (jahr, saison, nr) in SANDBOXEN:  # WiSo hat dieselben Termine, aber kein SQL
                 ddl, daten_sql, loesungen = SANDBOXEN[(jahr, saison, nr)]
                 con.execute("INSERT INTO sql_sandbox (aufgabe_id, ddl, daten) VALUES (?, ?, ?)", (a_id, ddl, daten_sql))
                 for kennung, loesung in loesungen.items():
@@ -175,4 +245,4 @@ def anlegen(daten: Path, pruefungstermin: date | None = None) -> Path:
 
 if __name__ == "__main__":
     ziel = Path(sys.argv[1] if len(sys.argv) > 1 else "/tmp/saku-demo")
-    print(f"Demo-Datenbank: {anlegen(ziel)}")
+    print(f"Demo-Datenbank: {anlegen(ziel, wiso=True)}")

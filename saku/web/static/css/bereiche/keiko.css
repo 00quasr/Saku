@@ -91,7 +91,9 @@
 }
 .wahl-option:has(input:checked) .wahl-wert { background: var(--sumi); border-color: var(--sumi); color: var(--washi); }
 .wahl-platz { width: 64px; }
-.wahl-ziel { min-width: 180px; }
+.wahl-ziel { min-width: 180px; max-width: 100%; }
+.wahl-option:has(> .wahl-ziel) { flex-wrap: wrap; }  /* Zuordnung in schmaler Spalte (Auswertung): die Liste rutscht unter den Text */
+.wahl-option:has(> .wahl-ziel) > .wahl-text { flex-basis: auto; }
 .wahl-text { flex: 1; min-width: 0; }
 .wahl-marke { font-weight: 600; }
 .keiko-antwort--fertig .wahl-option { cursor: default; }
