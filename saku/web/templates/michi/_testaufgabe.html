@@ -1,0 +1,40 @@
+{# Antwort und Punkte einer Teilaufgabe im Mini-Test. Anklickbar oder SQL mit Sandbox: erst „Prüfen“, danach sind die
+   Punkte vorbelegt (v aus antwort.vorschlag) und bleiben änderbar; sonst Lösung aufdecken und selbst bewerten #}
+{% import "_makros.html" as m %}
+{% import "keiko/_bausteine.html" as k %}
+{% set klick = pruefbar(t.antwort) %}
+<div id="test-{{ t.id }}" class="stapel">
+  {% if (klick or (t.loesung_sql and t.sandbox)) and not v %}
+  {% if klick %}{{ k.antwortfeld(t, praefix='antwort-' ~ t.id ~ '-') }}
+  {% else %}
+  <label class="etikett" for="antwort-{{ t.id }}">Deine SQL-Anweisung · Tab rückt ein, Esc verlässt das Feld</label>
+  <textarea class="textarea editor" id="antwort-{{ t.id }}" name="antwort-{{ t.id }}" rows="6" spellcheck="false" autocapitalize="off"
+            autocomplete="off" placeholder="SELECT …" onkeydown="saku.editorTaste(event)">{{ t.antwort.vorlage if t.antwort }}</textarea>
+  {% endif %}
+  <p class="zeile">
+    <button type="button" class="btn" data-variant="outline" hx-post="{{ url_for('michi.test_pruefen', station_id=station.id, t_id=t.id) }}"
+            hx-target="#test-{{ t.id }}" hx-swap="outerHTML">Prüfen</button>
+    {% if not klick %}
+    <button type="button" class="btn" data-variant="ghost" hx-get="{{ url_for('keiko.sql_tabellen', t_id=t.id) }}"
+            hx-target="#sql-{{ t.id }}">{{ m.icon('table') }} Tabellen ansehen</button>
+    {% endif %}
+    <span class="klein gedaempft">Ohne Prüfen wertet Saku die Antwort beim Auswerten selbst aus.</span>
+  </p>
+  {% if not klick %}<div id="sql-{{ t.id }}" class="sql-ergebnis" aria-live="polite"></div>{% endif %}
+  {% else %}
+  {% if v and v.werte is not none %}{{ k.antwortfeld(t, eingabe, v.werte, praefix='antwort-' ~ t.id ~ '-') }}
+  {% elif v %}<p class="etikett">Deine SQL-Anweisung</p><pre class="shiken-antwort">{{ eigene or '–' }}</pre>{% endif %}
+  <details class="michi-loesung" {{ 'open' if v }}>
+    <summary>{{ 'Lösung' if v else 'Lösung aufdecken' }}</summary>
+    <div class="tusche">{{ k.loesung(t) }}</div>
+  </details>
+  <p class="zeile michi-punkte">
+    <label for="punkte-{{ t.id }}">Deine Punkte</label>
+    <input class="input zahl" type="number" id="punkte-{{ t.id }}" name="punkte-{{ t.id }}"
+           min="0" max="{{ t.punkte }}" step="0.5" required inputmode="decimal"
+           {% if v %}value="{{ '%g' % v.punkte }}" aria-describedby="auto-{{ t.id }}"{% endif %}>
+    <span class="gedaempft">von {{ k.punkte(t.punkte) }}</span>
+    {% if v %}{{ k.auto_hinweis(v, 'auto-' ~ t.id) }}{% endif %}
+  </p>
+  {% endif %}
+</div>
