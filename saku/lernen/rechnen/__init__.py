@@ -1,6 +1,7 @@
 """Rechentrainer 算: unbegrenzt neue Rechenaufgaben im Stil der AP1, sofort und exakt geprüft, mit Rechenweg.
 Jede Art ist eine Funktion (rng) -> Aufgabe; derselbe Seed ergibt immer dieselbe Aufgabe. Keine KI, keine Prüfungstexte."""
 
+import ipaddress
 import random
 import re
 from datetime import date
@@ -38,6 +39,36 @@ def _datum(text: str) -> date | None:
         return None
 
 
+def _ipv6(text: str) -> int | None:
+    text = re.sub(r"\s", "", text).lower()
+    for kandidat in (text, "::" + text):
+        try:
+            return int(ipaddress.IPv6Address(kandidat))
+        except ValueError:
+            continue
+    return None
+
+
+def _verhaeltnis(text: str) -> tuple[float, float, int] | None:
+    """„16:10“, „16 / 10“, „16 zu 10“, „1,6:1“ → (16, 10, 0) bzw. (1.6, 1, 1): Zähler, Nenner, getippte Nachkommastellen."""
+    m = re.fullmatch(r"\s*(\d+(?:[.,]\d+)?)\s*(?::|/|zu)\s*(\d+(?:[.,]\d+)?)\s*", text, re.I)
+    if not m:
+        return None
+    a, b = zahl(m[1]), zahl(m[2])
+    stellen = max(len(t.replace(".", ",").split(",")[1]) if "," in t.replace(".", ",") else 0 for t in (m[1], m[2]))
+    return (a, b, stellen) if a and b else None
+
+
+def _verhaeltnis_gleich(eingabe: str, soll: str) -> bool:
+    """a:b ≙ c:d, wenn a·d = b·c; mit Dezimalzahl getippt („1,78:1“) reicht es, auf die getippten Stellen zu stimmen."""
+    ist, ziel = _verhaeltnis(eingabe), _verhaeltnis(soll)
+    if not (ist and ziel):
+        return False
+    if not ist[2]:
+        return ist[0] * ziel[1] == ist[1] * ziel[0]
+    return abs(ist[0] / ist[1] - ziel[0] / ziel[1]) <= 0.5 * 10 ** -ist[2] + 1e-9
+
+
 def _wochentage(text: str) -> list[str]:
     """„Mo (voll), Dienstag und Mi“ → [mo, di, mi]: jedes Wort, das mit einem Wochentag beginnt."""
     return [w[:2] for w in re.findall(r"[a-zäöü]+", text.lower())
@@ -63,6 +94,10 @@ def stimmt(feld: Feld, eingabe: str, toleranz: float = 0.0) -> bool:
     soll = str(feld.loesung)
     if feld.typ == "ip":
         return _ipv4(eingabe) is not None and _ipv4(eingabe) == _ipv4(soll)
+    if feld.typ == "ipv6":  # nach Wert, gekürzt oder nicht; vier Blöcke sind eine Interface-ID
+        return _ipv6(eingabe) is not None and _ipv6(eingabe) == _ipv6(soll)
+    if feld.typ == "verhaeltnis":
+        return _verhaeltnis_gleich(eingabe, soll)
     if feld.typ == "wochentage":
         return bool(_wochentage(eingabe)) and _wochentage(eingabe) == _wochentage(soll)
     if feld.typ == "datum":

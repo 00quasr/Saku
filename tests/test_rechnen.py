@@ -201,6 +201,9 @@ def test_passende_art_zu_themen():
         "backup": ["Datensicherung im Büro", "Backupstrategien vergleichen", "Generationenprinzip"],
         "monitor": ["Peripheriegeräte auswählen", "Pixeldichte von Displays"],
         "bandbreite": ["PC-Komponenten und ihre Leistungsdaten", "Arbeitsspeicher aufrüsten"],
+        "vlsm": ["IP-Adresskonzept für den Standort", "VLSM in der Praxis"],
+        "routing": ["Statisches Routing", "Router und Gateways"],
+        "eui64": ["SLAAC und EUI-64", "Autokonfiguration von Clients"],
     }
     for slug, namen in passt.items():
         for name in namen:
@@ -370,6 +373,18 @@ def test_wertetabelle_als_eingabetabelle(client):
     daten = {"seed": seed, **{f"feld-{f.name}": f.anzeige for f in a.felder}, f"feld-{a.felder[0].name}": "999"}
     html = client.post("/rechnen/schreibtisch/pruefen", data=daten, headers=HTMX).get_data(as_text=True)
     assert f"{len(a.felder) - 1} von {len(a.felder)} richtig." in html and html.count("rechnen-zelle--falsch") == 1
+
+
+def test_verhaeltnisse_als_bruch():
+    acht_fuenf = Feld("v", "Seitenverhältnis", "8:5", typ="verhaeltnis")
+    assert all(rechnen.stimmt(acht_fuenf, t) for t in ["8:5", "16:10", "16 : 10", "16/10", "16 zu 10", "1,6:1", "1.6:1", "32:20"])
+    assert not any(rechnen.stimmt(acht_fuenf, t) for t in ["16:9", "5:8", "1,5:1", "16", "16:0", "", "acht zu fünf"])
+    neun = Feld("v", "Seitenverhältnis", "16:9", typ="verhaeltnis")
+    assert rechnen.stimmt(neun, "1,78:1") and rechnen.stimmt(neun, "1,7778:1") and not rechnen.stimmt(neun, "1,7:1")  # auf die getippten Stellen
+    assert not rechnen.stimmt(Feld("v", "Seitenverhältnis", "43:18", typ="verhaeltnis"), "21:9")  # 2,389 ist nicht 2,333
+    for seed, a in _alle("monitor", "Seitenverhältnis"):
+        b, h = map(_zahl, re.search(r"\*\*([\d.]+) × ([\d.]+)\*\*", a.frage).groups())
+        assert rechnen.stimmt(a.felder[0], f"{int(b)}:{int(h)}")  # auch ungekürzt ist das Verhältnis dasselbe
 
 
 def test_listen_und_leere_zellen():
@@ -805,3 +820,59 @@ def test_monitor_und_bandbreite_nachgerechnet():
         else:
             gb = int(re.search(r"\*\*(\d+) GB\*\*", f)[1])
             assert l["sata"] == pytest.approx(gb * 1000 / 600) and l["faktor"] > 5
+
+
+# --- VLSM, Routing, EUI-64 (Runde 8) -------------------------------------------------------
+
+def test_vlsm_wie_ipaddress():
+    for seed, a in _alle("vlsm"):
+        basis = ipaddress.ip_network(re.search(r"`([\d.]+/\d+)`", a.frage)[1])
+        bedarf = dict(re.findall(r"^- (.+?): (\d+) Hosts$", a.frage, re.M))
+        netze = {}
+        for zeile in a.tabelle[1:]:
+            name, netz, praefix, bc = zeile[0], *(f.loesung for f in zeile[1:])
+            netze[name] = n = ipaddress.ip_network(f"{netz}/{praefix}")
+            assert str(n.broadcast_address) == bc and n.subnet_of(basis)
+            hosts = int(bedarf[name])
+            assert n.num_addresses - 2 >= hosts > n.num_addresses // 2 - 2  # so klein wie möglich
+        # größte zuerst und lückenlos ab dem Netzanfang
+        sortiert = sorted(netze.values(), key=lambda n: -n.num_addresses)
+        assert sortiert[0].network_address == basis.network_address
+        assert all(int(b.network_address) == int(a_.broadcast_address) + 1 for a_, b in zip(sortiert, sortiert[1:]))
+
+
+def test_routing_longest_prefix_wie_ipaddress():
+    for seed, a in _alle("routing"):
+        eintraege = [(ipaddress.ip_network("0.0.0.0/0" if z.startswith("0.0.0.0") else z), h)
+                     for z, h in re.findall(r"^\| ([\d./]+)(?: \(Default\))? \| (R\d) \|$", a.frage, re.M)]
+        assert len(eintraege) == 5 and any(n.prefixlen == 0 for n, _ in eintraege)
+        for f in a.felder:
+            ziel = ipaddress.ip_address(re.search(r"für ([\d.]+)", f.label)[1])
+            p, h, n = max((n.prefixlen, h, n) for n, h in eintraege if ziel in n)
+            assert f.loesung == (h if f.label.startswith("Next Hop") else ("0.0.0.0/0 (Default)" if p == 0 else str(n)))
+        praefixe = sorted({max(p for p, _ in [(n.prefixlen, h) for n, h in eintraege if ipaddress.ip_address(re.search(r"für ([\d.]+)", f.label)[1]) in n])
+                           for f in a.felder})
+        assert praefixe[0] == 0 and len(praefixe) == 3  # Default, mittlerer und längster Präfix kommen je einmal dran
+
+
+def test_eui64_unabhaengig_ueber_zeichenketten():
+    for seed, a in _alle("eui64"):
+        if a.titel == "EUI-64 rückwärts: MAC":  # vorwärts aus der gefundenen MAC muss wieder die Adresse entstehen
+            mac = a.loesung["mac"].split(":")
+            mac[0] = f"{int(mac[0], 16) ^ 0b10:02x}"
+            iid = "".join(mac[:3] + ["ff", "fe"] + mac[3:]).lower()
+            link = re.search(r"`(fe80:[0-9a-f:]+)`", a.frage)[1]
+            assert ipaddress.ip_address(link) == ipaddress.ip_address("fe80::" + ":".join(iid[i:i + 4] for i in range(0, 16, 4)))
+            continue
+        mac = re.search(r"MAC-Adresse \*\*([0-9A-F:-]+)\*\*", a.frage)[1].replace("-", ":").split(":")
+        mac[0] = f"{int(mac[0], 16) ^ 0b10:02x}"  # U/L-Bit umdrehen
+        iid = "".join(mac[:3] + ["ff", "fe"] + mac[3:]).lower()
+        iid = ":".join(iid[i:i + 4] for i in range(0, 16, 4))
+        praefix = ipaddress.ip_network(re.search(r"Präfix `([0-9a-f:]+/64)`", a.frage)[1])
+        assert ipaddress.ip_address(f"::{iid}") == ipaddress.ip_address(f"::{a.loesung['iid']}")
+        assert a.loesung["global"] == ipaddress.ip_address(f"{praefix.network_address.exploded[:19]}:{iid}").compressed
+        assert a.loesung["link"] == ipaddress.ip_address(f"fe80::{iid}").compressed
+    feld = Feld("g", "Global", "2001:db8::21a:2bff:fe3c:4d5e", typ="ipv6")
+    assert all(rechnen.stimmt(feld, t) for t in ["2001:db8::21a:2bff:fe3c:4d5e", "2001:0DB8:0:0:021A:2BFF:FE3C:4D5E"])
+    assert not rechnen.stimmt(feld, "2001:db8::21a:2bff:fe3c:4d5f") and not rechnen.stimmt(feld, "kein")
+    assert rechnen.stimmt(Feld("i", "Interface-ID", "21a:2bff:fe3c:4d5e", typ="ipv6"), "021A:2BFF:FE3C:4D5E")
