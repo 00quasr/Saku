@@ -4,7 +4,7 @@ import time
 
 from flask import Blueprint, abort, make_response, render_template, request, url_for
 
-from saku.lernen import antwort, karten, tagesziel
+from saku.lernen import antwort, karten, rechnen, tagesziel
 from saku.web import db
 
 bp = Blueprint("keiko", __name__, url_prefix="/keiko")
@@ -125,8 +125,11 @@ def _kontext(con, zustand: dict, erste: int | None = None, sicher_geworden: bool
         "SELECT m.id, m.name, COUNT(*) AS n, COUNT(DISTINCT v.pruefung_id) AS pruefungen, MAX(v.termin_index) AS zuletzt "
         "FROM teilaufgabe t JOIN muster m ON m.id = t.muster_id JOIN teilaufgabe x ON x.muster_id = m.id "
         "JOIN v_teilaufgabe v ON v.teilaufgabe_id = x.id WHERE t.id = ? GROUP BY m.id", (t["id"],)).fetchone()
+    themen = [z[0] for z in con.execute(
+        "SELECT th.name || ' ' || COALESCE(th.stichworte, '') FROM teilaufgabe_thema tt JOIN thema th ON th.id = tt.thema_id "
+        "WHERE tt.teilaufgabe_id = ? ORDER BY tt.gewicht DESC", (t["id"],))]
     return kontext | {
-        "karte": t, "start": int(time.time()), "aehnlich": aehnlich, "muster": muster,
+        "karte": t, "start": int(time.time()), "aehnlich": aehnlich, "muster": muster, "rechenart": rechnen.passend(themen),
         "ist_variante": tagesrunde and t["id"] in varianten(con, zustand["runde"]),
         "thema_pfad": [n for n in (thema["eltern"], thema["name"]) if n] if thema else [],
     }

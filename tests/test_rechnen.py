@@ -240,3 +240,23 @@ def test_pruefen_speichert_den_versuch(client, con):
     assert zeilen == [("subnetz", 7, 1, n, n), ("subnetz", 7, 0, n - 1, n), ("subnetz", 7, 0, 0, n)]
     assert "1 von 3 zuletzt · 3 gerechnet" in client.get("/rechnen/").get_data(as_text=True)
     assert client.post("/rechnen/subnetz/pruefen", data={}).status_code == 400
+
+
+def test_einbindung_suche_ueben_themen(client, con):
+    from saku.web.routen.suche import befehle
+    assert ("calculator", "Rechnen: Subnetting") == befehle("subnetting")[0][:2]
+    assert befehle("rechnen gemischt")[0][3] == ("rechnen.gemischt", {})
+    assert '/rechnen/netzplan"' in client.get("/suche/?q=netzplan").get_data(as_text=True)
+
+    def teilaufgabe(text):
+        return con.execute("SELECT id FROM teilaufgabe WHERE text LIKE ?", (f"%{text}%",)).fetchone()[0]
+    netzplan = client.get(f"/keiko/?teilaufgabe={teilaufgabe('kritischen Pfad')}").get_data(as_text=True)
+    assert 'Ähnliches rechnen, mit immer neuen Zahlen: <a href="/rechnen/netzplan">Netzplan →</a>' in netzplan
+    assert 'href="/rechnen/nutzwert"' in client.get(f"/keiko/?teilaufgabe={teilaufgabe('Nutzwertanalyse')}").get_data(as_text=True)
+    assert "Ähnliches rechnen" not in client.get(f"/keiko/?teilaufgabe={teilaufgabe('Bubblesort')}").get_data(as_text=True)
+
+    thema = con.execute("SELECT id FROM thema WHERE name = 'Netzplan'").fetchone()[0]
+    notiz = client.get(f"/niwa/thema/{thema}", headers=HTMX).get_data(as_text=True)
+    assert 'href="/rechnen/netzplan">Netzplan →</a>' in notiz
+    andere = con.execute("SELECT id FROM thema WHERE name = 'Rekursion'").fetchone()[0]
+    assert "Ähnliches rechnen" not in client.get(f"/niwa/thema/{andere}", headers=HTMX).get_data(as_text=True)
