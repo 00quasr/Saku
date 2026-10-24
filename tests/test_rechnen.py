@@ -643,6 +643,19 @@ def test_sprint_ablauf_punkte_note(client, con):
     assert client.get("/rechnen/sprint/lauf").headers["Location"].endswith("/rechnen/sprint")  # ohne Aufgaben: zur Startseite
 
 
+def test_sprint_nur_im_umfang(client, con):
+    from urllib.parse import parse_qs, urlparse
+    from saku.db import setze_einstellung
+    for pfad, teil, beruf in [("AP2-1201", "AP2", "1201"), ("AP2-1202", "AP2", "1202"), ("AP1", "AP1", "1201")]:
+        setze_einstellung(con, "teil", teil)
+        setze_einstellung(con, "beruf", beruf)
+        erlaubt = set(rechnen.im_umfang(pfad))
+        for _ in range(8):
+            adresse = client.get("/rechnen/sprint/neu").headers["Location"]
+            arten = [w.split(":")[0] for w in parse_qs(urlparse(adresse).query)["a"]]
+            assert len(set(arten)) == 5 and set(arten) <= erlaubt, (pfad, arten)
+
+
 def test_gemischt_ohne_doppelte():
     rng = random.Random(3)
     for _ in range(50):
