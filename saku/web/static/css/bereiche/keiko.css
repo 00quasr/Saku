@@ -199,6 +199,10 @@
 .verlauf-tag { display: grid; gap: 12px; margin-top: 40px; }
 .verlauf-kopf { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 16px; }
 .verlauf-tabelle td { vertical-align: top; }
+/* feste Spaltenbreiten: die Tabellen aller Tage stehen bündig untereinander */
+.verlauf-tabelle { table-layout: fixed; }
+.verlauf-tabelle th:first-child { width: 5rem; }
+.verlauf-tabelle th:nth-child(n+3) { width: 6.5rem; }
 .verlauf-tabelle .verlauf-rechts { text-align: right; }
 .verlauf-bereich { display: block; }
 .verlauf-seiten { gap: 8px; }
