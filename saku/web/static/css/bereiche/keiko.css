@@ -208,3 +208,17 @@
 .grundwissen-taste { padding: 0 6px; }
 .begriff-wahl { display: grid; gap: 8px; width: 100%; }
 .begriff-wahl .btn { justify-content: flex-start; gap: 10px; }
+
+/* Stichpunkt-Abgleich (ohne KI) über dem Lösungshinweis; der vorgeschlagene Knopf 1/2/3 bekommt eine Indigo-Kante */
+.stichpunkte { display: grid; gap: 8px; padding: 12px 14px; border-left: 2px solid var(--ai); background: var(--washi-hell); border-radius: 0 8px 8px 0; }
+.stichpunkte > .etikett { color: var(--ai); }
+.stichpunkte-hinweis { text-transform: none; letter-spacing: 0; }
+.stichpunkte-liste { display: grid; gap: 4px; }
+.stichpunkte-liste li { display: flex; gap: 8px; color: var(--sumi-mittel); }
+.stichpunkte-liste .stichpunkt--erkannt { color: var(--sumi); }
+.stichpunkt-marke { flex: none; width: 1em; font-weight: 600; text-align: center; }
+.stichpunkt--erkannt .stichpunkt-marke { color: var(--matcha); }
+.stichpunkte mark { background: color-mix(in oklab, var(--ai) 22%, transparent); color: inherit; border-radius: 3px; padding: 0 2px; }
+:is(.keiko-loesung:has([data-stichpunkt-vorschlag="1"]) [data-taste="1"],
+    .keiko-loesung:has([data-stichpunkt-vorschlag="2"]) [data-taste="2"],
+    .keiko-loesung:has([data-stichpunkt-vorschlag="3"]) [data-taste="3"]) { border-color: var(--ai); box-shadow: inset 0 0 0 1px var(--ai); }
