@@ -6,13 +6,10 @@
             hx-vals='{"neu_gesehen": "{{ neu }}"}' hx-target="#neu-in-saku" hx-swap="outerHTML">Verstanden</button>
   </header>
   <ul class="heute-neu-liste">
-    <li><a href="{{ url_for('rechnen.index') }}"><span lang="ja" aria-hidden="true">算</span> Rechnen</a>: Rechenaufgaben wie in der Prüfung mit Rechenweg, dazu der <a href="{{ url_for('rechnen.sprint') }}">Sprint</a> auf Zeit und die <a href="{{ url_for('rechnen.formeln') }}">Formelsammlung</a>.</li>
-    <li><a href="{{ url_for('heute.fahrplan') }}">Fahrplan</a>: Wiederholungen der nächsten Tage, dein Tempo bis zur Prüfung und wo die meisten Punkte noch fehlen.</li>
-    <li><a href="{{ url_for('keiko.verlauf') }}">Verlauf</a>: jede Bewertung nach Tagen, oben der Rückblick auf die Woche (auch hier auf Heute).</li>
-    <li>SQL in <a href="{{ url_for('keiko.index') }}">Üben</a>: Anweisungen auf Beispieldaten ausführen und mit der Musterlösung vergleichen.</li>
-    <li>Stichpunkt-Abgleich: Schreibst du in <a href="{{ url_for('keiko.index') }}">Üben</a> eine freie Antwort, zeigt Saku beim Aufdecken, welche Punkte der Musterlösung drinstehen, mit einem Vorschlag; ohne KI, bewerten tust du selbst. Auch in Simulation und Mini-Test.</li>
-    <li><a href="{{ url_for('shiken.index') }}">Simulation</a> und <a href="{{ url_for('michi.index') }}">Mini-Test</a> werten Ankreuzaufgaben, Zahlen und SQL selbst aus; die Punkte kannst du ändern.</li>
-    <li><a href="{{ url_for('keiko.grundwissen', modus='umgekehrt') }}">Grundwissen umgekehrt</a>: die Definition lesen, den Begriff wählen.</li>
-    <li>Saku sichert die Datenbank einmal am Tag; den Lernstand nimmst du in den <a href="{{ url_for('kern.einstellungen', _anchor='daten') }}">Einstellungen</a> als Datei mit.</li>
+    <li><a href="{{ url_for('rechnen.probe') }}">Probeprüfung</a>: eine ganze Prüfung aus den Rechenarten deines Umfangs, 90 Minuten, sofort ausgewertet mit Note, beliebig oft neu.</li>
+    <li><a href="{{ url_for('rechnen.aufgabe', art='algorithmus') }}">Algorithmus schreiben</a>: eigener Pseudocode, den Saku ausführt und gegen Testfälle prüft, mit Struktogramm als Musterlösung.</li>
+    <li>Neu in <a href="{{ url_for('rechnen.index') }}"><span lang="ja" aria-hidden="true">算</span> Rechnen</a>: SQL schreiben und ausführen, ER-Modell, IT-Sicherheit, Recht &amp; Verträge, UML-Diagramme lesen, Ports und OSI-Modell.</li>
+    <li>Den <a href="{{ url_for('heute.fahrplan') }}">Fahrplan</a> nimmst du als Kalenderdatei mit, auf Wunsch mit täglichem Lern-Termin.</li>
+    <li>Der Wissensgraph unter <a href="{{ url_for('niwa.index') }}">Themen</a> steht ruhig, statt beim Öffnen herumzuspringen.</li>
   </ul>
 </section>

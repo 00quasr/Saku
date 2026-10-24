@@ -15,7 +15,7 @@ from saku.web.routen.rechnen import heute_gerechnet, tagesziel as rechnen_ziel
 bp = Blueprint("heute", __name__)
 
 # „Neu in Saku“ auf Heute: eine neue Marke, sobald es wieder Neues vorzustellen gibt
-NEU_IN_SAKU = "2026-10"
+NEU_IN_SAKU = "2026-10-25"  # neue Marke: wer „Verstanden“ geklickt hat, sieht die Karte für das Neue noch einmal
 
 
 def begruessung(stunde: int) -> tuple[str, str]:
