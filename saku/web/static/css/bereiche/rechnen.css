@@ -57,6 +57,24 @@
 .rechnen-sql--richtig .rechnen-marke { color: var(--matcha); }
 .rechnen-sql--falsch .rechnen-marke { color: var(--beni); }
 
+/* Pseudocode-Aufgabe: derselbe Editor mit Zeilennummern links, Ausführen zeigt die Ausgabe, nach dem Prüfen die Testfälle */
+.code-editor { display: grid; grid-template-columns: auto minmax(0, 1fr); }
+.code-zeilen {
+  margin: 0; padding: 8px 8px 8px 10px; min-width: 2.75em; overflow: hidden; text-align: right; user-select: none;
+  font-family: var(--schrift-code); font-size: 0.875rem; line-height: 1.5; font-variant-numeric: tabular-nums;
+  color: var(--sumi-mittel); background: var(--flaeche); border: 1px solid var(--linie); border-right: 0; border-radius: var(--radius) 0 0 var(--radius);
+}
+.code-editor .editor { border-top-left-radius: 0; border-bottom-left-radius: 0; }
+.rechnen-sql--richtig .code-zeilen { border-color: var(--matcha); }
+.rechnen-sql--falsch .code-zeilen { border-color: var(--beni); }
+.code-lauf { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 16px; margin: 0; }
+.code-lauf dt { font-weight: 500; }
+.code-lauf dd { margin: 0; overflow-wrap: anywhere; }
+.code-faelle td { vertical-align: top; white-space: normal; overflow-wrap: anywhere; }
+.code-faelle .rechnen-marke { margin-right: 4px; }
+.code-fall--richtig .rechnen-marke { color: var(--matcha); }
+.code-fall--falsch .rechnen-marke, .code-abbruch { color: var(--beni); }
+
 /* Struktogramm (Nassi-Shneiderman): Kästen in Tuschelinien; Verzweigung mit Dreieck (SVG, auf die Breite gestreckt), darunter
    ja | nein; Schleife mit Kopf und eingerücktem Rumpf, links läuft der Rand mit */
 .struktogramm {

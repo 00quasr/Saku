@@ -20,7 +20,7 @@ window.saku = {
     clearTimeout(toast.zeit);
     toast.zeit = setTimeout(() => toast.classList.remove("sichtbar"), 1600);
   },
-  // Code-Editor: Tab rückt um vier Leerzeichen ein, Esc verlässt das Feld, ⌘↵/Strg+↵ führt SQL in der Sandbox aus
+  // Code-Editor: Tab rückt um vier Leerzeichen ein, Esc verlässt das Feld, ⌘↵/Strg+↵ führt SQL oder Pseudocode aus
   editorTaste(e) {
     const feld = e.target;
     if (e.key === "Escape") return feld.blur();
@@ -32,6 +32,12 @@ window.saku = {
     if (e.key !== "Tab" || e.shiftKey) return;
     e.preventDefault();
     feld.setRangeText("    ", feld.selectionStart, feld.selectionEnd, "end");
+  },
+  // Zeilennummern neben dem Pseudocode-Editor (die Meldungen nennen die Zeile), mitgescrollt
+  zeilen(feld) {
+    const rand = feld.previousElementSibling;
+    rand.textContent = Array.from({ length: feld.value.split("\n").length }, (_, i) => `${i + 1}\n`).join("");
+    rand.scrollTop = feld.scrollTop;
   },
   // Ausgefüllte Tabelle als Markdown ins versteckte Antwortfeld (für Sensei „Prüfen“)
   tabelleAlsText(tabelle) {

@@ -8,6 +8,7 @@ from flask import Blueprint, abort, make_response, redirect, render_template, re
 
 from saku.db import einstellung
 from saku.lernen import rechnen, simulation, sql
+from saku.lernen.rechnen import pseudocode
 from saku.web import db, ganzzahl, ist_fragment, seite_oder_fragment
 
 bp = Blueprint("rechnen", __name__, url_prefix="/rechnen")
@@ -206,7 +207,7 @@ def pruefen(art):
     if seed is None:
         abort(400)
     aufgabe = rechnen.erzeugen(art, seed)
-    eingaben = {f.name: request.form.get(f"feld-{f.name}", "")[:sql.ZEICHEN if f.typ == "sql" else 200] for f in aufgabe.felder}
+    eingaben = {f.name: request.form.get(f"feld-{f.name}", "")[:sql.ZEICHEN if f.typ in ("sql", "code") else 200] for f in aufgabe.felder}
     aufgegeben = request.form.get("aufgeben") == "1"
     gemischt = request.form.get("gemischt") == "1"
     start = request.form.get("start", type=int)
@@ -221,6 +222,11 @@ def pruefen(art):
             # läuft nicht: keine Bewertung, nichts gespeichert, die Anweisung bleibt zum Korrigieren stehen
             return render_template("rechnen/_karte.html", **_kontext(art, seed, gemischt, eingaben)
                                    | {"start": start or int(time.time()), "sql_fehler": vergleich["fehler"]})
+    elif aufgabe.testfaelle and not aufgegeben:  # Pseudocode: je Testfall erwartet und erhalten
+        if "fehler" in (vergleich := rechnen.code_vergleich(aufgabe, eingaben[aufgabe.felder[0].name])):
+            # lässt sich nicht lesen: wie bei SQL keine Bewertung, der Code bleibt zum Korrigieren stehen
+            return render_template("rechnen/_karte.html", **_kontext(art, seed, gemischt, eingaben)
+                                   | {"start": start or int(time.time()), "code_fehler": vergleich["fehler"]})
     werte = rechnen.pruefen(aufgabe, eingaben)
     dauer = min(max(int(time.time()) - start, 0), 3600) if start else None
     con = db()
@@ -230,18 +236,19 @@ def pruefen(art):
     return render_template("rechnen/_karte.html", **_kontext(art, seed, gemischt, eingaben, werte, aufgegeben), vergleich=vergleich)
 
 
-def _sql_aufgabe_oder_404(art: str, seed: int | None) -> rechnen.Aufgabe:
+def _aufgabe_mit_oder_404(art: str, seed: int | None, merkmal: str) -> rechnen.Aufgabe:
+    """Die Aufgabe, wenn sie das Merkmal hat (sandbox: SQL, testfaelle: Pseudocode)."""
     _art_oder_404(art)
     if seed is None:
         abort(400)
     aufgabe = rechnen.erzeugen(art, seed)
-    return aufgabe if aufgabe.sandbox else abort(404)
+    return aufgabe if getattr(aufgabe, merkmal) else abort(404)
 
 
 @bp.post("/<art>/sql")
 def sql_ausfuehren(art):
     """SQL-Aufgabe: die eigene Anweisung in der Sandbox ausführen, wie in Üben (Ergebnis oder die Meldung von SQLite)."""
-    aufgabe = _sql_aufgabe_oder_404(art, request.form.get("seed", type=int))
+    aufgabe = _aufgabe_mit_oder_404(art, request.form.get("seed", type=int), "sandbox")
     try:
         eigene = request.form.get(f"feld-{aufgabe.felder[0].name}", "")
         return render_template("keiko/_sql.html", **sql.ausfuehren(*aufgabe.sandbox, eigene))
@@ -252,5 +259,14 @@ def sql_ausfuehren(art):
 @bp.get("/<art>/tabellen")
 def sql_tabellen(art):
     """Die erfundenen Beispieldaten einer SQL-Aufgabe."""
-    aufgabe = _sql_aufgabe_oder_404(art, request.args.get("seed", type=int))
+    aufgabe = _aufgabe_mit_oder_404(art, request.args.get("seed", type=int), "sandbox")
     return render_template("keiko/_sql.html", meldung="Beispieldaten", tabellen=sql.tabellen(*aufgabe.sandbox))
+
+
+@bp.post("/<art>/code")
+def code_ausfuehren(art):
+    """Pseudocode-Aufgabe: den eigenen Code mit dem Beispiel der Frage ausführen (Ausgabe oder die Meldung mit Zeilennummer)."""
+    aufgabe = _aufgabe_mit_oder_404(art, request.form.get("seed", type=int), "testfaelle")
+    faelle, ziel = aufgabe.testfaelle
+    eigene = request.form.get(f"feld-{aufgabe.felder[0].name}", "")[:sql.ZEICHEN]
+    return render_template("rechnen/_code.html", **pseudocode.ausprobieren(eigene, faelle[0], ziel))

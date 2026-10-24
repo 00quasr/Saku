@@ -9,11 +9,11 @@ from datetime import date
 from saku.lernen import sql
 from saku.lernen.antwort import zahl
 # melden ihre Arten an; die Reihenfolge hier ist die Reihenfolge der Arten (nach Nutzen für die AP1)
-from saku.lernen.rechnen import netzwerk, daten, hardware, komponenten, sicherheit, wirtschaft, wiso, projekt, programmieren, algorithmen, datenbanken  # noqa: F401, I001
+from saku.lernen.rechnen import netzwerk, daten, hardware, komponenten, sicherheit, wirtschaft, wiso, projekt, programmieren, pseudocode, algorithmen, datenbanken  # noqa: F401, I001
 from saku.lernen.rechnen.plan import faellig, im_umfang
 from saku.lernen.rechnen.basis import ARTEN, GRUPPEN, Art, Aufgabe, Feld
 
-__all__ = ["ARTEN", "GRUPPEN", "Art", "Aufgabe", "Feld", "erzeugen", "pruefen", "stimmt", "sql_vergleich", "passend", "passende",
+__all__ = ["ARTEN", "GRUPPEN", "Art", "Aufgabe", "Feld", "erzeugen", "pruefen", "stimmt", "sql_vergleich", "code_vergleich", "passend", "passende",
            "themen_je_art", "gemischt", "faellig", "im_umfang"]
 
 
@@ -135,9 +135,16 @@ def sql_vergleich(aufgabe: Aufgabe, eingabe: str) -> dict:
     return vergleich
 
 
+def code_vergleich(aufgabe: Aufgabe, eingabe: str) -> dict:
+    """Pseudocode-Feld: der eigene gegen die Musterlösung, je Testfall der Aufgabe (pseudocode.vergleich: ergebnis 1–3, faelle);
+    lässt er sich nicht lesen: ergebnis 1 und die Meldung mit Zeilennummer unter fehler."""
+    return pseudocode.vergleich(next(f.loesung for f in aufgabe.felder if f.typ == "code"), *aufgabe.testfaelle, eingabe)
+
+
 def pruefen(aufgabe: Aufgabe, eingaben: dict[str, str]) -> dict[str, bool]:
-    """Je Feld: richtig? SQL zählt nur, wenn es genau stimmt (sql.pruefen: 3)."""
-    return {f.name: sql_vergleich(aufgabe, eingaben.get(f.name, ""))["ergebnis"] == 3 if f.typ == "sql"
+    """Je Feld: richtig? SQL und Pseudocode zählen nur, wenn sie genau stimmen (Ergebnis 3)."""
+    vergleiche = {"sql": sql_vergleich, "code": code_vergleich}
+    return {f.name: vergleiche[f.typ](aufgabe, eingaben.get(f.name, ""))["ergebnis"] == 3 if f.typ in vergleiche
             else stimmt(f, eingaben.get(f.name, ""), aufgabe.toleranz) for f in aufgabe.felder}
 
 
