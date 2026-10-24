@@ -8,9 +8,11 @@ from datetime import date
 from saku.lernen.antwort import zahl
 # melden ihre Arten an; die Reihenfolge hier ist die Reihenfolge der Arten (nach Nutzen für die AP1)
 from saku.lernen.rechnen import netzwerk, daten, hardware, wirtschaft, wiso, projekt, programmieren, algorithmen  # noqa: F401, I001
+from saku.lernen.rechnen.plan import faellig, im_umfang
 from saku.lernen.rechnen.basis import ARTEN, GRUPPEN, Art, Aufgabe, Feld
 
-__all__ = ["ARTEN", "GRUPPEN", "Art", "Aufgabe", "Feld", "erzeugen", "pruefen", "stimmt", "passend", "gemischt"]
+__all__ = ["ARTEN", "GRUPPEN", "Art", "Aufgabe", "Feld", "erzeugen", "pruefen", "stimmt", "passend", "passende", "gemischt",
+           "faellig", "im_umfang"]
 
 
 def erzeugen(art: str, seed: int) -> Aufgabe:
@@ -73,14 +75,21 @@ def pruefen(aufgabe: Aufgabe, eingaben: dict[str, str]) -> dict[str, bool]:
     return {f.name: stimmt(f, eingaben.get(f.name, ""), aufgabe.toleranz) for f in aufgabe.felder}
 
 
-def passend(namen) -> Art | None:
-    """Die erste Rechenart, deren Stichwort in einem der Themennamen steckt (auch mitten im Wort: „Angebotskalkulation“).
-    Nur Namen: die Stichwort-Spalte der Themen nennt Begriffe wie „Leasing“ oder „binäre Suche“ auch dort, wo nichts zu rechnen ist."""
+def passende(namen) -> list[Art]:
+    """Alle Rechenarten, deren Stichwort in einem der Themennamen steckt (auch mitten im Wort: „Angebotskalkulation“), in der
+    Reihenfolge der Namen. Nur Namen: die Stichwort-Spalte der Themen nennt Begriffe wie „Leasing“ oder „binäre Suche“ auch dort,
+    wo nichts zu rechnen ist."""
+    raus = []
     for name in namen:
         for a in ARTEN.values():
-            if any(s.casefold() in (name or "").casefold() for s in a.themen):
-                return a
-    return None
+            if a not in raus and any(s.casefold() in (name or "").casefold() for s in a.themen):
+                raus.append(a)
+    return raus
+
+
+def passend(namen) -> Art | None:
+    """Die erste passende Rechenart (siehe passende)."""
+    return next(iter(passende(namen)), None)
 
 
 def gemischt(rng: random.Random, quoten: dict[str, float], ohne=()) -> str:

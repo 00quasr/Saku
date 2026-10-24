@@ -34,6 +34,7 @@ FELDER = {
     **{f"note_{k}": (lambda w: w == "" or 0 <= float(w.replace(",", ".")) <= 100) for k in ("ap1", "projekt", "pb2", "pb3", "wiso")},
     "puffer_tage": lambda w: w.isdigit() and int(w) <= 60,
     "stationstest_schwelle": lambda w: 0.5 <= float(w) <= 1,
+    "rechnen_ziel": lambda w: w.isdigit() and int(w) <= 50,  # Rechenaufgaben am Tag, 0 = aus
     "farbschema": lambda w: w in FARBSCHEMAS,
 }
 

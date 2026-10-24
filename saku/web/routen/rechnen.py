@@ -2,9 +2,11 @@
 
 import random
 import time
+from datetime import datetime, timezone
 
 from flask import Blueprint, abort, make_response, redirect, render_template, request, url_for
 
+from saku.db import einstellung
 from saku.lernen import rechnen, simulation
 from saku.web import db, ist_fragment, seite_oder_fragment
 
@@ -15,12 +17,12 @@ SEEDS = 10 ** 6
 SPRINT_AUFGABEN, SPRINT_MINUTEN, SPRINT_PUNKTE = 5, 15, 20
 
 
-def _stand(con) -> dict[str, dict]:
-    """Je Art: wie viele Aufgaben gerechnet und die letzten zehn Ergebnisse (älteste zuerst, 1 = richtig)."""
-    stand = {a: {"anzahl": 0, "letzte": []} for a in rechnen.ARTEN}
-    for art, anzahl in con.execute("SELECT art, COUNT(*) FROM rechenuebung GROUP BY art"):
+def stand(con) -> dict[str, dict]:
+    """Je Art: wie viele Aufgaben gerechnet, die letzten zehn Ergebnisse (älteste zuerst, 1 = richtig) und wann zuletzt (UTC)."""
+    stand = {a: {"anzahl": 0, "letzte": [], "zuletzt": None} for a in rechnen.ARTEN}
+    for art, anzahl, zuletzt in con.execute("SELECT art, COUNT(*), MAX(zeitpunkt) FROM rechenuebung GROUP BY art"):
         if art in stand:
-            stand[art]["anzahl"] = anzahl
+            stand[art] |= {"anzahl": anzahl, "zuletzt": datetime.fromisoformat(zuletzt)}
     for art, richtig in con.execute(
             "SELECT art, richtig FROM (SELECT id, art, richtig, ROW_NUMBER() OVER (PARTITION BY art ORDER BY id DESC) AS nr "
             "FROM rechenuebung) WHERE nr <= 10 ORDER BY id"):
@@ -33,6 +35,11 @@ def heute_gerechnet(con) -> tuple[int, int]:
     """(Aufgaben, davon richtig) seit heute früh, Ortszeit."""
     return tuple(con.execute("SELECT COUNT(*), COALESCE(SUM(richtig), 0) FROM rechenuebung "
                              "WHERE date(zeitpunkt, 'localtime') = date('now', 'localtime')").fetchone())
+
+
+def tagesziel(con) -> int:
+    """Rechenaufgaben am Tag aus den Einstellungen; 0 = aus. Das Tagesziel der Teilaufgaben bleibt davon unberührt."""
+    return int(einstellung(con, "rechnen_ziel", "5") or 5)
 
 
 def _gruppen() -> list[tuple[str, list]]:
@@ -52,13 +59,14 @@ def _kontext(art: str, seed: int, gemischt: bool, eingaben: dict | None = None, 
     naechste = url_for("rechnen.gemischt") if gemischt else url_for("rechnen.aufgabe", art=art, seed=random.randrange(SEEDS))
     return {"art": rechnen.ARTEN[art], "aufgabe": rechnen.erzeugen(art, seed), "seed": seed, "gemischt": gemischt,
             "start": int(time.time()), "eingaben": eingaben or {}, "werte": werte, "aufgegeben": aufgegeben,
-            "naechste": naechste, "stand": _stand(db())[art]}
+            "naechste": naechste, "stand": stand(db())[art]}
 
 
 @bp.get("/")
 def index():
     con = db()
-    return render_template("rechnen/index.html", gruppen=_gruppen(), stand=_stand(con), heute=heute_gerechnet(con))
+    return render_template("rechnen/index.html", gruppen=_gruppen(), stand=stand(con), heute=heute_gerechnet(con),
+                           ziel=tagesziel(con), faellige_arten=faellige(con))  # „faellig“ ist schon die Zahl in der Seitenleiste
 
 
 @bp.get("/formeln")
@@ -68,13 +76,27 @@ def formeln():
 
 
 def _quoten(con) -> dict[str, float]:
-    return {a: sum(s["letzte"]) / len(s["letzte"]) for a, s in _stand(con).items() if s["letzte"]}
+    return {a: sum(s["letzte"]) / len(s["letzte"]) for a, s in stand(con).items() if s["letzte"]}
+
+
+def _pfad(con) -> str:
+    return con.execute("SELECT pfad FROM v_umfang").fetchone()[0]
+
+
+def faellige(con) -> list[str]:
+    """Fällige Arten im Umfang des aktiven Lernpfads (siehe rechnen.plan)."""
+    s = stand(con)
+    arten = rechnen.im_umfang(_pfad(con))
+    jetzt = datetime.now(timezone.utc).replace(tzinfo=None)  # rechenuebung.zeitpunkt ist UTC ohne Zone
+    return rechnen.faellig(arten, {a: x["letzte"] for a, x in s.items()}, {a: x["zuletzt"] for a, x in s.items()}, jetzt)
 
 
 @bp.get("/gemischt")
 def gemischt():
-    """Eine Art nach Gewicht: was zuletzt oft falsch war (oder nie dran), kommt häufiger."""
-    art = rechnen.gemischt(random.Random(), _quoten(db()))
+    """Bevorzugt eine fällige Art des Lernpfads, sonst eine aus dem Umfang; nach Gewicht: was zuletzt oft falsch war, kommt häufiger."""
+    con = db()
+    auswahl = faellige(con) or rechnen.im_umfang(_pfad(con))
+    art = rechnen.gemischt(random.Random(), _quoten(con), ohne=[a for a in rechnen.ARTEN if a not in auswahl])
     return redirect(url_for("rechnen.aufgabe", art=art, seed=random.randrange(SEEDS), gemischt=1))
 
 
