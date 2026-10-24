@@ -5,7 +5,9 @@ ausgeführt (kein eval), die Lösung kommt aus dem Ausführen. Eigenen Pseudocod
 Ausdrücke: Zahl, WAHR/FALSCH (True/False), Variablenname, ("[]", array, index), ("länge", array), ("liste", [zahlen]),
            ("NICHT", ausdruck), (op, links, rechts) mit op auch UND, ODER
 Anweisungen: ("setze", ziel, ausdruck), ("ausgabe", [ausdrücke]), ("wenn", bedingung, dann, sonst),
-             ("solange", bedingung, rumpf), ("fuer", variable, von, bis, rumpf)"""
+             ("solange", bedingung, rumpf), ("wiederhole", rumpf, bedingung), ("fuer", variable, von, bis, rumpf)
+WIEDERHOLE … BIS (fußgesteuert) liest und führt Saku nur aus selbst geschriebenem Pseudocode aus; die Generatoren nutzen sie nicht,
+deshalb kennen Struktogramm und Aktivitätsdiagramm sie nicht."""
 
 import copy
 import operator
@@ -88,6 +90,8 @@ def zeilen(block: list, tiefe: int = 0) -> list[tuple[str, tuple]]:
             raus.append((f"{ein}ENDE WENN", s))
         elif s[0] == "solange":
             raus += [(f"{ein}SOLANGE {ausdruck(s[1])}", s), *zeilen(s[2], tiefe + 1), (f"{ein}ENDE SOLANGE", s)]
+        elif s[0] == "wiederhole":
+            raus += [(f"{ein}WIEDERHOLE", s), *zeilen(s[1], tiefe + 1), (f"{ein}BIS {ausdruck(s[2])}", s)]
         else:
             raus += [(f"{ein}FÜR {s[1]} ← {ausdruck(s[2])} BIS {ausdruck(s[3])}", s), *zeilen(s[4], tiefe + 1),
                      (f"{ein}ENDE FÜR", s)]
@@ -357,6 +361,13 @@ class Lauf:
                     self.block(s[2])
                     self.merken(aussen)
                     self.schritt(s)
+            elif s[0] == "wiederhole":
+                while True:  # erst der Rumpf, dann die Abbruchbedingung: läuft mindestens einmal
+                    self.block(s[1])
+                    self.merken(aussen)
+                    self.schritt(s)
+                    if self.wert(s[2]):
+                        break
             else:
                 von, bis = self.wert(s[2]), self.wert(s[3])
                 if isinstance(von, list) or isinstance(bis, list):
@@ -382,6 +393,8 @@ def ersetzen(block: list, alt, neu) -> list:
             raus.append(("wenn", s[1], ersetzen(s[2], alt, neu), ersetzen(s[3], alt, neu)))
         elif s[0] == "solange":
             raus.append(("solange", s[1], ersetzen(s[2], alt, neu)))
+        elif s[0] == "wiederhole":
+            raus.append(("wiederhole", ersetzen(s[1], alt, neu), s[2]))
         elif s[0] == "fuer":
             raus.append(("fuer", *s[1:4], ersetzen(s[4], alt, neu)))
         else:

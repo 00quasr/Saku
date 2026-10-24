@@ -13,8 +13,8 @@ from saku.lernen.rechnen.programmieren import GROESSTE, Fehler, Lauf, ausdruck, 
 # Grenzen der Eingabe: Zeichen, Zeilen, Wörter je Zeile (ein Array-Wert mit Komma sind zwei), Schachtelung (Blöcke und Klammern)
 ZEICHEN, ZEILEN, WOERTER, TIEFE = 5000, 300, 200, 20
 
-SCHLUESSEL = {"WENN", "DANN", "SONST", "ENDE", "SOLANGE", "FUER", "BIS", "AUSGABE", "UND", "ODER", "NICHT", "DIV", "MOD",
-              "WAHR", "FALSCH"}
+SCHLUESSEL = {"WENN", "DANN", "SONST", "ENDE", "SOLANGE", "WIEDERHOLE", "FUER", "BIS", "AUSGABE", "UND", "ODER", "NICHT", "DIV",
+              "MOD", "WAHR", "FALSCH"}
 _TEIL = re.compile(r"\s*(?:(\d+)|([^\W\d]\w*)|(←|<-|:=|<>|!=|≠|<=|≤|>=|≥|==|[-+*()\[\],<>=:])|(\S))")
 _GLEICH = {"<-": "←", ":=": "←", "!=": "<>", "≠": "<>", "≤": "<=", "≥": ">=", "==": "="}
 _HINWEIS = {"/": "„/“ gibt es hier nicht: ganzzahlig teilen mit DIV, den Rest mit MOD.",
@@ -191,9 +191,9 @@ class _Leser:
         raus = []
         while (z := self.naechste()) is not None:
             nr, text = z
-            if _ENDE.fullmatch(text) or re.match(r"sonst\b", text, re.I):
+            if _ENDE.fullmatch(text) or re.match(r"(sonst|bis)\b", text, re.I):  # BIS … schließt WIEDERHOLE
                 if oben:
-                    raise Fehler(f"Zeile {nr}: „{text}“ ohne passendes WENN, SOLANGE oder FÜR davor.")
+                    raise Fehler(f"Zeile {nr}: „{text}“ ohne passendes WENN, SOLANGE, WIEDERHOLE oder FÜR davor.")
                 return raus
             self.pos += 1
             s = self.anweisung(_Zeile(nr, text), tiefe)
@@ -226,6 +226,21 @@ class _Leser:
             rumpf = self.block(tiefe + 1)
             self.schliessen("SOLANGE", t.nr)
             return ("solange", bedingung, rumpf)
+        if kopf == "WIEDERHOLE":
+            t.i += 1
+            t.ende()
+            rumpf = self.block(tiefe + 1)
+            if not (z := self.naechste()) or not re.match(r"bis\b", z[1], re.I):
+                wo = z[0] if z else self.zeilen[-1][0]
+                raise Fehler(f"Zeile {wo}: BIS … fehlt (zu WIEDERHOLE in Zeile {t.nr})" + (f", hier steht „{z[1]}“." if z else "."))
+            self.pos += 1
+            fuss = _Zeile(*z)
+            fuss.i += 1
+            if fuss.jetzt() is None:
+                fuss.fehler("BIS braucht eine Bedingung, z. B. BIS i > 10.")
+            bedingung = fuss.ausdruck()
+            fuss.ende()
+            return ("wiederhole", rumpf, bedingung)
         if kopf == "FUER":
             t.i += 1
             variable = t.name()
@@ -369,6 +384,7 @@ FORMELN = """**Pseudocode, wie Saku ihn liest**
 - Arrays: `zahlen ← [3, 1, 2]`, Zugriff `zahlen[i]` ab Index 0, `länge(zahlen)`, der letzte Index ist `länge(zahlen) - 1`
 - `WENN Bedingung DANN` … `SONST` … `ENDE WENN`; auch `SONST WENN … DANN` mit einem gemeinsamen `ENDE WENN`
 - `SOLANGE Bedingung` … `ENDE SOLANGE`: prüft vor jedem Durchlauf (kopfgesteuert)
+- `WIEDERHOLE` … `BIS Bedingung`: prüft nach jedem Durchlauf und hört auf, sobald die Bedingung gilt (fußgesteuert, läuft mindestens einmal)
 - `FÜR i ← 1 BIS n` … `ENDE FÜR`: zählt einschließlich n; liegt `BIS` unter dem Start, läuft sie gar nicht
 - `AUSGABE a, b` gibt Werte aus; Kommentare mit `//`
 - Auch verstanden: Schlüsselwörter klein, `FUER`, `ENDEWENN`, `ENDE_WENN`, nur `ENDE`, `==`, `FÜR i VON 1 BIS n`, `TUE` am Ende von SOLANGE und FÜR, `DANN` in eigener Zeile, `AUSGABE(a, b)`, `;` am Zeilenende
@@ -379,12 +395,13 @@ FORMELN = """**Pseudocode, wie Saku ihn liest**
 - Anweisung: ein Rechteck; von oben nach unten gelesen
 - Verzweigung: Bedingung im Kopf über einem Dreieck, links der Ja-Zweig, rechts der Nein-Zweig; ein leerer Zweig bleibt leer
 - Kopfgesteuerte Schleife (SOLANGE) und Zählschleife (FÜR): oben der Kopf, darunter der Rumpf, eingerückt; links läuft der Rand der Schleife mit
+- Fußgesteuerte Schleife (WIEDERHOLE … BIS): oben der eingerückte Rumpf, darunter die Abbruchbedingung, der Rand links verbindet beide
 - Schleifen und Verzweigungen dürfen ineinander stehen, jeder Block ist wieder ein Struktogramm
 
 *Beispiel:* größter Wert: `max ← zahlen[0]`, dann `FÜR i ← 1 BIS länge(zahlen) - 1` mit `WENN zahlen[i] > max DANN max ← zahlen[i]`; im Struktogramm eine Zählschleife mit einer Verzweigung, deren Nein-Zweig leer bleibt"""
 
 NOTATION_SCHREIBEN = ("Schreibweise wie im Schreibtischtest: `←` Zuweisung, `=` Vergleich, `DIV`, `MOD`, `UND`, `ODER`, `NICHT`, "
-                      "`WENN … DANN … SONST … ENDE WENN`, `SOLANGE … ENDE SOLANGE`, `FÜR i ← a BIS b … ENDE FÜR`, `AUSGABE`, "
+                      "`WENN … DANN … SONST … ENDE WENN`, `SOLANGE … ENDE SOLANGE`, `WIEDERHOLE … BIS …`, `FÜR i ← a BIS b … ENDE FÜR`, `AUSGABE`, "
                       "Arrays ab Index 0 mit `länge(…)`. Alles Weitere steht im Merkblatt unter dem Editor.")
 LETZTER = ("-", ("länge", "zahlen"), 1)
 ARRAY_TEXT = "Array ganzer Zahlen"

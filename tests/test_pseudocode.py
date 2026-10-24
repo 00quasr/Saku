@@ -347,3 +347,19 @@ def test_struktogramm_auf_karte_und_im_sprint(client):
     assert '<div class="struktogramm"' in sprint
     assert "Nassi-Shneiderman" in client.get("/rechnen/formeln").get_data(as_text=True)
     assert [a.slug for a in rechnen.passende(["Struktogramme lesen und erstellen"])] == ["schreibtisch", "algorithmus"]
+
+
+def test_wiederhole_bis_ist_fussgesteuert():
+    """WIEDERHOLE … BIS: der Rumpf läuft mindestens einmal, Schluss sobald die Bedingung gilt; Schreibweise wie in der IHK."""
+    zaehlen = "i ← 0\nwiederhole\n    i ← i + 1\nbis i >= n\nAUSGABE i"
+    assert _ausgabe(zaehlen, n=3) == "3"
+    assert _ausgabe(zaehlen, n=0) == "1"  # anders als SOLANGE i < n: einmal läuft sie immer
+    quersumme = "s ← 0\nWIEDERHOLE\n    s ← s + n MOD 10\n    n ← n DIV 10\nBIS n = 0\nAUSGABE s"
+    assert _ausgabe(quersumme, n=345) == "12"
+    programm, _ = pseudocode.parsen(quersumme)
+    assert programm[1][0] == "wiederhole" and pseudocode.parsen(quelltext(programm))[0] == programm  # Rundreise
+    assert "WIEDERHOLE" in quelltext(programm) and "BIS n = 0" in quelltext(programm)
+    assert "Zeile 4: BIS … fehlt (zu WIEDERHOLE in Zeile 2)" in _fehler("i ← 0\nWIEDERHOLE\n    i ← i + 1\nAUSGABE i")
+    assert "Zeile 3: BIS braucht eine Bedingung" in _fehler("WIEDERHOLE\n    x ← 1\nBIS")
+    assert "ohne passendes WENN, SOLANGE, WIEDERHOLE oder FÜR" in _fehler("x ← 1\nBIS x = 1")
+    assert "Endlosschleife" in _fehler("i ← 0\nWIEDERHOLE\n    i ← i + 1\nBIS i < 0")
