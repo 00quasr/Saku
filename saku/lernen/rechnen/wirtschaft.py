@@ -53,8 +53,8 @@ def _prozent(p: Decimal) -> str:
 
 # typische Fehler (Feld.typisch): Prozent vom falschen Grundwert
 SKONTO_VOM_LISTENPREIS = "Du hast den Skonto vom Listenpreis berechnet; erst geht der Rabatt ab, der Skonto rechnet vom Zieleinkaufspreis."
-VOM_HUNDERT = ("Du hast Kundenskonto und -rabatt vom Hundert aufgeschlagen; der Kunde zieht sie vom höheren Preis ab, also im Hundert: "
-               ": (100 − p) · 100.")
+VOM_HUNDERT = ("Du hast Kundenskonto und -rabatt vom Hundert aufgeschlagen; der Kunde zieht sie vom höheren Preis ab, also im Hundert "
+               "rechnen: Preis : (100 − p) · 100.")
 
 
 @art("kalkulation", "Kalkulation", "Wirtschaft", "Bezugs-, Angebots-, Differenz- und Rückwärtskalkulation, Angebotsvergleich",
@@ -225,7 +225,7 @@ def _rueckwaerts(rng):
            + f"\n\nAuf Hundert heißt: der Prozentsatz hing am kleineren Wert, also Selbstkosten = Barverkaufspreis : "
              f"{de(float(h + gewinn))} % · 100 %. Im Hundert: der Lieferer zog den Rabatt vom größeren Wert ab, also Listeneinkaufspreis "
              f"= Zieleinkaufspreis : {de(float(h - z['rabatt']))} % · 100 %.")
-    abgezogen = "Du hast {} vom Hundert abgezogen; er hing am kleineren Wert, also auf Hundert herausrechnen: : (100 + p) · 100."
+    abgezogen = "Du hast {} vom Hundert abgezogen; er hing am kleineren Wert, also auf Hundert herausrechnen: Wert : (100 + p) · 100."
     felder = [Feld("bvp", "Barverkaufspreis", float(bvp), "€"),
               Feld("sk", "Selbstkosten", float(sk), "€", typisch=((float(bvp - _cent(bvp * gewinn / h)), abgezogen.format("den Gewinn")),)),
               Feld("bzp", "Bezugspreis", float(bzp), "€",

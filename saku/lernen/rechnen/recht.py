@@ -699,9 +699,9 @@ def _verzugszinsen(rng):
     punkte = ("Ohne Verbraucher sind es 9 Prozentpunkte über dem Basiszinssatz, nicht 5." if unternehmer else
               "Ist ein Verbraucher beteiligt, sind es nur 5 Prozentpunkte über dem Basiszinssatz, nicht 9.")
     pauschale_falsch = ((0.0, "Ist der Schuldner kein Verbraucher, kommen 40 € Pauschale dazu (§ 288 Abs. 5).") if unternehmer else
-                        (40.0, "Die 40 € Pauschale gibt es nur, wenn der Schuldner kein Verbraucher ist."))
+                        (40.0, "Die Pauschale von 40 € gibt es nur, wenn der Schuldner kein Verbraucher ist."))
     andere = basis + (5 if unternehmer else 9)
-    falsch_satz = [(andere, punkte), (satz - basis, "Du hast den Basiszinssatz vergessen; der Verzugszins liegt Prozentpunkte darüber.")]
+    falsch_satz = [(andere, punkte), (satz - basis, "Du hast den Basiszinssatz vergessen; der Verzugszins liegt um die Prozentpunkte darüber.")]
     felder = [Feld("satz", "Verzugszinssatz", float(satz), "%", typisch=tuple((float(x), h) for x, h in falsch_satz)),
               Feld("tage", "Zinstage", tage, "Tage", stellen=0, typisch=(
                   (tage - 1, "Du hast einen Tag zu wenig; erster Verzugstag und Zahlungstag zählen beide mit."),

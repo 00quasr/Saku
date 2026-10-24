@@ -180,7 +180,7 @@ def _fotos_auf_karte(rng):
     falsch = [(mb * 8, BIT_BYTE)]
     if kompression:
         falsch.append((breite * hoehe * 3 * (100 - kompression) / 100 / 10 ** 6,
-                       "Du hast die Prozent abgezogen; das Foto ist nur noch so viele Prozent groß, wie angegeben."))
+                       "Du hast die Prozent abgezogen; übrig bleibt nur der angegebene Anteil der Größe."))
     anzahl_falsch = [(math.ceil(karte * 1000 / mb - 1e-9), "Du hast aufgerundet; ein angefangenes Foto passt nicht mehr drauf."),
                      (math.floor(karte * 1024 / mb + 1e-9), "Du hast mit 1.024 gerechnet; hier ist 1 GB = 1.000 MB.")]
     felder = [Feld("foto", "Größe je Foto", mb, "MB", typisch=tuple(falsch)),
@@ -290,7 +290,7 @@ def _stellenwerte(n: int) -> str:
 
 
 # typische Fehler (Feld.typisch)
-UMGEDREHT = "Du hast die Bits in umgekehrter Reihenfolge; das rechte Bit hat den Stellenwert 2⁰ = 1."
+UMGEDREHT = "Du hast die Bits in umgekehrter Reihenfolge gelesen; das rechte Bit hat den Stellenwert 2⁰ = 1."
 
 
 def _hex_typisch(n: int, stellen: int = 2) -> tuple:

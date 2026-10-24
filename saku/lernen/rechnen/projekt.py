@@ -92,7 +92,7 @@ def netzplan(rng):
         faz = min((vorgaenge[i]["fez"] for i in x["vor"]), default=0)
         sez = max((w["saz"] for w in vorgaenge if vorgaenge.index(x) in w["vor"]), default=dauer)
         frueh = "Ein Vorgang beginnt erst, wenn alle Vorgänger fertig sind: FAZ = größter FEZ der Vorgänger."
-        spaet = "Ein Vorgang muss fertig sein, bevor der früheste Nachfolger spätestens beginnt: SEZ = kleinster SAZ der Nachfolger."
+        spaet = "SEZ = kleinster SAZ der Nachfolger, nicht der größte: sonst käme ein Nachfolger zu spät."
         typisch = {"faz": [(faz, frueh)], "fez": [(faz + x["dauer"], frueh)], "saz": [(sez - x["dauer"], spaet)], "sez": [(sez, spaet)]}
         felder = [Feld(k, f"{k.upper()} {x['id']}", x[k], stellen=0, typisch=tuple(typisch[k])) for k in ("faz", "fez", "saz", "sez")]
         felder.append(projektdauer)
