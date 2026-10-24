@@ -67,6 +67,7 @@ saku/
 │   │   ├── inventar.py         Hash, Deckblatt, Text oder Scan
 │   │   ├── segmente.py         Aufgaben, Teilaufgaben, Bildausschnitte
 │   │   ├── loesungen.py        Lösungshinweise zuordnen
+│   │   ├── sandbox.py          SQL-Sandbox: Tabellen, Beispieldaten, Lösungen in SQLite (KI)
 │   │   ├── themen.py           themen.md einlesen
 │   │   ├── klassifikation.py   Teilaufgaben → Themen (KI)
 │   │   ├── statistik.py        Ähnlichkeiten (TF-IDF), Suchindex
@@ -75,6 +76,7 @@ saku/
 │   │   └── lernpfad.py         Voraussetzungen, Stationen
 │   ├── lernen/
 │   │   ├── karten.py           Fahrschul-Regeln und FSRS
+│   │   ├── sql.py              SQL-Sandbox: sicher ausführen, mit der Lösung vergleichen
 │   │   ├── tagesziel.py
 │   │   └── simulation.py       Zusammenstellung, Notenschlüssel
 │   ├── sensei/
@@ -93,7 +95,7 @@ saku/
 
 ## Pipeline
 
-Die Pipeline läuft in elf Schritten. Jeder Schritt ist wiederholbar: Unveränderte Dateien (gleicher SHA-256-Hash) werden übersprungen, KI-Antworten kommen beim zweiten Lauf aus dem Cache, und Daten werden per Upsert aktualisiert, damit der Lernstand erhalten bleibt.
+Die Pipeline läuft in zwölf Schritten. Jeder Schritt ist wiederholbar: Unveränderte Dateien (gleicher SHA-256-Hash) werden übersprungen, KI-Antworten kommen beim zweiten Lauf aus dem Cache, und Daten werden per Upsert aktualisiert, damit der Lernstand erhalten bleibt.
 
 ```bash
 python -m saku analyse                  # alle Schritte
@@ -108,6 +110,7 @@ python -m saku analyse --ki claude-code # Erstlauf: KI über das lokale Claude C
 | 2. Segmente | Aufgaben und Teilaufgaben erkennen, Ausschnitte rendern | `aufgabe`, `teilaufgabe`, PNGs |
 | 3. Lösungen | Lösungshinweise segmentieren und zuordnen | `loesung_text`, `loesung_bilder` |
 | 4. Aufbereiten | Claude baut jede Aufgabe aus den Ausschnitten als Markdown neu auf (KI, Bilder) | `inhalt`, `antwort`, `loesung_inhalt`, `begriff` |
+| 4b. Sandbox | je Aufgabe mit SQL: Tabellen, erfundene Beispieldaten und Musterlösungen in SQLite (KI, lokal geprüft, wiederaufnehmbar) | `sql_sandbox`, `loesung_sql` |
 | 5. Themen | `data/themen.md` und die Lernfelder einlesen | `thema`, `lernfeld` |
 | 6. Klassifikation | jede Teilaufgabe Themen zuordnen (KI, nur Bereiche der Prüfung) | `teilaufgabe_thema`, `typ` |
 | 7. Statistik | Ähnlichkeiten (TF-IDF, Rückfall) berechnen, Suchindex aufbauen | `aehnlichkeit`, `suche` |
@@ -150,6 +153,10 @@ Lösungshinweise werden genauso segmentiert und über Termin, Prüfungsbereich, 
 ### 4. Aufbereiten
 
 Je Aufgabe (bei WiSo mehrere zusammen) bekommt das starke Modell alle Ausschnitte als Bilder (Einleitung, Teilaufgaben, Lösungshinweise) und den erkannten Text als Hilfe. Es antwortet nach Schema: die Aufgabe als Markdown (Tabellen, Code, Listen), die Antwortart (frei, einfach, mehrfach, reihenfolge, zuordnung, zahl, code, sql, tabelle) mit Optionen und der richtigen Lösung aus dem Lösungshinweis, den Lösungshinweis als Markdown und drei bis acht Fachbegriffe. Abbildungen kommen als `![…](abb:N)` mit Box zurück; Saku schneidet sie aus dem Ausschnitt, bei Text-PDFs als SVG (Seite und Rechteck jedes Ausschnitts stehen in `ausschnitte.json`). Der Schritt ist wiederaufnehmbar: Er bearbeitet nur Aufgaben ohne Inhalt, ein fehlerhaftes Paket hält den Lauf nicht auf. Über Claude Code bekommt `claude -p` nur das Werkzeug Read und nur den Ordner der Bilder (`SAKU_KI_PARALLEL` steuert, wie viele Aufrufe gleichzeitig laufen).
+
+### 4b. Sandbox
+
+Für jede Aufgabe mit mindestens einer SQL-Teilaufgabe (Antwortart `sql`) und ohne Sandbox bekommt das starke Modell Einleitung, alle Teilaufgaben und die Musterlösungen. Es antwortet nach Schema: SQLite-DDL, erfundene Beispieldaten (6 bis 15 Zeilen je Tabelle, mit Randfällen wie NULL, Gleichstand, Datumsgrenzen) und je SQL-Teilaufgabe die Musterlösung als lauffähiges SQLite. Saku lädt alles in eine Datenbank im Speicher und führt jede Lösung aus; liefert eine nichts oder scheitert sie, gibt es einen zweiten Versuch mit der Meldung von SQLite, danach bleibt die Aufgabe ohne Sandbox (Meldung im Terminal, beim nächsten Lauf wieder dran). Höchstens drei Aufrufe gleichzeitig (`SAKU_KI_PARALLEL`). In Üben lässt sich SQL dann ausführen und prüfen (`saku/lernen/sql.py`): frische Datenbank je Ausführung, Zeitlimit über den Progress-Handler, Autorisierer ohne ATTACH, PRAGMA und Erweiterungen, Größengrenzen.
 
 ### 5. Themen
 
@@ -238,6 +245,9 @@ Wichtige Regeln:
 | `/keiko/grundwissen` | GET | Begriffs-Karten (FSRS, eigener Fahrschul-Status) | Seite |
 | `/keiko/grundwissen/<id>/bewerten` | POST | 1, 2 oder 3, nächste Begriffs-Karte | Fragment |
 | `/keiko/<id>/loesung` | GET | Lösung aufdecken | Fragment |
+| `/keiko/<id>/pruefen` | POST | anklickbare Antwort oder SQL (mit Sandbox) prüfen, Bewertung vorschlagen | Fragment |
+| `/keiko/<id>/sql` | POST | SQL in der Sandbox ausführen | Fragment |
+| `/keiko/<id>/tabellen` | GET | Beispieldaten der Sandbox | Fragment |
 | `/keiko/<id>/bewerten` | POST | 1, 2 oder 3 speichern, nächste Karte | Fragment |
 | `/keiko/<id>/markieren` | POST | markieren oder entmarkieren | Fragment |
 | `/shiken` | GET | Übersicht und Verlauf | Seite |
