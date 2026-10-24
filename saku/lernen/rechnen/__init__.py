@@ -69,10 +69,14 @@ def _verhaeltnis_gleich(eingabe: str, soll: str) -> bool:
     return abs(ist[0] / ist[1] - ziel[0] / ziel[1]) <= 0.5 * 10 ** -ist[2] + 1e-9
 
 
+WOCHE = ("montag", "dienstag", "mittwoch", "donnerstag", "freitag", "samstag", "sonntag")
+
+
 def _wochentage(text: str) -> list[str]:
-    """„Mo (voll), Dienstag und Mi“ → [mo, di, mi]: jedes Wort, das mit einem Wochentag beginnt."""
+    """„Mo (voll), Dienstags und Mi“ → [mo, di, mi]: jedes Wort, das mit einem Wochentag beginnt, und Abkürzungen aus zwei
+    oder ab vier Buchstaben; drei wären auch „die“ und „mit“."""
     return [w[:2] for w in re.findall(r"[a-zäöü]+", text.lower())
-            if w[:2] in ("mo", "di", "mi", "do", "fr", "sa", "so") and "montag dienstag mittwoch donnerstag freitag samstag sonntag".find(w) >= 0]
+            if any(w.startswith(t) or t.startswith(w) and (len(w) == 2 or len(w) > 3) for t in WOCHE)]
 
 
 def _ganzzahl(text: str, basis: int, praefix: str) -> int | None:

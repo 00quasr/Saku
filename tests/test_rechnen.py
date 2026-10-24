@@ -809,6 +809,15 @@ def test_backup_nachgerechnet():
     assert not any(rechnen.stimmt(tage_feld, t) for t in ["Do, Mo", "Montag", "Mo, Di, Do", ""])
 
 
+def test_wochentage_mit_endung_und_ohne_artikel():
+    """„Montags“ und „Dienstagabend“ beginnen mit einem Wochentag und zählen; „die“ und „mit“ sind keine Abkürzungen."""
+    feld = Feld("t", "Tage", "Montag, Donnerstag", typ="wochentage")
+    assert all(rechnen.stimmt(feld, t) for t in ["Montags, Donnerstags", "Montag, Donnerstagabend", "Mo., Do.",
+                                                 "Die Vollsicherung vom Montag und die Differenzielle vom Donnerstag",
+                                                 "Montag mit Donnerstag"])
+    assert not any(rechnen.stimmt(feld, t) for t in ["Montag, die Mittwochssicherung, Donnerstag", "Donnerstags, Montags"])
+
+
 def test_monitor_und_bandbreite_nachgerechnet():
     import math
     for seed, a in _alle("monitor"):
