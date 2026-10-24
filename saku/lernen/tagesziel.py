@@ -31,9 +31,9 @@ NEU_MINDESTENS = 10
 
 _HEUTE = "date(zeitpunkt, 'localtime') = date('now', 'localtime')"
 
-# Neue Teilaufgaben in der Reihenfolge des Lernpfads (frühe Station zuerst, ohne Station ans Ende)
+# Neue Teilaufgaben in der Reihenfolge des Lernpfads (frühe Station zuerst, ohne Station ans Ende), dazu ihre erste Station
 NEU_IM_PFAD_SQL = """
-SELECT v.teilaufgabe_id
+SELECT v.teilaufgabe_id, MIN(COALESCE(s.position, 1e9)) AS station_position, s.id AS station_id, s.titel AS station_titel
 FROM v_teilaufgabe v
 JOIN teilaufgabe t ON t.id = v.teilaufgabe_id
 LEFT JOIN v_zuordnung z    ON z.teilaufgabe_id = v.teilaufgabe_id

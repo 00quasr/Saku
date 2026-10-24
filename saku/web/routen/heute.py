@@ -1,12 +1,13 @@
 """Heute 今日: Was mache ich jetzt? Tagesziel, Countdown, Prüfungsreife, nächste Station.
 Beim ersten Start führt /willkommen einmal durch Saku."""
 
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, time, timedelta
 
 from flask import Blueprint, abort, make_response, redirect, render_template, request, url_for
 
 from saku.db import einstellung, setze_einstellung
 from saku.lernen import fahrplan, karten, operatoren, pfad, rueckblick, simulation, tagesziel
+from saku.lernen import kalender as ics
 from saku.web import db
 from saku.web.routen.bunseki import THEMEN_ZAHLEN, dauerbrenner, termin_name
 from saku.web.routen.rechnen import heute_gerechnet, tagesziel as rechnen_ziel
@@ -128,6 +129,25 @@ def fahrplan_seite():
         gewinn=fahrplan.gewinn(con),
         termin_name=lambda i: termin_name(i, einstellung(con, "teil") == "AP1"),
     )
+
+
+@bp.get("/fahrplan.ics")
+def fahrplan_kalender():
+    """Fahrplan zum Importieren in den Kalender; lernen=1 mit uhrzeit (HH:MM) und dauer (Minuten) für den täglichen Lern-Termin."""
+    con = db()
+    heute = date.today()
+    lernen = None
+    if request.args.get("lernen"):
+        try:
+            uhrzeit = time.fromisoformat(request.args.get("uhrzeit") or "18:00").replace(tzinfo=None, second=0, microsecond=0)
+            minuten = int(request.args.get("dauer") or 30)
+        except ValueError:
+            abort(400)
+        if not 5 <= minuten <= 240:
+            abort(400)
+        lernen = ics.lern_termin(heute, uhrzeit, minuten, tagesziel.tage_bis_pruefung(con, heute))
+    return ics.datei(fahrplan.meilensteine(con, heute), lernen), 200, {
+        "Content-Type": "text/calendar; charset=utf-8", "Content-Disposition": "attachment; filename=saku-fahrplan.ics"}
 
 
 def luecken(con) -> list[dict]:

@@ -177,6 +177,15 @@ a.flaeche:hover { border-color: var(--sumi-mittel); }
 .fahrplan-gewinn-name { font-weight: 500; line-height: 1.35; text-wrap: pretty; hyphens: auto; overflow-wrap: break-word; }  /* Themennamen sind lang: umbrechen statt abschneiden, in der schmalen Spalte auch im Wort */
 .fahrplan-gewinn-punkte { font-size: 0.875rem; color: var(--shu); }
 
+/* Fahrplan als Kalenderdatei: über die ganze Breite, Text links, Formular rechts (schmal untereinander) */
+.fahrplan-kalender { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 32px; }
+.fahrplan-kalender-text { display: grid; gap: 4px; flex: 1 1 22rem; max-width: 60ch; }
+.fahrplan-kalender-form { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.fahrplan-kalender-lernen { display: inline-flex; align-items: center; gap: 8px; font-size: 0.875rem; }
+.fahrplan-kalender-lernen input[type="checkbox"] { accent-color: var(--shu); }
+.fahrplan-uhrzeit { width: 7rem; }
+.fahrplan-dauer { width: 4.5rem; }
+
 /* Heute: Countdown führt zum Fahrplan */
 a.held-countdown { text-decoration: none; }
 a.held-countdown:hover .held-einheit { text-decoration: underline; text-underline-offset: 3px; }

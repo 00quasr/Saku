@@ -6,6 +6,7 @@ import sqlite3
 from collections import Counter
 from datetime import date, timedelta
 
+from saku.db import einstellung
 from saku.lernen import tagesziel
 
 TEMPO_LERNTAGE = 7  # Tempo = neue Teilaufgaben im Schnitt dieser Lerntage
@@ -93,3 +94,38 @@ def gewinn(con: sqlite3.Connection, anzahl: int = 8) -> list[dict]:
         "GROUP BY z.thema_id", ids)}
     return [dict(z) | {"teilaufgaben": info[z["thema_id"]]["teilaufgaben"],
                        "letzter_termin": info[z["thema_id"]]["letzter_termin"]} for z in top]
+
+
+def meilensteine(con: sqlite3.Connection, heute: date | None = None) -> list[dict]:
+    """Ganztägige Termine für den Kalender: wann laut Tagesziel jede Station ihre neuen Teilaufgaben durch hat (in der
+    Reihenfolge, in der Üben sie bringt, gerechnet wie die Prognose), wann alle einmal gesehen sind, der Beginn des Puffers
+    und die Prüfungstermine. Je Termin tag, titel, text und eine stabile uid: ein erneuter Import ersetzt statt zu verdoppeln."""
+    heute = heute or date.today()
+    neue = con.execute(tagesziel.NEU_IM_PFAD_SQL).fetchall()
+    letzte = {z["station_id"]: (stelle, z) for stelle, z in enumerate(neue) if z["station_id"] is not None}
+    offen = sorted(letzte.values(), key=lambda s: s[0])
+    raus, tag = [], heute
+    gesehen = tagesziel.tagesziel(con, heute)["neu_offen"]  # heute zählt, was das Tagesziel noch offen hat
+    while True:
+        while offen and offen[0][0] < gesehen:
+            _, z = offen.pop(0)
+            raus.append({"tag": tag, "uid": f"station-{z['station_id']}", "titel": f"Saku: Station {z['station_titel']} durch",
+                         "text": f"Laut Tagesziel hast du heute jede Teilaufgabe der Station {z['station_position']:.0f} "
+                                 f"({z['station_titel']}) einmal gesehen. Als Nächstes: der Mini-Test der Station."})
+        if gesehen >= len(neue):
+            break
+        tag += timedelta(days=1)
+        gesehen += tagesziel.neu_am_tag(len(neue) - gesehen, tagesziel.lerntage(con, tag))
+    if neue:
+        raus.append({"tag": tag, "uid": "alle-gesehen", "titel": "Saku: alle Teilaufgaben einmal gesehen",
+                     "text": "Ab jetzt nur noch Wiederholungen, Fehlerkorb und Simulationen."})
+    tage = tagesziel.tage_bis_pruefung(con, heute)
+    puffer = int(einstellung(con, "puffer_tage", "7") or 0)
+    if tage is not None and puffer and tage - puffer > 0:
+        raus.append({"tag": heute + timedelta(days=tage - puffer), "uid": "puffer", "titel": "Saku: Puffer beginnt",
+                     "text": f"Die letzten {puffer} Tage vor der Prüfung: keine neuen Teilaufgaben mehr, nur Wiederholungen und Simulationen."})
+    for schluessel, teil in (("pruefungstermin_ap1", "AP1"), ("pruefungstermin", "AP2")):
+        if (wert := einstellung(con, schluessel)) and date.fromisoformat(wert) >= heute:
+            raus.append({"tag": date.fromisoformat(wert), "uid": f"pruefung-{teil.lower()}", "titel": f"Prüfung {teil}",
+                         "text": f"Abschlussprüfung {'Teil 1' if teil == 'AP1' else 'Teil 2'}. Viel Erfolg! 頑張って"})
+    return sorted(raus, key=lambda t: t["tag"])

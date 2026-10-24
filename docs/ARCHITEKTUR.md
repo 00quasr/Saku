@@ -89,7 +89,8 @@ saku/
 │   │   ├── stichpunkte.py      Stichpunkt-Abgleich für freie Antworten, ohne KI
 │   │   ├── operatoren.py       IHK-Operatoren erkennen (nennen, erläutern …)
 │   │   ├── tagesziel.py        Tagesziel, Lerntage, Lernserie, sicher geworden, Prüfungsreife
-│   │   ├── fahrplan.py         Prognose, Tempo, Abdeckung nach Prüfungsgewicht, Gewinn je Thema
+│   │   ├── fahrplan.py         Prognose, Tempo, Abdeckung nach Prüfungsgewicht, Gewinn je Thema, Meilensteine
+│   │   ├── kalender.py         Fahrplan als iCalendar-Datei (RFC 5545)
 │   │   ├── rueckblick.py       Wochenrückblick
 │   │   ├── pfad.py             Lernpfad: Stationen, Freischaltung, Mini-Test
 │   │   ├── simulation.py       Zusammenstellung, WiSo-Schnelltest, Notenschlüssel
@@ -262,6 +263,7 @@ Wichtige Regeln:
 |---|---|---|---|
 | `/` | GET | Heute | Seite |
 | `/fahrplan` | GET | Fahrplan bis zur Prüfung, `?tage=30` | Seite |
+| `/fahrplan.ics` | GET | Fahrplan für den Kalender; `?lernen=1&uhrzeit=18:00&dauer=30` mit täglichem Lern-Termin | `text/calendar` |
 | `/termin` | POST | Prüfungstermin direkt auf Heute eintragen | Weiterleitung |
 | `/willkommen` | GET | Einführung beim ersten Start | Seite |
 | `/willkommen/termin`, `/willkommen/umfang`, `/willkommen/fertig` | POST | Termin, Beruf und Prüfungsteil, Abschluss der Einführung | Fragment, Weiterleitung |
@@ -371,6 +373,7 @@ return Response(stream_with_context(ereignisse()), mimetype="text/event-stream")
 ### Fahrplan, Rückblick und Lernstand
 
 - `fahrplan.prognose`, `tempo`, `abdeckung` und `gewinn` rechnen mit `con` und `heute` als Parameter und lesen nur Sichten im Umfang (`v_teilaufgabe`, `v_thema_lernstand`); Lerntage und neue Teilaufgaben je Tag kommen aus `tagesziel` (`lerntage`, `neu_am_tag`).
+- `fahrplan.meilensteine` rechnet wie die Prognose Tag für Tag mit dem Tagesziel: Die neuen Teilaufgaben kommen in Pfad-Reihenfolge (`tagesziel.NEU_IM_PFAD_SQL`), eine Station ist „durch“, wenn ihre letzte neue gesehen ist. Dazu kommen „alle einmal gesehen“, der Beginn des Puffers und die Prüfungstermine. `kalender.datei` schreibt daraus ganztägige Termine und auf Wunsch einen täglichen Lern-Termin (Ortszeit ohne Zone, `RRULE` bis zum Tag vor der Prüfung, Erinnerung zehn Minuten vorher): CRLF, gefaltet bei 75 Oktetten, `DTSTAMP` in UTC, feste UIDs je Station und Termin, damit ein erneuter Import ersetzt statt verdoppelt.
 - `rueckblick.woche` vergleicht die letzten 7 Tage mit den 7 davor; „sicher geworden“ spielt den Verlauf mit `karten.fahrschul` nach (`tagesziel.sicher_geworden`).
 - `lernstand.exportieren` und `importieren` nutzen stabile Schlüssel statt IDs (Teilaufgabe über Termin, Bereich, Aufgabe und Kennung, Begriff über Namen, Station über Lernpfad und Themen, Rechenübung über Art, Seed und Zeitpunkt). Der Import läuft in einer Transaktion, prüft Einstellungen wie die Einstellungsseite (`kern.FELDER`) und überspringt Zeilen mit falsch geformten Zeitpunkten oder Zahlen.
 - `db.sichern` schreibt einmal am Tag `data/backups/saku-JJJJ-MM-TT.db` über die Backup-API von SQLite, erst als Teildatei, dann umbenannt; die letzten sieben bleiben.
