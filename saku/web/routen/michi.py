@@ -5,8 +5,9 @@ import math
 from flask import Blueprint, abort, redirect, render_template, request, url_for
 
 from saku.db import einstellung
-from saku.lernen import antwort, karten, pfad
+from saku.lernen import antwort, karten, pfad, rechnen
 from saku.web import db, seite_oder_fragment
+from saku.web.routen.rechnen import stand
 
 bp = Blueprint("michi", __name__, url_prefix="/michi")
 
@@ -41,7 +42,20 @@ def station(station_id):
         teilaufgaben=karten.lade(con, pfad.teilaufgaben(con, station_id)),
         aktuell=next((v for v in stationen if v["aktuell"]), None),
         schwelle=float(einstellung(con, "stationstest_schwelle", "0.8")),
+        rechentraining=_rechentraining(con, s["themen"]),
     )
+
+
+def _rechentraining(con, themen: list[int]) -> list[dict]:
+    """Rechenarten zu den Themen der Station und ihren Unterthemen (höchstens drei), mit den letzten fünf Versuchen.
+    Nur zum Anzeigen: Freischalten und Mini-Test hängen nicht davon ab."""
+    if not themen:
+        return []
+    namen = [z[0] for z in con.execute(
+        f"SELECT th.name FROM v_thema_vorfahr v JOIN thema th ON th.id = v.thema_id WHERE v.vorfahr_id IN ({','.join('?' * len(themen))}) "
+        "ORDER BY th.ebene, th.position", themen)]
+    versuche = stand(con)
+    return [{"art": a, "letzte": versuche[a.slug]["letzte"][-5:]} for a in rechnen.passende(namen)[:3]]
 
 
 @bp.route("/<int:station_id>/test", methods=["GET", "POST"])

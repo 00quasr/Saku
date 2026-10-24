@@ -66,7 +66,7 @@ def _kontext(art: str, seed: int, gemischt: bool, eingaben: dict | None = None, 
 def index():
     con = db()
     return render_template("rechnen/index.html", gruppen=_gruppen(), stand=stand(con), heute=heute_gerechnet(con),
-                           ziel=tagesziel(con), faellig=faellige(con))
+                           ziel=tagesziel(con), faellige_arten=faellige(con))  # „faellig“ ist schon die Zahl in der Seitenleiste
 
 
 @bp.get("/formeln")

@@ -7,7 +7,7 @@
 
 <div class="seite weit rechnen">
   <div class="zeile rechnen-start">
-    <a class="btn" href="{{ url_for('rechnen.gemischt') }}" data-taste="Enter">Gemischt üben{% if faellig %} · {{ faellig|length }} fällig{% endif %} {{ m.taste('↵') }}</a>
+    <a class="btn" href="{{ url_for('rechnen.gemischt') }}" data-taste="Enter">Gemischt üben{% if faellige_arten %} · {{ faellige_arten|length }} fällig{% endif %} {{ m.taste('↵') }}</a>
     <a class="btn" data-variant="outline" href="{{ url_for('rechnen.sprint') }}">{{ m.icon('timer') }} Sprint: 5 Aufgaben, 15 Minuten</a>
     <a class="btn" data-variant="outline" href="{{ url_for('rechnen.formeln') }}">{{ m.icon('sigma') }} Formelsammlung</a>
     {% if ziel %}
@@ -26,7 +26,7 @@
       {% for a in arten %}{% set s = stand[a.slug] %}
       <li>
         <a class="rechnen-art" href="{{ url_for('rechnen.aufgabe', art=a.slug) }}">
-          <span class="rechnen-art-titel">{{ a.titel }}{% if a.slug in faellig %} <span class="rechnen-faellig">fällig</span>{% endif %}</span>
+          <span class="rechnen-art-titel">{{ a.titel }}{% if a.slug in faellige_arten %} <span class="rechnen-faellig">fällig</span>{% endif %}</span>
           <span class="klein gedaempft">{{ a.beschreibung }}</span>
           <span class="rechnen-art-stand klein">
             {% if s.anzahl %}{{ m.verlauf(s.letzte) }}

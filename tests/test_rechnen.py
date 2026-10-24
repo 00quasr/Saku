@@ -703,8 +703,26 @@ def test_rechen_tagesziel_einstellung_und_anzeige(client, con):
     faellig = len(rechnen.im_umfang("AP2-1201"))  # Demo: AP2 AE, alles noch nie (raid gehört nicht dazu) gerechnet
     assert uebersicht.count('class="rechnen-faellig"') == faellig and f"· {faellig} fällig" in uebersicht
     assert 'Heute <span class="zahl">1 / 3</span>' in uebersicht
+    nav = re.search(r'<nav id="nav".*?</nav>', uebersicht, re.S)[0]
+    assert "['" not in nav  # die Seitenleiste zählt weiter fällige Teilaufgaben, nicht die Rechenarten
     # 0 schaltet das Ziel aus; dann steht nur, was heute gerechnet wurde, nicht doppelt
     client.post("/einstellungen/rechnen_ziel", data={"rechnen_ziel": "0"})
     heute = client.get("/").get_data(as_text=True)
     assert 'Heute gerechnet: <span class="zahl">1 · 100 %</span>' in heute and "Rechnen <span" not in heute
     assert 'class="klein rechnen-ziel"' not in client.get("/rechnen/").get_data(as_text=True)
+
+
+def test_lernpfad_zeigt_rechentraining(client, con):
+    station = dict(con.execute("SELECT s.id, th.name FROM station s JOIN station_thema st ON st.station_id = s.id "
+                               "JOIN thema th ON th.id = st.thema_id").fetchall())
+    nach_name = {name: s_id for s_id, name in station.items()}
+    html = " ".join(client.get(f"/michi/{nach_name['Projektmanagement']}").get_data(as_text=True).split())
+    # die Unterthemen zählen mit: Netzplan und Wirtschaftlichkeit
+    assert "Rechentraining: <strong>Netzplan</strong> · noch nicht gerechnet" in html and 'href="/rechnen/netzplan"' in html
+    assert 'href="/rechnen/vergleich"' in html
+    con.executemany("INSERT INTO rechenuebung (art, seed, richtig, felder_richtig, felder_gesamt) VALUES ('netzplan', 1, ?, 1, 1)",
+                    [(r,) for r in (0, 0, 1, 1, 0, 1, 1)])  # die letzten fünf: 1, 1, 0, 1, 1
+    con.commit()
+    html = " ".join(client.get(f"/michi/{nach_name['Projektmanagement']}").get_data(as_text=True).split())
+    assert '<span class="zahl">4 von 5</span> zuletzt richtig' in html
+    assert "Rechentraining" not in client.get(f"/michi/{nach_name['Anforderungen']}").get_data(as_text=True)

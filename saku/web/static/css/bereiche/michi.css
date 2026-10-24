@@ -37,6 +37,9 @@
 }
 
 /* Station */
+.michi-rechnen { display: grid; gap: 4px; margin-top: 16px; }
+.michi-rechnen [lang="ja"] { color: var(--shu); margin-right: 2px; }
+.michi-rechnen strong { color: var(--sumi); font-weight: 500; }
 .michi-uebungen { margin-top: 16px; border-top: 1px solid var(--linie); }
 .michi-uebungen li { border-bottom: 1px solid var(--linie); }
 .michi-uebungen a {
