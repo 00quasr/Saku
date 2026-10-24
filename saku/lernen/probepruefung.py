@@ -67,7 +67,7 @@ def aufgaben(zeile: sqlite3.Row) -> list[dict]:
     raus = []
     for i, (art, seed, punkte) in enumerate(json.loads(zeile["aufgaben"]), start=1):
         a = rechnen.erzeugen(art, seed)
-        eingaben = {f.name: alle.get(f"a{i}-{f.name}", "") for f in a.felder}
+        eingaben = {f.name: str(alle.get(f"a{i}-{f.name}", "")) for f in a.felder}  # str: von Hand bearbeiteter Lernstand
         werte = bewerten(a, eingaben) if zeile["note"] is not None else None
         raus.append({"art": rechnen.ARTEN[art], "seed": seed, "punkte": punkte, "aufgabe": a, "eingaben": eingaben,
                      "werte": werte, "erreicht": None if werte is None else anteil(punkte, werte)})
