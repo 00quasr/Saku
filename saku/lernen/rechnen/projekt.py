@@ -2,6 +2,19 @@
 
 from saku.lernen.rechnen.basis import FIRMEN, Aufgabe, Feld, art, schritte, tabelle
 
+# Formeln und Merksätze je Art: Formelsammlung und Karte zeigen sie nach dem Rechenweg
+FORMELN = {
+    "netzplan": """- Vorwärts: FAZ = größter FEZ der Vorgänger (Start 0), FEZ = FAZ + Dauer
+- Projektdauer = FEZ des letzten Vorgangs
+- Rückwärts: SEZ = kleinster SAZ der Nachfolger (Ende = Projektdauer), SAZ = SEZ − Dauer
+- Gesamtpuffer GP = SAZ − FAZ = SEZ − FEZ
+- Freier Puffer FP = kleinster FAZ der Nachfolger − FEZ
+- Kritischer Pfad: alle Vorgänge mit GP = 0, vom Start bis zum Ende
+
+*Beispiel:* A (3 Tage) → B (2 Tage): FAZ B = FEZ A = 3, FEZ B = 5""",
+}
+
+
 TAETIGKEITEN = ["Ist-Analyse", "Soll-Konzept", "Angebote einholen", "Hardware bestellen", "Netzwerk verkabeln", "Server einrichten",
                 "Clients installieren", "Software anpassen", "Daten übernehmen", "Tests", "Schulung", "Dokumentation"]
 PROJEKTE = ["die Einführung eines Ticketsystems", "den Umzug des Serverraums", "die Erneuerung der Arbeitsplatzrechner",
@@ -52,7 +65,7 @@ def kritische_pfade(vorgaenge: list[dict]) -> list[str]:
 
 
 @art("netzplan", "Netzplan", "Projekt", "Vorgänge mit Dauer und Vorgängern: Projektdauer, Puffer, kritischer Pfad",
-     ("Netzplan", "Gantt", "Kritischer Pfad", "Projektplanung", "Zeitplanung"))
+     ("Netzplan", "Gantt", "Kritischer Pfad", "Projektplanung", "Zeitplanung"), formeln=FORMELN["netzplan"])
 def netzplan(rng):
     while True:
         vorgaenge = plan(rng)

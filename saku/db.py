@@ -42,6 +42,13 @@ MIGRATIONEN = {
         "ddl TEXT NOT NULL, daten TEXT NOT NULL, erstellt TEXT DEFAULT (datetime('now')))",
         "ALTER TABLE teilaufgabe ADD COLUMN loesung_sql TEXT",
     ],
+    # Rechenübungen zählen als Lerntag (Lernserie und Kalender auf Heute)
+    9: [
+        "DROP VIEW IF EXISTS v_lerntage",
+        "CREATE VIEW v_lerntage AS SELECT tag, COUNT(*) AS bewertungen FROM ("
+        "SELECT date(zeitpunkt, 'localtime') AS tag FROM bewertung "
+        "UNION ALL SELECT date(zeitpunkt, 'localtime') FROM rechenuebung) GROUP BY tag",
+    ],
 }
 
 

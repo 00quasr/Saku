@@ -6,7 +6,7 @@ from saku.sensei import client as ki
 
 
 def test_schema_und_demo(con):
-    assert con.execute("PRAGMA user_version").fetchone()[0] == 7
+    assert con.execute("PRAGMA user_version").fetchone()[0] == 9
     assert db.einstellung(con, "farbschema") == "dunkel"
     assert con.execute("SELECT COUNT(*) FROM teilaufgabe").fetchone()[0] == 14
     reife = con.execute("SELECT prozent, neu FROM v_pruefungsreife").fetchone()
@@ -110,7 +110,7 @@ def test_migrationen(tmp_path):
     alt.close()
     assert db.init(pfad) is False
     con = sqlite3.connect(pfad)
-    assert con.execute("PRAGMA user_version").fetchone()[0] == 7
+    assert con.execute("PRAGMA user_version").fetchone()[0] == 9
     assert con.execute("SELECT ergebnis, punkte FROM bewertung").fetchall() == [(3, None)]
     assert con.execute("SELECT COUNT(*) FROM rechenuebung").fetchone()[0] == 0
 

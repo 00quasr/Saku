@@ -6,7 +6,7 @@ import re
 
 from saku.lernen.antwort import zahl
 # melden ihre Arten an; die Reihenfolge hier ist die Reihenfolge der Arten (nach Nutzen für die AP1)
-from saku.lernen.rechnen import netzwerk, daten, hardware, wirtschaft, projekt  # noqa: F401, I001
+from saku.lernen.rechnen import netzwerk, daten, hardware, wirtschaft, projekt, programmieren, algorithmen  # noqa: F401, I001
 from saku.lernen.rechnen.basis import ARTEN, GRUPPEN, Art, Aufgabe, Feld
 
 __all__ = ["ARTEN", "GRUPPEN", "Art", "Aufgabe", "Feld", "erzeugen", "pruefen", "stimmt", "passend", "gemischt"]
@@ -33,13 +33,15 @@ def stimmt(feld: Feld, eingabe: str, toleranz: float = 0.0) -> bool:
     """Ist die Eingabe für dieses Feld richtig? Zahlen dürfen auf die angezeigten Stellen gerundet sein."""
     eingabe = (eingabe or "").strip()
     if not eingabe:
-        return False
+        return feld.typ != "zahl" and feld.loesung == ""
     if feld.typ == "zahl":
         ist, soll = zahl(eingabe), float(feld.loesung)
         return ist is not None and abs(ist - soll) <= max(toleranz * abs(soll), 0.5 * 10 ** -feld.stellen) + 1e-9
     soll = str(feld.loesung)
     if feld.typ == "ip":
         return _ipv4(eingabe) is not None and _ipv4(eingabe) == _ipv4(soll)
+    if feld.typ == "liste":  # ohne Vorzeichen: „3-8-1“ ist eine Folge mit Bindestrichen (Listen sind nie negativ)
+        return [int(x) for x in re.findall(r"\d+", eingabe)] == [int(x) for x in re.findall(r"\d+", soll)]
     if feld.typ == "pfad":
         return re.sub(r"[^A-Z0-9]", "", eingabe.upper()) == re.sub(r"[^A-Z0-9]", "", soll.upper())
     if feld.typ in ("binaer", "hex"):

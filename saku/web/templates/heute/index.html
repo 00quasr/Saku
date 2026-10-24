@@ -109,7 +109,7 @@
       <p class="kachel-zahl"><span class="zahl">{{ lernserie }}</span> {{ 'Tag' if lernserie == 1 else 'Tage' }} in Folge</p>
       <ol class="heute-woche" aria-label="Die letzten sieben Tage">
         {% for t in woche %}
-        <li class="{{ 'gelernt' if t.n }}{{ ' heute-tag' if loop.last }}" title="{{ t.tag.strftime('%d.%m.') }}: {{ t.n }} Bewertungen">
+        <li class="{{ 'gelernt' if t.n }}{{ ' heute-tag' if loop.last }}" title="{{ t.tag.strftime('%d.%m.') }}: {{ t.n }} Übungen">
           <span aria-hidden="true">{{ 'MDMDFSS'[t.tag.weekday()] }}</span>
         </li>
         {% endfor %}

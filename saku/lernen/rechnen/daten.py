@@ -4,6 +4,31 @@ import math
 
 from saku.lernen.rechnen.basis import BYTE, FAKTOR, FIRMEN, Aufgabe, Feld, art, de, hoch, schritte, tabelle
 
+# Formeln und Merksätze je Art: Formelsammlung und Karte zeigen sie nach dem Rechenweg
+FORMELN = {
+    "datenmenge": """- Bild: Breite · Höhe · Farbtiefe (Bit) : 8 = Byte
+- Farbtiefe aus Farbanzahl: 2ᵇ Farben → b Bit (256 → 8, 65.536 → 16, 16,7 Mio. → 24)
+- Scan: Breite in Zoll · dpi und Höhe in Zoll · dpi ergeben die Pixel
+- Audio: Abtastrate · Bit je Abtastwert · Kanäle · Sekunden : 8 = Byte
+- Video: Bild in Byte · Bilder je Sekunde · Sekunden
+- Anzahl Dateien auf einem Datenträger: Kapazität : Dateigröße, abrunden
+
+*Beispiel:* 1.920 × 1.080 Pixel, 24 Bit: 1.920 · 1.080 · 24 : 8 = 6.220.800 Byte ≈ 5,93 MiB""",
+    "speicher": """- Dezimalpräfixe (Hersteller): 1 kB = 10³, 1 MB = 10⁶, 1 GB = 10⁹, 1 TB = 10¹² Byte
+- Binärpräfixe (Betriebssystem): 1 KiB = 1.024, 1 MiB = 1.024², 1 GiB = 1.024³, 1 TiB = 1.024⁴ Byte
+- Umrechnen immer über Byte: Wert · Faktor der alten Einheit : Faktor der neuen Einheit
+- Scheinbarer Verlust GB → GiB: 1 − 10⁹ : 1.024³ ≈ 6,87 %, TB → TiB ≈ 9,05 %
+
+*Beispiel:* 2 TB = 2 · 10¹² Byte : 1.024⁴ ≈ 1,82 TiB""",
+    "zahlensystem": """- Stellenwerte binär: 128, 64, 32, 16, 8, 4, 2, 1; hexadezimal: 16³ = 4.096, 16² = 256, 16, 1
+- Dezimal → binär: Stellenwerte von links füllen, solange der Rest reicht (oder fortlaufend durch 2 teilen, Reste von unten lesen)
+- Binär ↔ hexadezimal: je 4 Bit sind eine Hex-Ziffer (A = 10 … F = 15)
+- Zweierkomplement (8 Bit): Betrag binär, alle Bits invertieren, + 1; höchstes Bit 1 heißt negativ; Bereich −128 bis 127
+
+*Beispiel:* 45 = 32 + 8 + 4 + 1 = `0010 1101` = 2D; −45 = `1101 0010` + 1 = `1101 0011`""",
+}
+
+
 AUFLOESUNGEN = [(800, 600), (1024, 768), (1280, 720), (1920, 1080), (2560, 1440), (3840, 2160), (4000, 3000), (6000, 4000)]
 # Farbtiefe in Bit → wie sie in der Aufgabe stehen kann
 FARBEN = {1: "Schwarz-Weiß", 8: "256 Farben", 16: "65.536 Farben", 24: "16.777.216 Farben (True Color)"}
@@ -27,7 +52,7 @@ def _praefix_hinweis(einheit: str) -> str:
 
 
 @art("datenmenge", "Datenmenge", "Daten & Medien", "Bilder, Scans, Audio und Video: wie groß wird die Datei?",
-     ("Datenmenge", "Farbtiefe", "Abtastrate", "Dateigröße"))
+     ("Datenmenge", "Farbtiefe", "Abtastrate", "Dateigröße"), formeln=FORMELN["datenmenge"])
 def datenmenge(rng):
     return rng.choice([_bild, _scan, _audio, _video, _fotos_auf_karte])(rng)
 
@@ -140,7 +165,7 @@ def _fotos_auf_karte(rng):
 # --- Speichereinheiten ---------------------------------------------------
 
 @art("speicher", "Speichereinheiten", "Daten & Medien", "kB/KiB, GB/GiB, TB/TiB umrechnen: was zeigt das Betriebssystem?",
-     ("Speichereinheit", "Speichergröße", "Binärpräfix", "Kapazitätsplanung"))
+     ("Speichereinheit", "Speichergröße", "Binärpräfix", "Kapazitätsplanung"), formeln=FORMELN["speicher"])
 def speicher(rng):
     return rng.choice([_anzeige, _umrechnen, _dateien_auf_stick])(rng)
 
@@ -228,7 +253,7 @@ def _nibbles(bits: str) -> str:
 
 
 @art("zahlensystem", "Zahlensysteme", "Daten & Medien", "Dezimal, binär, hexadezimal und Zweierkomplement",
-     ("Zahlensystem", "Binärzahl", "Dualzahl", "Hexadezimal", "Zweierkomplement"))
+     ("Zahlensystem", "Binärzahl", "Dualzahl", "Hexadezimal", "Zweierkomplement"), formeln=FORMELN["zahlensystem"])
 def zahlensystem(rng):
     return rng.choice([_dez_bin, _bin_dez, _hex_dez, _zweierkomplement])(rng)
 

@@ -3,7 +3,7 @@
 from dataclasses import dataclass, field
 from typing import Callable
 
-GRUPPEN = ["Netzwerk", "Daten & Medien", "Strom & Hardware", "Wirtschaft", "Projekt"]
+GRUPPEN = ["Netzwerk", "Daten & Medien", "Strom & Hardware", "Wirtschaft", "Projekt", "Programmieren", "Algorithmen"]
 
 # alles erfunden, wie in der Demo-Datenbank
 FIRMEN = ["Demo GmbH", "Muster AG", "Beispiel KG", "Fiktiv Systemhaus GmbH", "Probe & Partner OHG"]
@@ -17,7 +17,8 @@ FAKTOR = {"kB": "10³", "MB": "10⁶", "GB": "10⁹", "TB": "10¹²", "KiB": "1.
 @dataclass
 class Feld:
     """Ein Eingabefeld. typ: zahl; text (Groß-/Kleinschreibung und Leerzeichen egal); ip (IPv4, führende Nullen egal);
-    pfad (nur Buchstaben und Ziffern zählen, z. B. kritischer Pfad); binaer, hex (der Wert zählt).
+    pfad (nur Buchstaben und Ziffern zählen, z. B. kritischer Pfad); binaer, hex (der Wert zählt);
+    liste (Zahlenfolge wie „3, 8, 1“: nur die Zahlen zählen). Lösung "" heißt: das Feld bleibt leer.
     optionen: Auswahl statt Eingabe."""
     name: str
     label: str
@@ -43,10 +44,16 @@ class Aufgabe:
     titel: str = ""  # die Variante, z. B. „Netz teilen“
     art: str = ""
     themen: tuple[str, ...] = ()
+    # Eingabetabelle (Wertetabelle, Array): erste Zeile Kopf, danach Zellen als Text oder Feld; die Felder stehen auch in felder
+    tabelle: list[list] | None = None
 
     @property
     def loesung(self) -> dict:
         return {f.name: f.loesung for f in self.felder}
+
+    @property
+    def tabellen_felder(self) -> set[str]:
+        return {z.name for zeile in self.tabelle or [] for z in zeile if isinstance(z, Feld)}
 
 
 @dataclass(frozen=True)
@@ -57,19 +64,20 @@ class Art:
     beschreibung: str
     themen: tuple[str, ...]  # Stichworte, an denen passende Themen in der Datenbank erkannt werden
     erzeugen: Callable
+    formeln: str = ""  # Markdown: Formeln, Merksätze, ein Mini-Beispiel; Formelsammlung und Rechenweg zeigen dasselbe
 
 
 ARTEN: dict[str, Art] = {}
 
 
-def art(slug: str, titel: str, gruppe: str, beschreibung: str, themen: tuple[str, ...]):
+def art(slug: str, titel: str, gruppe: str, beschreibung: str, themen: tuple[str, ...], formeln: str = ""):
     """Meldet einen Generator (rng) -> Aufgabe an; Art, Themen und fehlender Titel kommen von hier."""
     def anmelden(funktion):
         def erzeugen(rng):
             aufgabe = funktion(rng)
             aufgabe.art, aufgabe.themen, aufgabe.titel = slug, themen, aufgabe.titel or titel
             return aufgabe
-        ARTEN[slug] = Art(slug, titel, gruppe, beschreibung, themen, erzeugen)
+        ARTEN[slug] = Art(slug, titel, gruppe, beschreibung, themen, erzeugen, formeln.strip())
         return erzeugen
     return anmelden
 
