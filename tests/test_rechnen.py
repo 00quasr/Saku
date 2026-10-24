@@ -196,6 +196,8 @@ def test_passende_art_zu_themen():
         "baum": ["Binärbaum durchlaufen", "Bäume und Graphen"],
         "stapel": ["Stack und Heap", "Warteschlangen im Druckdienst"],
         "verfuegbarkeit": ["Verfügbarkeit von Diensten", "Hochverfügbarkeit im Rechenzentrum", "MTBF und MTTR", "Redundanz im Netz"],
+        "kuendigung": ["Kündigungsfristen im Arbeitsverhältnis", "Ausbildungsvertrag und Probezeit", "Grundlagen Arbeitsrecht"],
+        "urlaub": ["Urlaubsanspruch berechnen", "Jugendarbeitsschutz in der Ausbildung"],
     }
     for slug, namen in passt.items():
         for name in namen:
@@ -484,3 +486,97 @@ def test_verfuegbarkeit_nachgerechnet():
             stunden = int(re.search(r"höchstens \*\*(\d+) Stunde", a.frage)[1])
             angebot = prozent(re.search(r"SLA mit \*\*([\d,]+) %", a.frage)[1])
             assert l["noetig"] == pytest.approx(100 * (1 - stunden / 8760)) and (l["reicht"] == "Ja") == (angebot > 1 - stunden / 8760)
+
+
+# --- WiSo (Runde 4) -------------------------------------------------------------------
+
+MONATSNAMEN = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"]
+
+
+def _zugang(text: str):
+    """Der Zugang steht als „Mittwoch, 2. Februar 2028“ in der Frage."""
+    from datetime import date
+    m = re.search(r"\*\*\w+, (\d+)\. (\w+) (\d{4})\*\*", text)
+    return date(int(m[3]), MONATSNAMEN.index(m[2]) + 1, int(m[1]))
+
+
+def _tag(text: str):
+    """Das erste Datum als TT.MM.JJJJ (Eintritt, Austritt, Geburtstag)."""
+    from datetime import date
+    t, mo, j = map(int, re.search(r"\*\*(\d\d)\.(\d\d)\.(\d{4})\*\*", text).groups())
+    return date(j, mo, t)
+
+
+def test_kuendigungstermine_anders_nachgerechnet():
+    import calendar
+    from datetime import date, timedelta
+
+    def letzter(j, m):
+        return date(j, m, calendar.monthrange(j, m)[1])
+
+    def grund(z):  # Tag für Tag: erster 15. oder Monatsletzter mit mindestens 28 Tagen Abstand
+        t = z + timedelta(days=1)
+        while not ((t - z).days >= 28 and (t.day == 15 or t == letzter(t.year, t.month))):
+            t += timedelta(days=1)
+        return t
+
+    def monatsende_mit_frist(z, n):  # Monatsende M ist erreichbar, wenn z spätestens am Letzten des Monats n Monate vor M liegt
+        j, m = z.year, z.month
+        while True:
+            vor_j, vor_m = (j * 12 + m - 1 - n) // 12, (j * 12 + m - 1 - n) % 12 + 1
+            if z <= letzter(vor_j, vor_m):
+                return letzter(j, m)
+            j, m = (j, m + 1) if m < 12 else (j + 1, 1)
+
+    for seed, a in _alle("kuendigung"):
+        l = a.loesung
+        if "ende" not in l:
+            assert l["frist"] == "Nur fristlos aus wichtigem Grund"
+            continue
+        zugang = _zugang(a.frage)
+        ende = date(*reversed([int(x) for x in l["ende"].split(".")]))
+        if a.titel in ("Kündigung durch den Arbeitnehmer",):
+            assert ende == grund(zugang) and l["frist"].startswith("4 Wochen zum 15.")
+        elif a.titel == "Kündigung in der Probezeit":
+            assert (ende - zugang).days == 14
+        elif a.titel == "Ausbildung: Kündigung":
+            assert (ende - zugang).days in (0, 28) and ((ende - zugang).days == 0) == ("Probezeit läuft" in a.rechenweg)
+        else:
+            eintritt = _tag(a.frage)
+            jahre = max(k for k in range(0, 40) if date(eintritt.year + k, eintritt.month, min(eintritt.day, 28)) <= zugang)
+            monate = next((m for j, m in [(20, 7), (15, 6), (12, 5), (10, 4), (8, 3), (5, 2), (2, 1)] if jahre >= j), 0)
+            assert ende == (monatsende_mit_frist(zugang, monate) if monate else grund(zugang)), (seed, jahre)
+
+
+def test_urlaub_nachgerechnet():
+    import math
+    from datetime import date
+    for seed, a in _alle("urlaub"):
+        l = a.loesung
+        if a.titel == "Werktage umrechnen":
+            geburt, jahr = _tag(a.frage), int(re.search(r"im Jahr (\d{4})", a.frage)[1])
+            alter = jahr - 1 - geburt.year  # Geburtstage liegen nie am 1. Januar
+            assert l["werktage"] == {15: 30, 16: 27, 17: 25}.get(alter, 24)
+            woche = int(re.search(r"an (\d) Tagen pro Woche", a.frage)[1])
+            assert l["tage"] == pytest.approx(l["werktage"] / 6 * woche)
+            continue
+        urlaub_ = int(re.search(r"sieht (\d+) Arbeitstage", a.frage)[1])
+        stichtag, jahr = _tag(a.frage), int(re.search(r"im Jahr (\d{4})", a.frage)[1])
+        if a.titel.startswith("Eintritt"):
+            voll = stichtag <= date(jahr, 6, 30)
+            monate = (12 - stichtag.month) + (1 if stichtag.day == 1 else 0)
+        else:
+            voll = stichtag > date(jahr, 6, 30)
+            monate = stichtag.month - (0 if stichtag.day > 15 else 1)
+        if voll:
+            assert l["anspruch"] == urlaub_ and l["art"].startswith("Voller")
+        else:
+            roh = urlaub_ * monate / 12
+            assert roh % 1 == 0 or roh % 1 >= 0.5  # Reste unter einem halben Tag erzeugt Saku nicht
+            assert l["anspruch"] == (math.ceil(roh) if roh % 1 >= 0.5 else roh) and l["art"].startswith("Anteilig"), seed
+
+
+def test_datum_eingaben():
+    feld = Feld("ende", "Ende", "31.03.2027", typ="datum")
+    assert all(rechnen.stimmt(feld, t) for t in ["31.03.2027", "31.3.2027", "31.03.27", "31. 3. 2027", "2027-03-31"])
+    assert not any(rechnen.stimmt(feld, t) for t in ["30.03.2027", "31.03.2026", "31.02.2027", "März", "31.03."])

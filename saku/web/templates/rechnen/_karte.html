@@ -58,6 +58,7 @@
         {% else %}
         <input class="input" id="feld-{{ f.name }}" name="feld-{{ f.name }}" aria-label="{{ name }}" value="{{ eingaben.get(f.name, '') }}"
                inputmode="{{ 'decimal' if f.typ == 'zahl' else 'text' }}" autocomplete="off" autocapitalize="off" spellcheck="false"
+               {% if f.typ == 'datum' %}placeholder="TT.MM.JJJJ"{% endif %}
                {{ 'disabled' if fertig }} {{ 'autofocus' if f.name == erstes and not fertig }} onkeydown="if (event.key === 'Escape') this.blur()">
         {% endif %}
         {% if f.einheit %}<span class="gedaempft">{{ f.einheit }}</span>{% endif %}
