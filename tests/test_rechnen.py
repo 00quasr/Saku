@@ -769,7 +769,7 @@ def test_rechnen_verlinkt_die_echten_pruefungsaufgaben(client, con):
     netzplan = con.execute("SELECT id FROM thema WHERE name = 'Netzplan'").fetchone()[0]
     zeile = ('In deinen Prüfungen: <span class="zahl">2</span> Teilaufgaben zu Netzplan · zuletzt Sommer 2023 · '
              f'<a href="/keiko/?thema={netzplan}">üben →</a>')
-    assert rechnen.themen_je_art([(netzplan, "Netzplan"), (1, "Normalisierung")]) == {"netzplan": [netzplan]}
+    assert rechnen.themen_je_art([(netzplan, "Netzplan"), (1, "Normalisierung"), (2, "Scrum")]) == {"netzplan": [netzplan], "normalform": [1]}
     uebersicht = client.get("/rechnen/").get_data(as_text=True)
     assert zeile in uebersicht and "zu Subnetting" not in uebersicht
     # die Karte erst nach dem Prüfen, unter dem Rechenweg

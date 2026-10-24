@@ -280,6 +280,22 @@ def ausfuehren(ddl: str, daten: str, eigene: str) -> dict:
             "tabellen": [_tabelle(n, *werte) for n, werte in nachher.items() if vorher.get(n) != werte]}
 
 
+def schluessel(ddl: str, daten: str, anweisung: str) -> set[tuple[str, str, str]]:
+    """Nach der Anweisung je Tabelle und Spalte: Primärschlüssel, NOT NULL, Fremdschlüssel auf …, für CREATE TABLE (der
+    Zustandsvergleich sieht nur Spalten und Zeilen). SqlFehler, wenn sie nicht läuft."""
+    with closing(_datenbank(ddl, daten)) as con:
+        _eigene(con, anweisung)
+        con.set_authorizer(None)  # die Anweisung ist durch, das Schema liest nur Saku (PRAGMA bleibt ihr gesperrt)
+        raus = set()
+        for (t,) in con.execute("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'").fetchall():
+            for _, spalte, _, pflicht, _, pk in con.execute("SELECT * FROM pragma_table_info(?)", (t,)).fetchall():
+                if pk or pflicht:
+                    raus.add((t.lower(), spalte.lower(), "Primärschlüssel" if pk else "NOT NULL"))
+            for ziel, spalte in con.execute('SELECT "table", "from" FROM pragma_foreign_key_list(?)', (t,)).fetchall():
+                raus.add((t.lower(), spalte.lower(), f"Fremdschlüssel auf {ziel.lower()}"))
+    return raus
+
+
 def tabellen(ddl: str, daten: str) -> list[dict]:
     """Die Beispieldaten der Sandbox, Tabelle für Tabelle."""
     with closing(_datenbank(ddl, daten)) as con:
