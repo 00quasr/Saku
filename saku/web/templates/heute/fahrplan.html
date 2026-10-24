@@ -44,14 +44,14 @@
         <p class="etikett" id="prognose-titel">Wiederholungen · nächste {{ spanne }} Tage</p>
         <nav class="fahrplan-umschalter klein" aria-label="Zeitraum">
           {% for n in (14, 30) %}
-          <a href="{{ url_for('heute.fahrplan', tage=n) }}" hx-get="{{ url_for('heute.fahrplan', tage=n) }}" hx-select="#prognose"
+          <a id="prognose-{{ n }}" href="{{ url_for('heute.fahrplan', tage=n) }}" hx-get="{{ url_for('heute.fahrplan', tage=n) }}" hx-select="#prognose"
              hx-target="#prognose" hx-swap="outerHTML" hx-push-url="true" {% if n == spanne %}aria-current="true"{% endif %}>{{ n }} Tage</a>
           {% endfor %}
         </nav>
       </header>
       {% set hoechst = [prognose|map(attribute='summe')|max, 1]|max %}
       <div class="saeulen-rahmen">
-        <ol class="saeulen" style="--spalten: {{ spanne }}">
+        <ol class="saeulen" style="--spalten: {{ spanne }}" aria-label="Wiederholungen und neue Teilaufgaben je Tag">
           {% for t in prognose %}
           {% set text = t.tag.strftime('%d.%m.') ~ ': ' ~ t.wdh ~ (' Wiederholung' if t.wdh == 1 else ' Wiederholungen') ~ ', ' ~ t.neu ~ ' neue' %}
           <li class="{{ 'saeule-heute' if t.heute }}{{ ' saeule-pruefung' if t.pruefung }}" title="{{ text }}{{ ' · Prüfung' if t.pruefung }}">
