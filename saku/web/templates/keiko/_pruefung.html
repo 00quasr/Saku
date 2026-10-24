@@ -1,4 +1,5 @@
-{# Antwort nach „Prüfen“: Urteil, Lösungshinweis und die Bewertung (↵ übernimmt den Vorschlag); das Antwortfeld zeigt richtig/falsch #}
+{# Antwort nach „Prüfen“: Urteil, Lösungshinweis und die Bewertung (↵ übernimmt den Vorschlag); das Antwortfeld zeigt richtig/falsch.
+   vergleich (SQL): was abweicht, erwartetes und eigenes Ergebnis; der Editor bleibt zum Weiterprobieren #}
 {% import "_makros.html" as m %}
 {% import "keiko/_bausteine.html" as k %}
 <section class="tusche keiko-loesung" aria-label="Auswertung">
@@ -7,6 +8,16 @@
     {{ {3: 'Richtig.', 2: 'Teilweise richtig.', 1: 'Leider falsch.'}[ergebnis] }}
     {% if karte.punkte %}<span class="klein gedaempft">{{ erreicht|string|replace('.0', '')|replace('.', ',') }} von {{ (karte.punkte|round(1))|string|replace('.0', '')|replace('.', ',') }} Punkten</span>{% endif %}
   </p>
+  {% if vergleich %}
+  {% if vergleich.hinweise %}<ul class="sql-hinweise">{% for h in vergleich.hinweise %}<li>{{ h }}</li>{% endfor %}</ul>{% endif %}
+  {% if ergebnis < 3 %}
+  {% for erwartet, eigenes in vergleich.tabellen %}
+  <div class="sql-vergleich">
+    {% for t in (erwartet, eigenes) %}{% if t %}{{ k.sql_tabelle(t) }}{% else %}<p class="klein gedaempft">{{ 'Keine Tabelle erwartet.' if loop.first else 'Bei dir fehlt sie.' }}</p>{% endif %}{% endfor %}
+  </div>
+  {% endfor %}
+  {% endif %}
+  {% endif %}
   {% if karte.loesung_inhalt or karte.loesung_bilder or karte.loesung_text %}
   <p class="etikett">Lösungshinweis</p>
   {{ k.loesung(karte) }}
@@ -21,4 +32,4 @@
   </div>
 </section>
 <div id="loesung-knopf" hx-swap-oob="true"></div>
-{{ k.antwortfeld(karte, eingabe, werte, oob=True) }}
+{% if not vergleich %}{{ k.antwortfeld(karte, eingabe, werte, oob=True) }}{% endif %}

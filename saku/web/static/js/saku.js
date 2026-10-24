@@ -19,10 +19,15 @@ window.saku = {
     clearTimeout(toast.zeit);
     toast.zeit = setTimeout(() => toast.classList.remove("sichtbar"), 1600);
   },
-  // Code-Editor: Tab rückt um vier Leerzeichen ein, Esc verlässt das Feld
+  // Code-Editor: Tab rückt um vier Leerzeichen ein, Esc verlässt das Feld, ⌘↵/Strg+↵ führt SQL in der Sandbox aus
   editorTaste(e) {
     const feld = e.target;
     if (e.key === "Escape") return feld.blur();
+    const ausfuehren = e.key === "Enter" && (e.metaKey || e.ctrlKey) && feld.closest(".keiko-antwort")?.querySelector("[data-sql-ausfuehren]");
+    if (ausfuehren) {
+      e.preventDefault();
+      return ausfuehren.click();
+    }
     if (e.key !== "Tab" || e.shiftKey) return;
     e.preventDefault();
     feld.setRangeText("    ", feld.selectionStart, feld.selectionEnd, "end");

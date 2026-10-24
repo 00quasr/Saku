@@ -6,7 +6,7 @@ from datetime import date, datetime, timezone
 
 from flask import Blueprint, abort, make_response, render_template, request, url_for
 
-from saku.lernen import antwort, karten, tagesziel
+from saku.lernen import antwort, karten, sql, tagesziel
 from saku.web import db
 from saku.web.routen.heute import datum_lang
 
@@ -251,14 +251,44 @@ def loesung(t_id):
 
 @bp.post("/<int:t_id>/pruefen")
 def pruefen(t_id):
-    """Anklickbare Aufgaben sofort prüfen; die Bewertung schlägt Saku vor, ↵ übernimmt sie."""
-    karte = _teilaufgabe_oder_404(db(), t_id)
+    """Anklickbare Aufgaben und SQL mit Sandbox sofort prüfen; die Bewertung schlägt Saku vor, ↵ übernimmt sie."""
+    con = db()
+    karte = _teilaufgabe_oder_404(con, t_id)
+    if karte["loesung_sql"] and (sandbox := sql.laden(con, karte["aufgabe_id"])):
+        eigene = request.form.get("antwort", "")
+        try:
+            vergleich = sql.pruefen(*sandbox, karte["loesung_sql"], eigene)
+        except sql.SqlFehler as fehler:  # läuft nicht: keine Bewertung, Prüfen bleibt, das Feld auch
+            return render_template("keiko/_sql.html", fehler=str(fehler), beim_pruefen=True)
+        return render_template("keiko/_pruefung.html", karte=karte, ergebnis=vergleich["ergebnis"], vergleich=vergleich,
+                               zusammenfassung=eigene.strip())
     if not antwort.pruefbar(karte["antwort"]):
         abort(400)
     eingabe = antwort.eingabe(request.form)
     ergebnis, werte = antwort.auswerten(karte["antwort"], eingabe)
     return render_template("keiko/_pruefung.html", karte=karte, ergebnis=ergebnis, werte=werte, eingabe=eingabe,
                            zusammenfassung=antwort.zusammenfassung(eingabe))
+
+
+def _sandbox_oder_404(t_id: int) -> tuple[str, str]:
+    con = db()
+    return sql.laden(con, _teilaufgabe_oder_404(con, t_id)["aufgabe_id"]) or abort(404)
+
+
+@bp.post("/<int:t_id>/sql")
+def sql_ausfuehren(t_id):
+    """SQL in der Sandbox ausführen: Ergebnis als Tabelle oder die Meldung von SQLite."""
+    sandbox = _sandbox_oder_404(t_id)
+    try:
+        return render_template("keiko/_sql.html", **sql.ausfuehren(*sandbox, request.form.get("antwort", "")))
+    except sql.SqlFehler as fehler:
+        return render_template("keiko/_sql.html", fehler=str(fehler))
+
+
+@bp.get("/<int:t_id>/tabellen")
+def sql_tabellen(t_id):
+    """Die erfundenen Beispieldaten der Sandbox."""
+    return render_template("keiko/_sql.html", meldung="Beispieldaten", tabellen=sql.tabellen(*_sandbox_oder_404(t_id)))
 
 
 @bp.post("/<int:t_id>/bewerten")

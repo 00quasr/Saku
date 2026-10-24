@@ -150,3 +150,38 @@ def test_migration_7(tmp_path):
     con = sqlite3.connect(tmp_path / "alt.db")
     assert con.execute("SELECT id, loesung_sql FROM teilaufgabe").fetchall() == [(1, None)]
     assert con.execute("SELECT COUNT(*) FROM sql_sandbox").fetchone()[0] == 0
+
+
+def test_ueben_fuehrt_sql_aus_und_prueft(client, con):
+    t_id = con.execute("SELECT id FROM teilaufgabe WHERE loesung_sql LIKE '%GROUP BY%'").fetchone()[0]
+    karte = client.get(f"/keiko/?teilaufgabe={t_id}").get_data(as_text=True)
+    assert f'hx-post="/keiko/{t_id}/sql"' in karte and "Tabellen ansehen" in karte and f"/keiko/{t_id}/pruefen" in karte
+    assert "⌘↵ führt aus" in karte and "Nur Lösung zeigen" in karte
+
+    ergebnis = client.post(f"/keiko/{t_id}/sql", data={"antwort": "SELECT ort FROM lager ORDER BY id"}).get_data(as_text=True)
+    assert "3 Zeilen" in ergebnis and "<td>Süd</td>" in ergebnis
+    assert "no such table: gibtsnicht" in client.post(f"/keiko/{t_id}/sql", data={"antwort": "SELECT * FROM gibtsnicht"}).get_data(as_text=True)
+    tabellen = client.get(f"/keiko/{t_id}/tabellen").get_data(as_text=True)
+    assert "artikel" in tabellen and "Schraube" in tabellen and 'class="sql-null"' in tabellen
+
+    richtig = client.post(f"/keiko/{t_id}/pruefen", data={"antwort": "SELECT COUNT(*) AS anzahl, lager_id FROM artikel GROUP BY 2"})
+    html = richtig.get_data(as_text=True)
+    assert "Richtig." in html and 'data-taste="Enter"' in html and "GROUP BY 2" in html  # die Anweisung geht mit in die Bewertung
+    assert 'id="antwortfeld"' not in html and "Erwartet" not in html  # der Editor bleibt zum Weiterprobieren
+    teilweise = client.post(f"/keiko/{t_id}/pruefen", data={
+        "antwort": "SELECT lager_id, COUNT(*) FROM artikel WHERE lager_id IS NOT NULL GROUP BY lager_id"}).get_data(as_text=True)
+    assert "Teilweise richtig." in teilweise and "1 Zeile fehlt." in teilweise and "Dein Ergebnis" in teilweise
+    kaputt = client.post(f"/keiko/{t_id}/pruefen", data={"antwort": "SELEC 1"}).get_data(as_text=True)
+    assert "SQLite meldet" in kaputt and "Nicht gewusst" not in kaputt and "lass dir die Lösung zeigen" in kaputt
+
+    client.post(f"/keiko/{t_id}/bewerten", data={"ergebnis": 2, "antwort": "SELECT lager_id FROM artikel"})
+    assert con.execute("SELECT ergebnis, antwort FROM bewertung WHERE teilaufgabe_id = ?", (t_id,)).fetchone()[:] == (2, "SELECT lager_id FROM artikel")
+
+    # ohne Sandbox bleibt alles wie bisher: Editor ohne Ausführen, Lösung zeigen, Selbstbewertung
+    ohne = con.execute("SELECT id, aufgabe_id FROM teilaufgabe WHERE loesung_sql LIKE '%JOIN%'").fetchone()
+    con.execute("DELETE FROM sql_sandbox WHERE aufgabe_id = ?", (ohne["aufgabe_id"],))
+    con.commit()
+    karte = client.get(f"/keiko/?teilaufgabe={ohne['id']}").get_data(as_text=True)
+    assert "Deine SQL-Anweisung" in karte and "Tabellen ansehen" not in karte and f"/keiko/{ohne['id']}/pruefen" not in karte
+    assert client.post(f"/keiko/{ohne['id']}/sql", data={"antwort": "SELECT 1"}).status_code == 404
+    assert client.post(f"/keiko/{ohne['id']}/pruefen", data={"antwort": "SELECT 1"}).status_code == 400

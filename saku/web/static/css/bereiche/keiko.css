@@ -122,6 +122,21 @@
   background: var(--washi-hell); min-height: 180px; resize: vertical;
 }
 
+/* SQL-Sandbox: Ausführen, Beispieldaten, Vergleich nach dem Prüfen */
+.sql-werkzeuge { gap: 8px; }
+.sql-werkzeuge .btn { gap: 8px; }
+.sql-werkzeuge .icon { width: 15px; height: 15px; }
+.sql-ergebnis { display: grid; gap: 12px; }
+.sql-ergebnis:empty { display: none; }
+.sql-tabelle { display: grid; gap: 6px; margin: 0; min-width: 0; }
+.sql-tabelle .table { font-family: var(--schrift-code); font-size: 0.8125rem; }
+.sql-tabelle th { background: var(--flaeche); }
+.sql-tabelle td { font-variant-numeric: tabular-nums; white-space: pre-wrap; }
+.sql-null { color: var(--sumi-mittel); font-style: italic; }
+.sql-hinweise { margin: 0; padding-left: 1.2em; list-style: disc; }
+.sql-vergleich { display: grid; gap: 16px; }
+@media (min-width: 900px) { .sql-vergleich { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; } }
+
 /* Urteil nach dem Prüfen */
 .keiko-urteil { font-family: var(--schrift-titel); font-weight: 600; font-size: 1.375rem; }
 .keiko-urteil--3 { color: var(--matcha); }

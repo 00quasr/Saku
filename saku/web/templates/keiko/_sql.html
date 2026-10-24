@@ -1,0 +1,9 @@
+{# SQL-Sandbox: Ergebnis von „Ausführen“, die Beispieldaten oder die Meldung von SQLite.
+   beim_pruefen: Prüfen ging nicht, weil die Anweisung nicht läuft #}
+{% import "keiko/_bausteine.html" as k %}
+{% if fehler %}
+<p class="hinweis hinweis--fehler sql-fehler">{{ fehler }}{% if beim_pruefen %} Korrigier die Anweisung oder lass dir die Lösung zeigen.{% endif %}</p>
+{% else %}
+<p class="klein gedaempft">{{ meldung }}</p>
+{% for t in tabellen %}{{ k.sql_tabelle(t) }}{% endfor %}
+{% endif %}

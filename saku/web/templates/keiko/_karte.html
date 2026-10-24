@@ -69,7 +69,7 @@
 
       <div class="zeile zwischen keiko-aktionen">
         <div id="loesung-knopf" class="zeile">
-          {% if pruefbar(t.antwort) %}
+          {% if pruefbar(t.antwort) or (t.sandbox and t.loesung_sql) %}
           <button type="button" class="btn" data-taste="Enter" hx-post="{{ url_for('keiko.pruefen', t_id=t.id) }}"
                   hx-target="#loesung" hx-swap="innerHTML">Prüfen {{ m.taste('↵') }}</button>
           <button type="button" class="btn" data-variant="ghost" data-taste=" " hx-get="{{ url_for('keiko.loesung', t_id=t.id) }}" hx-include="#antwortfeld"

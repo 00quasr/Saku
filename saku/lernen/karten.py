@@ -15,7 +15,8 @@ SELECT v.teilaufgabe_id, v.teilaufgabe_id AS id, v.kennung, v.punkte, v.aufgabe_
        t.text, t.bilder, t.loesung_text, t.loesung_bilder, t.inhalt, t.antwort, t.loesung_inhalt,
        a.titel AS aufgabe_titel, a.einleitung, a.einleitung_bilder, a.einleitung_inhalt,
        p.ausgangssituation, p.ausgangssituation_bilder, p.ausgangssituation_inhalt,
-       COALESCE(k.markiert, 0) AS markiert
+       COALESCE(k.markiert, 0) AS markiert, t.loesung_sql,
+       EXISTS (SELECT 1 FROM sql_sandbox s WHERE s.aufgabe_id = v.aufgabe_id) AS sandbox
 FROM v_teilaufgabe v
 JOIN teilaufgabe t ON t.id = v.teilaufgabe_id
 JOIN aufgabe a     ON a.id = v.aufgabe_id
