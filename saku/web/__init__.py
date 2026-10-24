@@ -72,6 +72,9 @@ def create_app(daten: Path | None = None) -> Flask:
     app.config["DB_PFAD"] = config.db_pfad(app.config["DATEN"])
     app.config["SENSEI_BEREIT"] = bool(config.API_KEY)
     app.config["FENSTER"] = False  # True im eigenen App-Fenster (python -m saku start)
+    # DNS-Rebinding: eine fremde Seite, deren Name auf 127.0.0.1 zeigt, gälte im Browser als gleiche Herkunft und könnte
+    # Lernstand lesen und Sensei (API-Kosten) aufrufen – Flask beantwortet jeden anderen Host-Namen mit 400
+    app.config["TRUSTED_HOSTS"] = ["127.0.0.1", "localhost"]  # Saku lauscht nur auf IPv4
 
     from saku.web.routen import bunseki, heute, keiko, kern, michi, niwa, rechnen, sensei, shiken, suche
     for modul in (kern, heute, michi, keiko, rechnen, shiken, niwa, sensei, bunseki, suche):

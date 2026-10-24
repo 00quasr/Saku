@@ -1,4 +1,5 @@
-"""CSRF-Schutz: schreibende Anfragen nur von gleicher Herkunft; ohne Sec-Fetch-Site und Origin (Testclient, curl) wie bisher."""
+"""CSRF-Schutz: schreibende Anfragen nur von gleicher Herkunft; ohne Sec-Fetch-Site und Origin (Testclient, curl) wie bisher.
+DNS-Rebinding: nur die lokalen Host-Namen."""
 
 import pytest
 
@@ -37,3 +38,17 @@ def test_lesen_bleibt_frei(client):
     assert client.get("/", headers=fremd).status_code == 200
     assert client.get("/keiko/1/loesung", headers=HTMX | fremd).status_code == 200
     assert client.get("/sensei/stream/gibtsnicht", headers=fremd).status_code != 403
+
+
+@pytest.mark.parametrize("host", ["boese.example:5050", "127.0.0.1.nip.io:5050", "localhost.boese.example"])
+def test_fremder_host_name_wird_abgelehnt(client, con, host):
+    """Eine fremde Seite, deren Name auf 127.0.0.1 umgebogen wird, ist für den Browser gleiche Herkunft – lesen und schreiben."""
+    gleich = {"Host": host, "Sec-Fetch-Site": "same-origin", "Origin": f"http://{host}"}
+    assert client.get("/", headers=gleich).status_code == 400
+    assert client.post("/keiko/1/bewerten", data={"ergebnis": "3"}, headers=HTMX | gleich).status_code == 400
+    assert con.execute("SELECT COUNT(*) FROM bewertung").fetchone()[0] == 0
+
+
+@pytest.mark.parametrize("host", ["127.0.0.1:5050", "localhost:5050", "localhost"])  # Browser schicken den Namen klein
+def test_lokale_host_namen(client, host):
+    assert client.get("/", headers={"Host": host}).status_code < 400
