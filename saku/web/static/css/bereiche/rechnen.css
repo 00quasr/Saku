@@ -28,6 +28,8 @@
 
 /* Aufgabe */
 .seite.rechnen:has(.rechnen-karte) { padding-top: 24px; }
+/* Grid-Kinder dürfen schmaler werden als ihr Inhalt: lange Codezeilen scrollen im pre, statt die Karte zu verbreitern */
+.rechnen-karte > *, .rechnen-ergebnis > * { min-width: 0; }
 .rechnen-kopf { display: grid; gap: 2px; }
 .rechnen-werkzeuge { gap: 12px; }
 
@@ -54,6 +56,27 @@
 .rechnen-sql--falsch .editor { border-color: var(--beni); }
 .rechnen-sql--richtig .rechnen-marke { color: var(--matcha); }
 .rechnen-sql--falsch .rechnen-marke { color: var(--beni); }
+
+/* Struktogramm (Nassi-Shneiderman): Kästen in Tuschelinien; Verzweigung mit Dreieck (SVG, auf die Breite gestreckt), darunter
+   ja | nein; Schleife mit Kopf und eingerücktem Rumpf, links läuft der Rand mit */
+.struktogramm {
+  --sg-linie: var(--sumi-mittel);
+  max-width: 44rem; border: 1px solid var(--sg-linie); background: var(--washi-hell); color: var(--sumi);
+  font-family: var(--schrift-code); font-size: 0.8125rem; line-height: 1.45; overflow-wrap: anywhere;
+}
+.sg + .sg { border-top: 1px solid var(--sg-linie); }
+:is(.sg-anweisung, .sg-kopf) { padding: 6px 10px; }
+.sg-bedingung { position: relative; padding: 6px 10px 20px; text-align: center; min-height: 3.6em; }
+.sg-dreieck { position: absolute; inset: 0; width: 100%; height: 100%; fill: none; stroke: var(--sg-linie); stroke-width: 1px; }
+.sg-text { position: relative; padding: 0 4px; background: var(--washi-hell); }
+:is(.sg-ja, .sg-nein) { position: absolute; bottom: 2px; font-family: var(--schrift); font-size: 0.6875rem; color: var(--sumi-mittel); }
+.sg-ja { left: 8px; }
+.sg-nein { right: 8px; }
+.sg-zweige { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); border-top: 1px solid var(--sg-linie); }
+.sg-zweig { min-height: 2em; }
+.sg-zweig + .sg-zweig { border-left: 1px solid var(--sg-linie); }
+.sg-rumpf { margin-left: 1.75rem; border-top: 1px solid var(--sg-linie); border-left: 1px solid var(--sg-linie); }
+.rechnen-weg + .struktogramm, .rechnen-frage + .struktogramm { margin-top: -4px; }
 
 /* Eingabetabelle (Wertetabelle, Array): die Grundform kommt aus Üben (.tabelle-eingabe) */
 .rechnen-tabelle { max-width: max-content; }

@@ -53,6 +53,9 @@ class Aufgabe:
     # Eingabetabelle (Wertetabelle, Array): erste Zeile Kopf, danach Zellen als Text oder Feld; die Felder stehen auch in felder
     tabelle: list[list] | None = None
     sandbox: tuple[str, str] | None = None  # SQL-Aufgabe: (ddl, daten) für lernen/sql, frisch je Ausführung
+    # Struktogramme als HTML (programmieren.struktogramm): das Programm der Frage bzw. die Musterlösung unter dem Rechenweg
+    struktogramm: str = ""
+    weg_struktogramm: str = ""
 
     @property
     def loesung(self) -> dict:

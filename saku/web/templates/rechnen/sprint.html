@@ -64,6 +64,7 @@
         <span class="klein zahl">{% if fertig %}{{ ('%g' % punkte_je[i - 1])|replace('.', ',') }} von {{ punkte }} Punkten{% else %}{{ punkte }} Punkte{% endif %}</span>
       </header>
       <div class="prosa aufgabe-inhalt rechnen-frage">{{ a.frage|markdown }}</div>
+      {{ a.struktogramm }}
       {{ r.felder(a, eingaben[i - 1], werte[i - 1] if fertig else none, praefix='a' ~ i ~ '-', fokus=loop.first) }}
       {% if fertig %}
       <details class="kontext" {{ 'open' if punkte_je[i - 1] < punkte }}>

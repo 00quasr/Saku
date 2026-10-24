@@ -22,6 +22,7 @@
   </header>
 
   <div class="prosa aufgabe-inhalt rechnen-frage">{{ a.frage|markdown }}</div>
+  {{ a.struktogramm }}
 
   {{ r.felder(a, eingaben, werte, seed=seed) }}
 
@@ -54,6 +55,7 @@
     {% endif %}
     <p class="etikett">Rechenweg</p>
     <div class="prosa aufgabe-inhalt rechnen-weg">{{ a.rechenweg|markdown }}</div>
+    {{ a.weg_struktogramm }}
     {% if in_pruefungen %}{% with p = in_pruefungen %}{% include "rechnen/_in_pruefungen.html" %}{% endwith %}{% endif %}
     {% if art.formeln %}
     <details class="kontext rechnen-formeln">
