@@ -37,7 +37,7 @@
 .rechnen-feld > label { font-weight: 500; }
 .rechnen-eingabe { display: flex; align-items: center; gap: 8px; }
 .rechnen-eingabe .input { width: 15rem; font-family: var(--schrift-code); font-size: 0.9375rem; font-variant-numeric: tabular-nums; }
-.rechnen-feld--text .input { width: 24rem; }  /* ausgeschriebene IPv6-Adressen: 39 Zeichen */
+:is(.rechnen-feld--text, .rechnen-feld--ipv6) .input { width: 24rem; }  /* ausgeschriebene IPv6-Adressen: 39 Zeichen */
 .rechnen-eingabe .select { min-width: 12rem; }
 .rechnen-eingabe :disabled { opacity: 1; cursor: default; }
 .rechnen-feld--richtig :is(.input, .select) { border-color: var(--matcha); background: color-mix(in oklab, var(--matcha) 8%, var(--washi-hell)); }
@@ -121,5 +121,5 @@
 @media (max-width: 720px) {
   .rechnen-felder { grid-template-columns: minmax(0, 1fr); gap: 4px; }
   .rechnen-marke:empty { display: none; }
-  .rechnen-eingabe .input, .rechnen-feld--text .input { width: 100%; }
+  .rechnen-eingabe .input, :is(.rechnen-feld--text, .rechnen-feld--ipv6) .input { width: 100%; }
 }

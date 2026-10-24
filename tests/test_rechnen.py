@@ -4,6 +4,7 @@ import ipaddress
 import itertools
 import random
 import re
+from pathlib import Path
 
 import pytest
 
@@ -932,5 +933,8 @@ def test_eui64_unabhaengig_ueber_zeichenketten():
     assert all(rechnen.stimmt(feld, t) for t in ["2001:db8::21a:2bff:fe3c:4d5e", "2001:0DB8:0:0:021A:2BFF:FE3C:4D5E"])
     assert not rechnen.stimmt(feld, "2001:db8::21a:2bff:fe3c:4d5f") and not rechnen.stimmt(feld, "kein")
     assert rechnen.stimmt(Feld("i", "Interface-ID", "21a:2bff:fe3c:4d5e", typ="ipv6"), "021A:2BFF:FE3C:4D5E")
+    # IPv6-Felder (EUI-64) so breit wie die IPv6-Textfelder (Kürzen, Ausschreiben): eine globale Adresse hat bis zu 39 Zeichen
+    css = (Path(__file__).parents[1] / "saku" / "web" / "static" / "css" / "bereiche" / "rechnen.css").read_text(encoding="utf-8")
+    assert re.search(r"^:is\(\.rechnen-feld--text, \.rechnen-feld--ipv6\) \.input \{ width: 24rem; \}", css, re.M)
     # wie bei IPv4 („10.0.0.0/24“) zählt die Adresse, eine angehängte Präfixlänge stört nicht
     assert rechnen.stimmt(feld, "2001:db8::21a:2bff:fe3c:4d5e/64") and rechnen.stimmt(Feld("n", "Netz", "10.0.0.0", typ="ip"), "10.0.0.0/24")
