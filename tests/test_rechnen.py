@@ -650,3 +650,42 @@ def test_gemischt_ohne_doppelte():
         for _ in range(5):
             gezogen.append(rechnen.gemischt(rng, {}, ohne=gezogen))
         assert len(set(gezogen)) == 5
+
+
+# --- Routine: fällige Arten, Tagesziel, Lernpfad (Runde 5) ----------------------------
+
+def test_faellig_leitner_regeln():
+    from datetime import datetime, timedelta
+    jetzt = datetime(2027, 3, 10, 12, 0)
+    letzte = {"subnetz": [1, 1, 1, 1, 1], "raid": [1, 1, 0, 1, 0], "ipv6": [0, 0, 1, 1, 1, 1, 1], "netzplan": [1, 1, 1, 1, 0]}
+    zuletzt = {"subnetz": jetzt - timedelta(days=2), "raid": jetzt - timedelta(days=1), "ipv6": jetzt - timedelta(days=1),
+               "netzplan": jetzt - timedelta(days=8)}
+    arten = ["subnetz", "raid", "ipv6", "netzplan", "energie"]
+    # subnetz sitzt; raid 3 von 5; ipv6 zählt nur die letzten fünf (alle richtig bis auf eins → 80 % reicht);
+    # netzplan länger als sieben Tage her; energie noch nie
+    assert rechnen.faellig(arten, letzte, zuletzt, jetzt) == ["raid", "netzplan", "energie"]
+    assert rechnen.faellig(["subnetz"], letzte, {"subnetz": jetzt - timedelta(days=7)}, jetzt) == []
+
+
+def test_umfang_je_lernpfad():
+    from saku.lernen.rechnen.plan import UMFANG
+    ap1, ae, si = (set(rechnen.im_umfang(p)) for p in ("AP1", "AP2-1201", "AP2-1202"))
+    algorithmen = {a for a, art in rechnen.ARTEN.items() if art.gruppe == "Algorithmen"}
+    assert not ap1 & algorithmen and {"subnetz", "schreibtisch", "kuendigung"} <= ap1
+    assert algorithmen <= ae and "schreibtisch" in ae and "subnetz" not in ae
+    assert {"subnetz", "energie", "verfuegbarkeit", "kalkulation"} <= si and not si & algorithmen and "schreibtisch" not in si
+    assert all(g in rechnen.GRUPPEN for gruppen in UMFANG.values() for g in gruppen)
+
+
+def test_gemischt_bevorzugt_faellige(client, con):
+    ae = rechnen.im_umfang("AP2-1201")  # Demo: AP2 Anwendungsentwicklung
+    con.executemany("INSERT INTO rechenuebung (art, seed, richtig, felder_richtig, felder_gesamt) VALUES (?, 1, 1, 1, 1)",
+                    [(a,) for a in ae if a != "baum" for _ in range(5)])
+    con.commit()
+    for _ in range(15):
+        assert re.match(r"/rechnen/baum\?", client.get("/rechnen/gemischt").headers["Location"])
+    con.executemany("INSERT INTO rechenuebung (art, seed, richtig, felder_richtig, felder_gesamt) VALUES ('baum', 1, 1, 1, 1)", [()] * 5)
+    con.commit()
+    # nichts mehr fällig: dann aus dem ganzen Umfang, nie außerhalb (Subnetting gehört nicht zur AP2 AE)
+    gezogen = {re.match(r"/rechnen/(\w+)\?", client.get("/rechnen/gemischt").headers["Location"])[1] for _ in range(40)}
+    assert gezogen <= set(ae) and len(gezogen) > 3
