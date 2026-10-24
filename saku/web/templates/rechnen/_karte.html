@@ -1,5 +1,6 @@
 {# Eine Rechenaufgabe; nach dem Prüfen (werte gesetzt) dieselbe Karte mit richtig/falsch, Lösung und Rechenweg #}
 {% import "_makros.html" as m %}
+{% import "rechnen/_felder.html" as r %}
 {% set a = aufgabe %}
 {% set fertig = werte is not none %}
 <form id="karte" class="karte rechnen-karte" aria-label="{{ art.titel }}: {{ a.titel }}"
@@ -21,56 +22,7 @@
 
   <div class="prosa aufgabe-inhalt rechnen-frage">{{ a.frage|markdown }}</div>
 
-  {% set erstes = a.felder[0].name %}
-  {% if a.tabelle %}
-  {# Wertetabelle oder Array: Zellen sind Text oder Eingabefelder; nach dem Prüfen steht unter falschen Zellen der richtige Wert #}
-  <div class="tabelle-rahmen rechnen-tabelle">
-    <table class="tabelle-eingabe">
-      <thead><tr>{% for k in a.tabelle[0] %}<th>{{ k }}</th>{% endfor %}</tr></thead>
-      <tbody>
-        {% for zeile in a.tabelle[1:] %}
-        <tr>{% for z in zeile %}{% if z is string %}<th scope="row">{{ z }}</th>{% else %}{% set ok = fertig and werte[z.name] %}
-          <td class="{{ ('rechnen-zelle--richtig' if ok else 'rechnen-zelle--falsch') if fertig }}">
-            <input name="feld-{{ z.name }}" aria-label="{{ z.label }}" value="{{ eingaben.get(z.name, '') }}" autocomplete="off" spellcheck="false"
-                   {{ 'disabled' if fertig }} {{ 'autofocus' if z.name == erstes and not fertig }} onkeydown="if (event.key === 'Escape') this.blur()">
-            {% if fertig and not ok %}<span class="rechnen-soll" title="richtig">{{ z.anzeige or 'leer' }}</span>{% endif %}
-          </td>{% endif %}{% endfor %}</tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-  {% endif %}
-
-  {% if a.felder|length > a.tabellen_felder|length %}
-  <div class="rechnen-felder" role="group" aria-label="Deine Ergebnisse">
-    {% for f in a.felder if f.name not in a.tabellen_felder %}
-    {% set ok = fertig and werte[f.name] %}
-    {# gleiche Beschriftung, andere Einheit (Dauer in s und in min): vorgelesen wird beides #}
-    {% set name = f.label ~ (' in ' ~ f.einheit if f.einheit else '') %}
-    <div class="rechnen-feld rechnen-feld--{{ f.typ }}{{ (' rechnen-feld--richtig' if ok else ' rechnen-feld--falsch') if fertig }}">
-      <label for="feld-{{ f.name }}">{{ f.label }}</label>
-      <span class="rechnen-eingabe">
-        {% if f.optionen %}
-        <select class="select" id="feld-{{ f.name }}" name="feld-{{ f.name }}" aria-label="{{ name }}" {{ 'disabled' if fertig }} {{ 'autofocus' if f.name == erstes and not fertig }}>
-          <option value="">–</option>
-          {% for o in f.optionen %}<option {{ 'selected' if eingaben.get(f.name) == o }}>{{ o }}</option>{% endfor %}
-        </select>
-        {% else %}
-        <input class="input" id="feld-{{ f.name }}" name="feld-{{ f.name }}" aria-label="{{ name }}" value="{{ eingaben.get(f.name, '') }}"
-               inputmode="{{ 'decimal' if f.typ == 'zahl' else 'text' }}" autocomplete="off" autocapitalize="off" spellcheck="false"
-               {% if f.typ == 'datum' %}placeholder="TT.MM.JJJJ"{% endif %}
-               {{ 'disabled' if fertig }} {{ 'autofocus' if f.name == erstes and not fertig }} onkeydown="if (event.key === 'Escape') this.blur()">
-        {% endif %}
-        {% if f.einheit %}<span class="gedaempft">{{ f.einheit }}</span>{% endif %}
-      </span>
-      <span class="rechnen-marke">
-        {% if ok %}<span aria-label="richtig">✓</span>
-        {% elif fertig %}<span aria-label="falsch">✕</span> <span class="gedaempft">richtig:</span> <strong class="zahl">{{ f.anzeige }}</strong> {{ f.einheit }}{% endif %}
-      </span>
-    </div>
-    {% endfor %}
-  </div>
-  {% endif %}
+  {{ r.felder(a, eingaben, werte) }}
 
   {% if not fertig %}
   {% if leer %}<p class="hinweis hinweis--fehler klein" role="status">Noch nichts eingetragen. Rechne erst, oder hol dir mit {{ m.taste('␣') }} den Rechenweg.</p>{% endif %}

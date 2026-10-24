@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% import "rechnen/_felder.html" as r %}
+{% block titel %}Rechen-Sprint · Rechnen{% endblock %}
+{% block inhalt %}
+{{ m.kopf('keiko', '算', 'Rechnen', 'Rechen-Sprint', schmal=True) }}
+
+<div class="seite eng rechnen sprint">
+{% if not aufgaben %}
+  {# Startseite #}
+  <section class="stapel">
+    <p class="ueberschrift">{{ anzahl }} Aufgaben, {{ minuten }} Minuten.</p>
+    <p>Gemischt aus allen Arten, was zuletzt oft falsch war, kommt häufiger. Jede Aufgabe bringt {{ punkte }} Punkte, anteilig nach richtig
+      gelösten Feldern, zusammen 100 wie in der Prüfung. Am Ende stehen Punkte, Note nach dem IHK-Schlüssel und zu jeder Aufgabe der
+      Rechenweg. Läuft die Zeit ab, gibt Saku selbst ab.</p>
+    <p class="klein gedaempft">{{ m.taste('↵') }} springt im Sprint zum nächsten Feld, abgegeben wird mit dem Knopf am Ende.</p>
+    <div class="zeile">
+      <a class="btn" href="{{ url_for('rechnen.sprint_neu') }}" data-taste="Enter">Sprint starten {{ m.taste('↵') }}</a>
+      <a class="btn" data-variant="outline" href="{{ url_for('rechnen.index') }}">Zur Übersicht</a>
+    </div>
+  </section>
+{% else %}
+  {% set fertig = werte is not none %}
+  {% if fertig %}
+  <section class="tusche sprint-ergebnis" aria-label="Ergebnis">
+    <div class="zeile zwischen">
+      <div class="stapel">
+        <p class="etikett">Ergebnis</p>
+        <p class="sprint-punkte"><span class="zahl">{{ ('%g' % erreicht)|replace('.', ',') }}</span> von {{ moeglich }} Punkten</p>
+        <p class="ueberschrift">Note {{ note }} · {{ note_text }}</p>
+        <p class="klein gedaempft">{% if moeglich != 100 %}{{ hundert }} von 100 umgerechnet, {% endif %}IHK-Notenschlüssel, bestanden ab 50 Punkten
+          · {{ dauer // 60 }}:{{ '%02d' % (dauer % 60) }} min
+          gebraucht{% if dauer > minuten * 60 %} (Zeit überschritten){% endif %}</p>
+      </div>
+      {{ m.hanko(bestanden) }}
+    </div>
+    <ol class="sprint-liste klein">
+      {% for art, seed, a in aufgaben %}
+      <li><a href="#aufgabe-{{ loop.index }}">{{ loop.index }}. {{ art.titel }}</a>
+        <span class="zahl">{{ ('%g' % punkte_je[loop.index0])|replace('.', ',') }} / {{ punkte }}</span></li>
+      {% endfor %}
+    </ol>
+    <nav class="zeile" aria-label="Weiter">
+      <a class="btn" href="{{ url_for('rechnen.sprint_neu') }}" data-taste="Enter">Neuer Sprint {{ m.taste('↵') }}</a>
+      <a class="btn" data-variant="outline" href="{{ url_for('rechnen.index') }}">Zur Übersicht</a>
+    </nav>
+  </section>
+  {% else %}
+  <div class="sprint-uhr" id="sprint-uhr" data-ende="{{ ende }}" data-dauer="{{ minuten * 60 }}" role="timer" aria-label="Verbleibende Zeit">
+    <div class="linie-fortschritt"><span></span></div>
+    <span class="zahl" data-rest>{{ minuten }}:00</span>
+  </div>
+  {% endif %}
+
+  <form id="sprint" method="post" action="{{ url_for('rechnen.sprint_lauf') }}" class="stapel"
+        onkeydown="if (event.key === 'Enter' && event.target.matches('input')) { event.preventDefault(); const f = [...this.querySelectorAll('input:not([type=hidden]):not([disabled]), select')]; f[f.indexOf(event.target) + 1]?.focus() }">
+    {% for art, seed, a in aufgaben %}<input type="hidden" name="a" value="{{ art.slug }}:{{ seed }}">{% endfor %}
+    <input type="hidden" name="start" value="{{ start }}">
+
+    {% for art, seed, a in aufgaben %}
+    {% set i = loop.index %}
+    <section class="sprint-aufgabe" id="aufgabe-{{ i }}" aria-labelledby="aufgabe-{{ i }}-titel">
+      <header class="zeile zwischen">
+        <p class="etikett" id="aufgabe-{{ i }}-titel">Aufgabe {{ i }} von {{ aufgaben|length }} · {{ art.gruppe }} › {{ art.titel }}</p>
+        <span class="klein zahl">{% if fertig %}{{ ('%g' % punkte_je[i - 1])|replace('.', ',') }} von {{ punkte }} Punkten{% else %}{{ punkte }} Punkte{% endif %}</span>
+      </header>
+      <div class="prosa aufgabe-inhalt rechnen-frage">{{ a.frage|markdown }}</div>
+      {{ r.felder(a, eingaben[i - 1], werte[i - 1] if fertig else none, praefix='a' ~ i ~ '-', fokus=loop.first) }}
+      {% if fertig %}
+      <details class="kontext" {{ 'open' if punkte_je[i - 1] < punkte }}>
+        <summary>Rechenweg</summary>
+        <div class="prosa aufgabe-inhalt rechnen-weg">{{ a.rechenweg|markdown }}</div>
+      </details>
+      {% endif %}
+    </section>
+    {% endfor %}
+
+    {% if not fertig %}
+    <div class="zeile">
+      <button type="submit" class="btn">Abgeben und auswerten</button>
+      <span class="klein gedaempft">Leere Felder zählen null Punkte. Läuft die Zeit ab, gibt Saku selbst ab.</span>
+    </div>
+    {% endif %}
+  </form>
+
+  {% if not fertig %}
+  <script>
+    // Restzeit jede Sekunde; bei null gibt Saku ab (auch wenn die Seite erst nach Ablauf geöffnet wird)
+    (() => {
+      const uhr = document.getElementById("sprint-uhr");
+      const ende = Number(uhr.dataset.ende) * 1000, dauer = Number(uhr.dataset.dauer) * 1000;
+      const anzeige = uhr.querySelector("[data-rest]"), balken = uhr.querySelector(".linie-fortschritt > span");
+      const takt = () => {
+        const rest = Math.max(0, ende - Date.now()), s = Math.ceil(rest / 1000);
+        anzeige.textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+        balken.style.width = `${(100 * rest) / dauer}%`;
+        uhr.classList.toggle("sprint-uhr--knapp", rest < 60000);
+        if (rest <= 0) {
+          clearInterval(zeit);
+          document.getElementById("sprint").requestSubmit();
+        }
+      };
+      const zeit = setInterval(takt, 1000);
+      takt();
+    })();
+  </script>
+  {% endif %}
+{% endif %}
+</div>
+{% endblock %}

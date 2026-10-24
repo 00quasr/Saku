@@ -5,12 +5,14 @@ import time
 
 from flask import Blueprint, abort, make_response, redirect, render_template, request, url_for
 
-from saku.lernen import rechnen
+from saku.lernen import rechnen, simulation
 from saku.web import db, ist_fragment, seite_oder_fragment
 
 bp = Blueprint("rechnen", __name__, url_prefix="/rechnen")
 
 SEEDS = 10 ** 6
+# Rechen-Sprint: so viele Aufgaben, so viele Minuten, so viele Punkte je Aufgabe (5 · 20 = 100 wie in der Prüfung)
+SPRINT_AUFGABEN, SPRINT_MINUTEN, SPRINT_PUNKTE = 5, 15, 20
 
 
 def _stand(con) -> dict[str, dict]:
@@ -65,12 +67,77 @@ def formeln():
     return render_template("rechnen/formeln.html", gruppen=_gruppen())
 
 
+def _quoten(con) -> dict[str, float]:
+    return {a: sum(s["letzte"]) / len(s["letzte"]) for a, s in _stand(con).items() if s["letzte"]}
+
+
 @bp.get("/gemischt")
 def gemischt():
     """Eine Art nach Gewicht: was zuletzt oft falsch war (oder nie dran), kommt häufiger."""
-    quoten = {a: sum(s["letzte"]) / len(s["letzte"]) for a, s in _stand(db()).items() if s["letzte"]}
-    art = rechnen.gemischt(random.Random(), quoten)
+    art = rechnen.gemischt(random.Random(), _quoten(db()))
     return redirect(url_for("rechnen.aufgabe", art=art, seed=random.randrange(SEEDS), gemischt=1))
+
+
+@bp.get("/sprint")
+def sprint():
+    """Startseite des Sprints: was kommt, wie lange, wie bewertet wird."""
+    return render_template("rechnen/sprint.html", aufgaben=None, anzahl=SPRINT_AUFGABEN, minuten=SPRINT_MINUTEN, punkte=SPRINT_PUNKTE)
+
+
+@bp.get("/sprint/neu")
+def sprint_neu():
+    """Fünf verschiedene Arten, gewichtet wie „Gemischt üben“; Arten, Seeds und Startzeit stehen in der Adresse."""
+    rng, arten, quoten = random.Random(), [], _quoten(db())
+    for _ in range(SPRINT_AUFGABEN):
+        arten.append(rechnen.gemischt(rng, quoten, ohne=arten))
+    return redirect(url_for("rechnen.sprint_lauf", a=[f"{art}:{rng.randrange(SEEDS)}" for art in arten], start=int(time.time())))
+
+
+def _sprint_aufgaben() -> list[tuple]:
+    """(Art, Seed, Aufgabe) aus a=art:seed; keine Datenbank nötig, die Aufgaben entstehen aus den Seeds neu."""
+    paare = []
+    for wert in request.values.getlist("a")[:SPRINT_AUFGABEN]:
+        art, _, seed = wert.partition(":")
+        if art not in rechnen.ARTEN or not seed.isdigit():
+            abort(400)
+        paare.append((rechnen.ARTEN[art], int(seed), rechnen.erzeugen(art, int(seed))))
+    if not paare:
+        abort(400)
+    return paare
+
+
+@bp.route("/sprint/lauf", methods=["GET", "POST"])
+def sprint_lauf():
+    """GET: alle Aufgaben mit Timer; POST (Abgabe oder Zeit um): Punkte je Aufgabe anteilig nach Feldern, Note, Rechenwege."""
+    aufgaben = _sprint_aufgaben()
+    start = request.values.get("start", type=int) or int(time.time())
+    kontext = {"aufgaben": aufgaben, "start": start, "ende": start + SPRINT_MINUTEN * 60, "minuten": SPRINT_MINUTEN,
+               "punkte": SPRINT_PUNKTE, "eingaben": [{} for _ in aufgaben], "werte": None}
+    if request.method == "GET":
+        return render_template("rechnen/sprint.html", **kontext)
+    eingaben = [{f.name: request.form.get(f"a{i}-{f.name}", "")[:200] for f in a.felder}
+                for i, (_, _, a) in enumerate(aufgaben, start=1)]
+    # ganz leer abgegeben zählt null, auch wo leere Zellen richtig wären (freie Plätze beim Hashing)
+    werte = [rechnen.pruefen(a, e) if any(v.strip() for v in e.values()) else {f.name: False for f in a.felder}
+             for (_, _, a), e in zip(aufgaben, eingaben)]
+    punkte = [round(SPRINT_PUNKTE * sum(w.values()) / len(w), 1) for w in werte]
+    dauer = min(max(int(time.time()) - start, 0), 3 * 3600)
+    con = db()
+    # Neu laden schickt das Formular noch einmal: dieselben Aufgaben seit dem Start nicht doppelt speichern
+    schon = con.execute(f"SELECT COUNT(*) FROM rechenuebung WHERE zeitpunkt >= datetime(?, 'unixepoch') "
+                        f"AND art || ':' || seed IN ({','.join('?' * len(aufgaben))})",
+                        [start, *(f"{art.slug}:{seed}" for art, seed, _ in aufgaben)]).fetchone()[0]
+    if not schon:
+        con.executemany("INSERT INTO rechenuebung (art, seed, richtig, felder_richtig, felder_gesamt, dauer_s) VALUES (?, ?, ?, ?, ?, ?)",
+                        [(art.slug, seed, int(all(w.values())), sum(w.values()), len(w), dauer // len(aufgaben))
+                         for (art, seed, _), w in zip(aufgaben, werte)])
+        con.commit()
+    erreicht, moeglich = sum(punkte), SPRINT_PUNKTE * len(aufgaben)
+    hundert = simulation.umrechnen(erreicht, moeglich)
+    note = simulation.note(hundert)
+    return render_template("rechnen/sprint.html", **kontext | {
+        "eingaben": eingaben, "werte": werte, "punkte_je": punkte, "erreicht": erreicht, "moeglich": moeglich, "hundert": hundert,
+        "note": note, "note_text": simulation.NOTEN[note], "bestanden": hundert >= simulation.BESTANDEN_AB, "dauer": dauer})
 
 
 @bp.get("/<art>")

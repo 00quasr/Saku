@@ -93,6 +93,24 @@
   .formel-text { font-size: 9pt; line-height: 1.35; }
 }
 
+/* Rechen-Sprint: Restzeit klebt oben, Aufgaben untereinander, am Ende Punkte und Note */
+.sprint-uhr {
+  position: sticky; top: 0; z-index: 30; display: flex; align-items: center; gap: 16px;
+  padding: 12px 0; background: var(--washi);
+}
+.sprint-uhr .linie-fortschritt { flex: 1; }
+.sprint-uhr [data-rest] { font-size: 1.125rem; font-weight: 500; min-width: 3.5rem; text-align: right; }
+.sprint-uhr--knapp [data-rest] { color: var(--beni); }
+.sprint-uhr--knapp .linie-fortschritt > span { background: var(--beni); }
+.sprint-aufgabe { display: grid; gap: 16px; padding: 24px 0; border-top: 1px solid var(--linie); }
+.sprint-aufgabe > header { gap: 12px; }
+.sprint-ergebnis { display: grid; gap: 18px; padding-bottom: 8px; }
+.sprint-punkte { font-size: 1.125rem; }
+.sprint-punkte .zahl { font-weight: 300; font-size: 3rem; line-height: 1; letter-spacing: -0.02em; margin-right: 6px; }
+.sprint-liste { display: grid; gap: 4px; max-width: 28rem; }
+.sprint-liste li { display: flex; justify-content: space-between; gap: 16px; }
+.sprint-liste a { text-decoration-color: var(--linie); }
+
 /* Dezenter Hinweis auf der Üben-Karte und in der Themen-Notiz */
 .rechnen-link { color: var(--sumi-mittel); }
 .rechnen-link a { color: var(--shu); text-decoration: none; }

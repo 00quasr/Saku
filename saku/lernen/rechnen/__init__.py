@@ -83,7 +83,8 @@ def passend(namen) -> Art | None:
     return None
 
 
-def gemischt(rng: random.Random, quoten: dict[str, float]) -> str:
-    """Zufällige Art für „Gemischt üben“: je schwächer die Quote der letzten Versuche, desto häufiger; Neues wie Schwaches."""
-    arten = list(ARTEN)
+def gemischt(rng: random.Random, quoten: dict[str, float], ohne=()) -> str:
+    """Zufällige Art für „Gemischt üben“: je schwächer die Quote der letzten Versuche, desto häufiger; Neues wie Schwaches.
+    ohne: Arten, die schon dran sind (Sprint: keine Art doppelt)."""
+    arten = [a for a in ARTEN if a not in ohne]
     return rng.choices(arten, weights=[1.25 - quoten.get(a, 0.0) for a in arten])[0]

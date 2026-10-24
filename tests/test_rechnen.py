@@ -606,3 +606,47 @@ def test_differenz_und_rueckwaertskalkulation():
             # Probe vorwärts: mit diesem Einkaufspreis kommt genau der Marktpreis heraus
             vor = (a.loesung["lep"] * (1 - r) * (1 - s) + bk) * (1 + hk) * (1 + g) / (1 - ks) / (1 - kr)
             assert vor == pytest.approx(lvp, abs=0.2)
+
+
+# --- Rechen-Sprint ---------------------------------------------------------------------
+
+def test_sprint_ablauf_punkte_note(client, con):
+    from urllib.parse import parse_qs, urlparse
+    from saku.lernen import simulation
+    from saku.web.routen.suche import befehle
+    assert 'href="/rechnen/sprint/neu" data-taste="Enter"' in client.get("/rechnen/sprint").get_data(as_text=True)
+    assert 'href="/rechnen/sprint"' in client.get("/rechnen/").get_data(as_text=True)
+    assert befehle("sprint")[0][3] == ("rechnen.sprint", {})
+
+    adresse = client.get("/rechnen/sprint/neu").headers["Location"]
+    q = parse_qs(urlparse(adresse).query)
+    arten = [w.split(":")[0] for w in q["a"]]
+    assert len(arten) == 5 == len(set(arten)) and all(a in rechnen.ARTEN for a in arten)
+    html = client.get(adresse).get_data(as_text=True)
+    assert html.count('class="sprint-aufgabe"') == 5 and html.count("autofocus") == 1 and 'id="sprint-uhr"' in html
+
+    aufgaben = [rechnen.erzeugen(art, int(seed)) for art, seed in (w.split(":") for w in q["a"])]
+    daten = {"a": q["a"], "start": q["start"][0]}
+    daten |= {f"a1-{f.name}": f.anzeige for f in aufgaben[0].felder}  # erste ganz richtig
+    zweite = aufgaben[1].felder
+    daten |= {f"a2-{zweite[0].name}": zweite[0].anzeige or "x"}  # zweite: ein Feld (leer richtig gilt nicht für ganz leere Aufgaben)
+    richtig_2 = sum(rechnen.pruefen(aufgaben[1], {zweite[0].name: zweite[0].anzeige or "x"}).values())
+    erreicht = 20 + round(20 * richtig_2 / len(zweite), 1)
+    html = client.post("/rechnen/sprint/lauf", data=daten).get_data(as_text=True)
+    note = simulation.note(simulation.umrechnen(erreicht, 100))
+    assert f"Note {note} · {simulation.NOTEN[note]}" in html and html.count('<details class="kontext"') == 5
+    zeilen = con.execute("SELECT art, richtig FROM rechenuebung ORDER BY id").fetchall()
+    assert [z[0] for z in zeilen] == arten and zeilen[0][1] == 1 and not any(z[1] for z in zeilen[2:])
+    client.post("/rechnen/sprint/lauf", data=daten)  # neu laden schickt noch einmal ab: nicht doppelt zählen
+    assert con.execute("SELECT COUNT(*) FROM rechenuebung").fetchone()[0] == 5
+    assert client.post("/rechnen/sprint/lauf", data={"a": "gibtsnicht:1"}).status_code == 400
+    assert client.get("/rechnen/sprint/lauf").status_code == 400
+
+
+def test_gemischt_ohne_doppelte():
+    rng = random.Random(3)
+    for _ in range(50):
+        gezogen = []
+        for _ in range(5):
+            gezogen.append(rechnen.gemischt(rng, {}, ohne=gezogen))
+        assert len(set(gezogen)) == 5
