@@ -1364,7 +1364,8 @@ def test_datenbanken_im_umfang_und_nicht_im_sprint(client, con):
     from urllib.parse import parse_qs, urlparse
     ap1, ae, si = (set(rechnen.im_umfang(p)) for p in ("AP1", "AP2-1201", "AP2-1202"))
     datenbanken = {a for a, x in rechnen.ARTEN.items() if x.gruppe == "Datenbanken"}
-    assert datenbanken == {*SQL_ARTEN, "ermodell", "normalform"} and datenbanken <= ae and datenbanken <= ap1 and not datenbanken & si
+    assert datenbanken == {*SQL_ARTEN, "ermodell", "normalform"} and datenbanken <= ae and not datenbanken & si
+    assert datenbanken & ap1 == datenbanken - {"normalform"}  # Normalformen fragt keine AP1 im Katalog
     assert {a for a, x in rechnen.ARTEN.items() if not x.sprint} == {*SQL_ARTEN, "algorithmus"}  # Pseudocode schreiben auch nicht
     for _ in range(25):  # Demo: AP2 AE, Datenbanken gehören dazu, SQL aber nicht in den Sprint
         arten = {w.split(":")[0] for w in parse_qs(urlparse(client.get("/rechnen/sprint/neu").headers["Location"]).query)["a"]}

@@ -27,7 +27,9 @@ UMFANG = {
     "AP2-1202": ["Netzwerk", "Strom & Hardware", "Daten & Medien", "Wirtschaft", "WiSo", "IT-Sicherheit"],
 }
 
-OHNE = {"AP1": ("zustand", "sequenz")}  # einzelne Arten, die ein Pfad trotz ihrer Gruppe nicht prüft
+# einzelne Arten, die ein Pfad trotz ihrer Gruppe nicht prüft (Stichprobe der AP1-Termine im Katalog: Zustands- und
+#   Sequenzdiagramm, Normalformen nie; SQL in 3, ER-Modell in 4 von 10)
+OHNE = {"AP1": ("zustand", "sequenz", "normalform")}
 
 LETZTE = 5  # so viele Versuche zählen für die Quote
 QUOTE = 0.8  # darunter ist eine Art fällig
