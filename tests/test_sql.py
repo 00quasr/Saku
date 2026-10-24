@@ -8,6 +8,7 @@ import pytest
 
 from saku import db
 from saku.lernen import sql
+from saku.pipeline import sandbox
 
 DDL = "CREATE TABLE kunde (id INTEGER PRIMARY KEY, name TEXT, ort TEXT, umsatz REAL);"
 DATEN = "INSERT INTO kunde VALUES (1, 'Ada', 'Köln', 120.5), (2, 'Bo', 'Bonn', 80), (3, 'Cem', 'Köln', 120.5), (4, 'Dana', NULL, 10);"
@@ -88,6 +89,56 @@ def test_endlosschleife_und_grenzen(monkeypatch):
     # Skript: geänderte Tabellen statt Ergebnis
     skript = sql.ausfuehren(DDL, DATEN, "DELETE FROM kunde WHERE ort IS NULL; UPDATE kunde SET ort = 'Bonn' WHERE id = 1;")
     assert skript["meldung"] == "2 Zeilen geändert" and [t["titel"] for t in skript["tabellen"]] == ["kunde"]
+
+
+def _pipeline_mock(monkeypatch, reparieren: dict) -> list[str]:
+    """Lager-Aufgabe: gültige Antwort. Verleih-Aufgabe: Lösung greift auf eine fehlende Tabelle zu,
+    erst mit reparieren["an"] klappt der zweite Versuch."""
+    aufrufe = []
+
+    def strukturiert(c, zweck, rolle, system, text, schema, **kw):
+        aufrufe.append(text)
+        assert (zweck, rolle, schema) == ("sandbox", "stark", sandbox.SCHEMA)
+        ids = [int(i) for i in re.findall(r"SQL-Teilaufgabe id (\d+)", text)]
+        if "Lager" in text:
+            return {"ddl": "CREATE TABLE artikel (id INTEGER PRIMARY KEY, lager_id INTEGER);",
+                    "daten": "INSERT INTO artikel VALUES (1, 1), (2, 1), (3, 2);",
+                    "teilaufgaben": [{"id": ids[0], "loesung_sql": "SELECT lager_id, COUNT(*) FROM artikel GROUP BY lager_id"},
+                                     {"id": 99999, "loesung_sql": "SELECT 1"}]}
+        tabellen = "CREATE TABLE kunde (id INTEGER PRIMARY KEY);"
+        if reparieren["an"] and "lief in SQLite nicht" in text:
+            tabellen += "CREATE TABLE ausleihe (id INTEGER PRIMARY KEY, kunde_id INTEGER);"
+        return {"ddl": tabellen, "daten": "INSERT INTO kunde VALUES (1); INSERT INTO ausleihe VALUES (1, 1);" if "ausleihe" in tabellen else
+                "INSERT INTO kunde VALUES (1);",
+                "teilaufgaben": [{"id": ids[0], "loesung_sql": "SELECT * FROM kunde k JOIN ausleihe a ON a.kunde_id = k.id"}]}
+
+    monkeypatch.setattr(sandbox.client, "strukturiert", strukturiert)
+    return aufrufe
+
+
+def test_schritt_sandbox(con, daten, monkeypatch, capsys):
+    con.execute("DELETE FROM sql_sandbox")
+    con.execute("UPDATE teilaufgabe SET loesung_sql = NULL")
+    con.commit()
+    reparieren = {"an": False}
+    aufrufe = _pipeline_mock(monkeypatch, reparieren)
+
+    sandbox.ausfuehren(con, daten, False, "claude-code")
+    lager = con.execute("SELECT t.id, t.aufgabe_id, t.loesung_sql FROM teilaufgabe t WHERE t.text LIKE '%Artikel je Lager%'").fetchone()
+    verleih = con.execute("SELECT t.id, t.aufgabe_id, t.loesung_sql FROM teilaufgabe t WHERE t.text LIKE '%per JOIN%'").fetchone()
+    assert lager["loesung_sql"].endswith("GROUP BY lager_id") and verleih["loesung_sql"] is None
+    assert [z[0] for z in con.execute("SELECT aufgabe_id FROM sql_sandbox")] == [lager["aufgabe_id"]]
+    assert "SQL-Teilaufgabe id" in aufrufe[0] and "(kein SQL)" in aufrufe[0]  # die anderen Teilaufgaben nur zum Verständnis
+    zweiter = [a for a in aufrufe if "lief in SQLite nicht" in a]
+    assert len(aufrufe) == 3 and "no such table: ausleihe" in zweiter[0]  # kaputt: ein zweiter Versuch mit der Meldung
+    assert "ohne Sandbox" in capsys.readouterr().out
+
+    reparieren["an"] = True
+    sandbox.ausfuehren(con, daten, False, "claude-code")
+    assert len(aufrufe) == 5 and sum("Lager" in a for a in aufrufe) == 1  # nur, was noch fehlt
+    assert con.execute("SELECT loesung_sql FROM teilaufgabe WHERE id = ?", (verleih["id"],)).fetchone()[0].startswith("SELECT *")
+    sandbox.ausfuehren(con, daten, True, "api")  # ohne KI: nichts zu tun
+    assert len(aufrufe) == 5
 
 
 def test_migration_7(tmp_path):
