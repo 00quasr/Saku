@@ -2,6 +2,7 @@
 
 import argparse
 import json
+import sqlite3
 import threading
 import webbrowser
 from pathlib import Path
@@ -66,7 +67,7 @@ def lernstand_datei(aktion: str, datei: Path) -> None:
             return
         try:
             zahlen = lernstand.importieren(con, json.loads(datei.read_text(encoding="utf-8")))
-        except (OSError, ValueError, KeyError, TypeError) as fehler:
+        except (OSError, ValueError, KeyError, TypeError, AttributeError, sqlite3.Error) as fehler:  # zurückgerollt
             raise SystemExit(f"Import abgebrochen, nichts geändert: {fehler!r}")
         for bereich, (uebernommen, uebersprungen) in zahlen.items():
             print(f"{bereich}: {uebernommen} übernommen, {uebersprungen} übersprungen")

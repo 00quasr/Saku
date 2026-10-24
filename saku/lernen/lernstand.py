@@ -24,6 +24,20 @@ def _stationen(con: sqlite3.Connection) -> dict[int, dict]:
     return stationen
 
 
+def _einstellung_gueltig(schluessel: str, wert) -> bool:
+    """Was die Einstellungen beim Speichern ablehnen, übernimmt auch der Import nicht (ein falscher Termin legte sonst Heute
+    lahm); dazu, ob die Einführung gesehen ist. Zwischenspeicher wie niwa_stufen baut Saku selbst neu auf."""
+    from saku.web.routen.kern import FELDER  # erst hier: der Lernstand hängt sonst schon beim Laden am Web
+    if not isinstance(wert, str):
+        return False
+    if schluessel == "einfuehrung":
+        return True
+    try:
+        return schluessel in FELDER and bool(FELDER[schluessel](wert))
+    except ValueError:
+        return False
+
+
 def exportieren(con: sqlite3.Connection) -> dict:
     schluessel = _teilaufgaben(con)
 
@@ -80,7 +94,7 @@ def importieren(con: sqlite3.Connection, daten: dict) -> dict[str, list[int]]:
 
     with con:  # alles oder nichts
         for schluessel, wert in daten.get("einstellungen", {}).items():
-            zaehlen("einstellungen", einfuegen(
+            zaehlen("einstellungen", _einstellung_gueltig(schluessel, wert) and einfuegen(
                 "INSERT INTO einstellung (schluessel, wert) VALUES (?, ?) "
                 "ON CONFLICT (schluessel) DO UPDATE SET wert = excluded.wert WHERE wert <> excluded.wert", schluessel, wert))
 
