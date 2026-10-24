@@ -640,7 +640,7 @@ def test_sprint_ablauf_punkte_note(client, con):
     client.post("/rechnen/sprint/lauf", data=daten)  # neu laden schickt noch einmal ab: nicht doppelt zählen
     assert con.execute("SELECT COUNT(*) FROM rechenuebung").fetchone()[0] == 5
     assert client.post("/rechnen/sprint/lauf", data={"a": "gibtsnicht:1"}).status_code == 400
-    assert client.get("/rechnen/sprint/lauf").status_code == 400
+    assert client.get("/rechnen/sprint/lauf").headers["Location"].endswith("/rechnen/sprint")  # ohne Aufgaben: zur Startseite
 
 
 def test_gemischt_ohne_doppelte():

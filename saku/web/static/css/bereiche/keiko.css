@@ -202,3 +202,9 @@
 .verlauf-tabelle .verlauf-rechts { text-align: right; }
 .verlauf-bereich { display: block; }
 .verlauf-seiten { gap: 8px; }
+
+/* Grundwissen: Richtung umschalten, umgekehrt die Begriffe zur Wahl untereinander */
+.grundwissen-richtung { margin-bottom: 24px; align-items: center; }
+.grundwissen-taste { padding: 0 6px; }
+.begriff-wahl { display: grid; gap: 8px; width: 100%; }
+.begriff-wahl .btn { justify-content: flex-start; gap: 10px; }

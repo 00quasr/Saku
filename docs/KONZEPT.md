@@ -98,6 +98,7 @@ Die Startseite beantwortet eine einzige Frage: *Was mache ich jetzt?*
 - **Nächste Station** im Lernpfad
 - **Prüfungsreife** als Ensō (siehe unten)
 - **Lernserie:** wie viele Tage in Folge gelernt wurde
+- **Wochenrückblick** (auch oben im Verlauf, sobald in den letzten 7 Tagen bewertet wurde): Bewertungen gegen die 7 Tage davor, neu sicher gewordene Teilaufgaben, Anteil „gewusst“, stärkstes und schwächstes Thema, Rechenübungen
 
 So berechnet sich das Tagesziel:
 

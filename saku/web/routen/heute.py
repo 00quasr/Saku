@@ -6,7 +6,7 @@ from datetime import date, datetime, timedelta
 from flask import Blueprint, abort, make_response, redirect, render_template, request, url_for
 
 from saku.db import einstellung, setze_einstellung
-from saku.lernen import fahrplan, karten, operatoren, pfad, simulation, tagesziel
+from saku.lernen import fahrplan, karten, operatoren, pfad, rueckblick, simulation, tagesziel
 from saku.web import db
 from saku.web.routen.bunseki import dauerbrenner, termin_name
 from saku.web.routen.rechnen import heute_gerechnet
@@ -94,6 +94,7 @@ def index():
         grundwissen=karten.begriffe(con, []),
         laufend=simulation.laufende(con),
         gerechnet=heute_gerechnet(con),
+        rueckblick=rueckblick.woche(con),
     )
 
 
