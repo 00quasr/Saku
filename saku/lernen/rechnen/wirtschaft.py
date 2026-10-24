@@ -4,6 +4,36 @@ from decimal import ROUND_HALF_UP, Decimal
 
 from saku.lernen.rechnen.basis import FIRMEN, Aufgabe, Feld, art, de, euro, schritte, tabelle
 
+# Formeln und Merksätze je Art: Formelsammlung und Karte zeigen sie nach dem Rechenweg
+FORMELN = {
+    "kalkulation": """| Schritt | gerechnet vom |
+| --- | --- |
+| Listeneinkaufspreis − Liefererrabatt = Zieleinkaufspreis | Listeneinkaufspreis |
+| − Liefererskonto = Bareinkaufspreis | Zieleinkaufspreis |
+| + Bezugskosten = **Bezugspreis** | |
+| + Handlungskosten = **Selbstkosten** | Bezugspreis |
+| + Gewinn = Barverkaufspreis | Selbstkosten |
+| + Kundenskonto = Zielverkaufspreis | im Hundert: Barverkaufspreis : (100 − s) · 100 |
+| + Kundenrabatt = Listenverkaufspreis netto | im Hundert: Zielverkaufspreis : (100 − r) · 100 |
+| + Umsatzsteuer 19 % = brutto | Listenverkaufspreis netto |
+
+- Angebotsvergleich: Bezugspreis jedes Angebots für die ganze Menge, das günstigste gewinnt
+
+*Beispiel:* 1.000 € − 10 % = 900 €, − 2 % Skonto = 882 €, + 20 € Bezugskosten = 902 € Bezugspreis""",
+    "vergleich": """- Gesamtkosten = einmalige Kosten + monatliche Kosten · Monate
+- Kauf: Preis + Wartung · Monate; Leasing: Sonderzahlung + Rate · Monate; Miete: Rate · Monate
+- Ab wann lohnt sich der Kauf? Kauf + w · m < Rate · m ⇔ m > Kaufpreis : (Rate − w) → der erste ganze Monat danach
+- Fixkosten fallen unabhängig von der Nutzung an, variable Kosten mit ihr
+
+*Beispiel:* 4.800 € + 30 €/Monat gegen Miete 190 €/Monat: m > 4.800 : 160 = 30 → ab Monat 31""",
+    "nutzwert": """- Gewichtungen zusammen 100 %; eine fehlende = 100 % − Summe der übrigen
+- Teilnutzwert = Punkte · Gewichtung (als Anteil, 40 % = 0,4)
+- Nutzwert = Summe der Teilnutzwerte; der höchste Nutzwert gewinnt
+
+*Beispiel:* Punkte 8, 6, 9 bei 50 %, 30 %, 20 %: 8 · 0,5 + 6 · 0,3 + 9 · 0,2 = 7,6""",
+}
+
+
 WAREN = [("Notebooks", [650, 850, 980, 1200, 1450]), ("Monitore", [180, 240, 320, 450]), ("Switches", [380, 520, 890, 1250]),
          ("Server", [2400, 3600, 4800, 5600]), ("Multifunktionsdrucker", [480, 760, 1150]), ("Dockingstationen", [120, 160, 220])]
 
@@ -18,7 +48,7 @@ def _prozent(p: Decimal) -> str:
 
 
 @art("kalkulation", "Kalkulation", "Wirtschaft", "Bezugs- und Angebotskalkulation, Angebotsvergleich",
-     ("Kalkulation", "Angebotsvergleich", "Bezugspreis"))
+     ("Kalkulation", "Angebotsvergleich", "Bezugspreis"), formeln=FORMELN["kalkulation"])
 def kalkulation(rng):
     return rng.choice([_vorwaerts, _vorwaerts, _angebotsvergleich])(rng)
 
@@ -138,7 +168,7 @@ def _modelle(rng):
 
 
 @art("vergleich", "Kauf, Leasing, Miete", "Wirtschaft", "Gesamtkosten über die Laufzeit und ab wann sich der Kauf lohnt",
-     ("Leasing", "Miete", "Kostenarten", "Kostenvergleich", "Wirtschaftlichkeit", "Amortisation"))
+     ("Leasing", "Miete", "Kostenarten", "Kostenvergleich", "Wirtschaftlichkeit", "Amortisation"), formeln=FORMELN["vergleich"])
 def vergleich(rng):
     return rng.choice([_gesamtkosten, _ab_wann])(rng)
 
@@ -204,7 +234,7 @@ GEWICHTE = [[40, 30, 20, 10], [35, 25, 25, 15], [30, 30, 20, 20], [50, 20, 20, 1
 
 
 @art("nutzwert", "Nutzwertanalyse", "Wirtschaft", "Gewichtete Punkte je Anbieter, der Sieger",
-     ("Nutzwert", "Entscheidungsmatrix", "Bewertungsmatrix"))
+     ("Nutzwert", "Entscheidungsmatrix", "Bewertungsmatrix"), formeln=FORMELN["nutzwert"])
 def nutzwert(rng):
     while True:
         gewichte = list(rng.choice(GEWICHTE))

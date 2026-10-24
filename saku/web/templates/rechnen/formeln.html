@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block titel %}Formelsammlung · Rechnen{% endblock %}
+{% block inhalt %}
+{{ m.kopf('keiko', '算', 'Rechnen', 'Formelsammlung', schmal=True) }}
+
+<div class="seite weit rechnen formelsammlung">
+  <div class="zeile rechnen-start nicht-drucken">
+    <button type="button" class="btn" onclick="print()">{{ m.icon('printer') }} Als Spickzettel drucken</button>
+    <a class="btn" data-variant="outline" href="{{ url_for('rechnen.index') }}">Zur Übersicht</a>
+    <p class="klein gedaempft">Druckt hell und zweispaltig, ohne Seitenleiste. Dieselben Formeln stehen nach dem Prüfen unter jedem Rechenweg.</p>
+  </div>
+  <h1 class="titel nur-drucken"><span lang="ja">算</span> Formelsammlung · Saku</h1>
+
+  {% for gruppe, arten in gruppen %}
+  <section class="formel-gruppe" aria-labelledby="formel-gruppe-{{ loop.index }}">
+    <h2 class="etikett" id="formel-gruppe-{{ loop.index }}">{{ gruppe }}</h2>
+    <div class="formel-arten">
+      {% for a in arten %}
+      <article class="formel-art" id="{{ a.slug }}">
+        <h3 class="formel-titel"><a href="{{ url_for('rechnen.aufgabe', art=a.slug) }}">{{ a.titel }}</a></h3>
+        <div class="prosa formel-text">{{ a.formeln|markdown }}</div>
+      </article>
+      {% endfor %}
+    </div>
+  </section>
+  {% endfor %}
+</div>
+{% endblock %}

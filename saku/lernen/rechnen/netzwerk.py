@@ -5,6 +5,32 @@ import math
 
 from saku.lernen.rechnen.basis import ABTEILUNGEN, BYTE, FAKTOR, FIRMEN, Aufgabe, Feld, art, de, hoch, schritte, tabelle
 
+# Formeln und Merksätze je Art: Formelsammlung und Karte zeigen sie nach dem Rechenweg
+FORMELN = {
+    "subnetz": """- Präfix /p: p Einsen in der Maske, 32 − p Hostbits
+- Hosts je Netz = 2^(32 − p) − 2 (Netz-ID und Broadcast sind nicht nutzbar)
+- Maskenwerte im Oktett: 128, 192, 224, 240, 248, 252, 254, 255
+- Blockgröße = 256 − Maskenwert im angebrochenen Oktett
+- Netz-ID: Oktett auf ein Vielfaches der Blockgröße abrunden, dahinter 0; Broadcast: nächste Netz-ID − 1, dahinter 255
+- n gleich große Subnetze: log₂ n Bits leihen → neues Präfix p + log₂ n; k. Subnetz = Netz-ID + (k − 1) · Blockgröße
+
+*Beispiel:* 192.168.1.77/26 → Maske 255.255.255.192, Block 256 − 192 = 64, Netz-ID 192.168.1.64, Broadcast 192.168.1.127, 2⁶ − 2 = 62 Hosts""",
+    "uebertragung": """- Dauer = Datenmenge in Bit : Datenrate in Bit/s
+- 1 Byte = 8 Bit; Datenraten sind dezimal: 1 Mbit/s = 10⁶ Bit/s, 1 Gbit/s = 1.000 Mbit/s
+- Dateigrößen in MiB oder GiB erst in Byte umrechnen (· 1.024² bzw. · 1.024³)
+- Overhead p %: nutzbare Datenrate = Datenrate · (1 − p : 100)
+- Nötige Datenrate = Datenmenge : Zeit, mit Overhead geteilt durch (1 − p : 100)
+
+*Beispiel:* 650 MB über 25 Mbit/s: 650 · 8 = 5.200 Mbit; 5.200 : 25 = 208 s ≈ 3,47 min""",
+    "ipv6": """- 128 Bit in 8 Blöcken zu je 4 Hexadezimalziffern (16 Bit)
+- Kürzen: führende Nullen je Block weglassen; die längste Folge von Nullblöcken (bei Gleichstand die erste) einmal durch `::` ersetzen
+- Ausschreiben: `::` steht für so viele Nullblöcke, dass es 8 Blöcke werden; jeden Block auf 4 Ziffern auffüllen
+- Anzahl /64-Netze in einem Präfix /p = 2^(64 − p)
+
+*Beispiel:* `2001:0db8:0000:0000:0000:00ff:0000:0001` → `2001:db8::ff:0:1`; ein /48 enthält 2¹⁶ = 65.536 /64-Netze""",
+}
+
+
 # private Bereiche (RFC 1918): Start, Präfix
 PRIVAT = [(0x0A000000, 8), (0xAC100000, 12), (0xC0A80000, 16)]
 
@@ -44,7 +70,8 @@ def _maske_erklaert(p: int) -> str:
 
 
 @art("subnetz", "Subnetting", "Netzwerk", "IPv4: Netz-ID, Broadcast, Hosts, Maske ↔ Präfix, Netze teilen",
-     ("Subnet", "IPv4", "IP-Adressierung", "IP-Adresskonzept", "IP-Konfiguration", "Netzmaske", "CIDR"))
+     ("Subnet", "IPv4", "IP-Adressierung", "IP-Adresskonzept", "IP-Konfiguration", "Netzmaske", "CIDR"),
+     formeln=FORMELN["subnetz"])
 def subnetz(rng):
     return rng.choice([_host_infos, _maske_praefix, _teilen, _mindest_hosts])(rng)
 
@@ -175,7 +202,7 @@ def _rate(r: float) -> str:
 
 
 @art("uebertragung", "Übertragungszeit", "Netzwerk", "Datenmenge und Datenrate: Bit vs. Byte, MB vs. MiB, Overhead",
-     ("Übertragungszeit", "Übertragungsdauer", "Downloadzeit", "Backupdauer", "Restoredauer"))
+     ("Übertragungszeit", "Übertragungsdauer", "Downloadzeit", "Backupdauer", "Restoredauer"), formeln=FORMELN["uebertragung"])
 def uebertragung(rng):
     return rng.choice([_dauer, _noetige_rate, _menge_in_zeit])(rng)
 
@@ -261,7 +288,7 @@ def _ipv6(rng) -> ipaddress.IPv6Address:
             return ipaddress.IPv6Address(":".join(f"{b:04x}" for b in bloecke))
 
 
-@art("ipv6", "IPv6", "Netzwerk", "Adressen kürzen und ausschreiben, /64-Netze in einem Präfix zählen", ("IPv6",))
+@art("ipv6", "IPv6", "Netzwerk", "Adressen kürzen und ausschreiben, /64-Netze in einem Präfix zählen", ("IPv6",), formeln=FORMELN["ipv6"])
 def ipv6(rng):
     return rng.choice([_kuerzen, _ausschreiben, _netze])(rng)
 

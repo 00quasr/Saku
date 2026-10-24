@@ -11,6 +11,18 @@ import operator
 
 from saku.lernen.rechnen.basis import FIRMEN, Aufgabe, Feld, art, tabelle
 
+# Formeln und Merksätze je Art: Formelsammlung und Karte zeigen sie nach dem Rechenweg
+FORMELN = {
+    "schreibtisch": """- Wertetabelle anlegen: eine Spalte je Variable, eine Zeile je Schleifendurchlauf
+- Zeile für Zeile ausführen, nach jeder Zuweisung den neuen Wert eintragen
+- `a DIV b` ganzzahlige Division (17 DIV 5 = 3), `a MOD b` Rest (17 MOD 5 = 2)
+- `FÜR i ← 1 BIS n` läuft n-mal, einschließlich n; Arrays beginnen bei Index 0, der letzte ist länge − 1
+- Typische Fehler: falscher Startwert (Summe mit 1 statt 0), Schleife einen Durchlauf zu kurz oder zu lang, falsche Abbruchbedingung, `>` statt `≥`
+
+*Beispiel:* `zahl ← 345`, `SOLANGE zahl > 0`: quersumme 5, 9, 12; zahl 34, 3, 0""",
+}
+
+
 RANG = {"=": 1, "<>": 1, "<": 1, "<=": 1, ">": 1, ">=": 1, "+": 2, "-": 2, "*": 3, "DIV": 3, "MOD": 3}
 ZEICHEN = {"<>": "≠", "<=": "≤", ">=": "≥"}
 OPS = {"+": operator.add, "-": operator.sub, "*": operator.mul, "DIV": operator.floordiv, "MOD": operator.mod,
@@ -287,7 +299,8 @@ def _wertetabelle(lauf: Lauf) -> str:
 
 
 @art("schreibtisch", "Schreibtischtest", "Programmieren", "Pseudocode von Hand ausführen: Wertetabelle, Ausgabe, Fehlersuche",
-     ("Schreibtischtest", "Kontrollstruktur", "Pseudocode", "Struktogramm", "Programmcode", "Trace-Tabelle"))
+     ("Schreibtischtest", "Kontrollstruktur", "Pseudocode", "Struktogramm", "Programmcode", "Trace-Tabelle"),
+     formeln=FORMELN["schreibtisch"])
 def schreibtisch(rng):
     while True:
         p = rng.choice(FAMILIEN)(rng)

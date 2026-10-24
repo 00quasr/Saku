@@ -33,6 +33,12 @@ def heute_gerechnet(con) -> tuple[int, int]:
                              "WHERE date(zeitpunkt, 'localtime') = date('now', 'localtime')").fetchone())
 
 
+def _gruppen() -> list[tuple[str, list]]:
+    """(Gruppe, Arten) in der Reihenfolge der Übersicht, leere Gruppen fallen weg."""
+    gruppen = [(g, [a for a in rechnen.ARTEN.values() if a.gruppe == g]) for g in rechnen.GRUPPEN]
+    return [(g, arten) for g, arten in gruppen if arten]
+
+
 def _art_oder_404(art: str) -> rechnen.Art:
     if art not in rechnen.ARTEN:
         abort(404)
@@ -50,8 +56,13 @@ def _kontext(art: str, seed: int, gemischt: bool, eingaben: dict | None = None, 
 @bp.get("/")
 def index():
     con = db()
-    gruppen = [(g, [a for a in rechnen.ARTEN.values() if a.gruppe == g]) for g in rechnen.GRUPPEN]
-    return render_template("rechnen/index.html", gruppen=gruppen, stand=_stand(con), heute=heute_gerechnet(con))
+    return render_template("rechnen/index.html", gruppen=_gruppen(), stand=_stand(con), heute=heute_gerechnet(con))
+
+
+@bp.get("/formeln")
+def formeln():
+    """Formelsammlung aller Arten, gruppiert wie die Übersicht; druckbar als Spickzettel."""
+    return render_template("rechnen/formeln.html", gruppen=_gruppen())
 
 
 @bp.get("/gemischt")

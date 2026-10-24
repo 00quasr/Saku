@@ -89,6 +89,13 @@
     </p>
     <p class="etikett">Rechenweg</p>
     <div class="prosa aufgabe-inhalt rechnen-weg">{{ a.rechenweg|markdown }}</div>
+    {% if art.formeln %}
+    <details class="kontext rechnen-formeln">
+      <summary>Formeln: {{ art.titel }}</summary>
+      <div class="prosa formel-text">{{ art.formeln|markdown }}</div>
+      <p class="klein"><a href="{{ url_for('rechnen.formeln') }}#{{ art.slug }}">Ganze Formelsammlung</a></p>
+    </details>
+    {% endif %}
     <nav class="zeile rechnen-weiter" aria-label="Weiter">
       <button type="button" class="btn" data-taste="Enter" hx-get="{{ naechste }}" hx-target="#karte" hx-swap="outerHTML show:window:top">
         Nächste Aufgabe {{ m.taste('↵') }}</button>

@@ -223,7 +223,7 @@ HTMX = {"HX-Request": "true"}
 
 def test_uebersicht_und_seitenleiste(client):
     html = client.get("/rechnen/").get_data(as_text=True)
-    assert all(a.titel in html for a in rechnen.ARTEN.values()) and all(g.replace("&", "&amp;") in html for g in rechnen.GRUPPEN)
+    assert all(a.titel in html for a in rechnen.ARTEN.values()) and all(a.gruppe.replace("&", "&amp;") in html for a in rechnen.ARTEN.values())
     assert 'href="/rechnen/gemischt" data-taste="Enter"' in html and "Noch nicht gerechnet" in html
     assert 'href="/rechnen/"' in client.get("/").get_data(as_text=True)  # Seitenleiste
     assert client.get("/rechnen/gibtsnicht").status_code == 404
@@ -365,3 +365,14 @@ def test_listen_und_leere_zellen():
     assert not rechnen.stimmt(liste, "3, 1, 8") and not rechnen.stimmt(liste, "3, 8")
     leer = Feld("z", "Zelle", "", typ="text")
     assert rechnen.stimmt(leer, "") and not rechnen.stimmt(leer, "5") and not rechnen.stimmt(Feld("z", "Zahl", 5, stellen=0), "")
+
+
+def test_formelsammlung(client):
+    from saku.web.routen.suche import befehle
+    assert all("Beispiel" in a.formeln for a in rechnen.ARTEN.values())
+    html = client.get("/rechnen/formeln").get_data(as_text=True)
+    assert all(f'<article class="formel-art" id="{a.slug}">' in html for a in rechnen.ARTEN.values()) and 'onclick="print()"' in html
+    assert 'href="/rechnen/formeln"' in client.get("/rechnen/").get_data(as_text=True)
+    assert befehle("formelsammlung")[0][3] == ("rechnen.formeln", {})
+    karte = client.post("/rechnen/raid/pruefen", data={"seed": 1, "aufgeben": "1"}, headers=HTMX).get_data(as_text=True)
+    assert "Formeln: RAID" in karte and 'href="/rechnen/formeln#raid"' in karte  # dieselbe Quelle wie die Sammlung

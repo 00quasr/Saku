@@ -56,6 +56,41 @@
 .rechnen-weg ol { padding-left: 1.5em; }
 .rechnen-weg ol > li + li { margin-top: 4px; }
 
+.rechnen-formeln { margin-top: 4px; }
+.rechnen-start .btn .icon { width: 16px; height: 16px; }
+
+/* Formelsammlung: am Bildschirm Karten je Art, gedruckt zweispaltig auf weißem Papier */
+.nur-drucken { display: none; }
+.formel-gruppe { margin-top: 36px; }
+.formel-gruppe > .etikett { margin-bottom: 12px; }
+.formel-arten { display: grid; grid-template-columns: repeat(auto-fill, minmax(26rem, 1fr)); gap: 16px; align-items: start; }
+.formel-art { padding: 16px 20px; background: var(--washi-hell); border: 1px solid var(--linie); border-radius: 10px; scroll-margin-top: 16px; }
+.formel-art:target { border-color: var(--shu); }
+.formel-titel { font-family: var(--schrift-titel); font-weight: 600; font-size: 1.125rem; margin-bottom: 8px; }
+.formel-titel a { text-decoration: none; }
+.formel-titel a:hover { text-decoration: underline; text-decoration-color: var(--linie); }
+.formel-text { font-size: 0.9375rem; max-width: none; }
+.formel-text ul { padding-left: 1.1em; }
+.formel-text li + li { margin-top: 2px; }
+.formel-text table { font-size: 0.875rem; }
+
+@media print {
+  html:has(.formelsammlung) {
+    --washi: #FFFFFF; --washi-hell: #FFFFFF; --flaeche: #F1EFEA; --sumi: #1F1D1A; --sumi-mittel: #55514A; --linie: #D9D4C9; --shu: #C2452D;
+    font-size: 9.5pt;
+  }
+  html:has(.formelsammlung) :is(.seitenleiste, .kopf, .nicht-drucken, .toast, .sprung) { display: none !important; }
+  html:has(.formelsammlung) .app { display: block; }
+  .formelsammlung { padding: 0; max-width: none; columns: 2; column-gap: 18px; }
+  .formelsammlung .nur-drucken { display: block; column-span: all; font-size: 14pt; line-height: 1.3; margin-bottom: 6px; }
+  .formel-gruppe { margin-top: 10px; }
+  .formel-gruppe > .etikett { margin-bottom: 4px; break-after: avoid; }
+  .formel-arten { display: block; }
+  .formel-art { break-inside: avoid; padding: 6px 8px; margin-bottom: 8px; border-radius: 4px; }
+  .formel-titel { font-size: 11pt; margin-bottom: 2px; }
+  .formel-text { font-size: 9pt; line-height: 1.35; }
+}
+
 /* Dezenter Hinweis auf der Üben-Karte und in der Themen-Notiz */
 .rechnen-link { color: var(--sumi-mittel); }
 .rechnen-link a { color: var(--shu); text-decoration: none; }

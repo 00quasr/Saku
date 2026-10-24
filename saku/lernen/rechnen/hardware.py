@@ -4,11 +4,37 @@ import math
 
 from saku.lernen.rechnen.basis import FIRMEN, Aufgabe, Feld, art, de, euro, schritte
 
+# Formeln und Merksätze je Art: Formelsammlung und Karte zeigen sie nach dem Rechenweg
+FORMELN = {
+    "energie": """- Leistung P = U · I (W = V · A), Strom I = P : U
+- Arbeit W = P · t; kWh = Watt · Stunden : 1.000
+- Kosten = kWh · Preis je kWh; Jahr: Leistung · Stunden je Tag · Tage
+- Amortisationszeit = Anschaffung (oder Mehrpreis) : Einsparung pro Jahr
+- USV: Wirkleistung P = Scheinleistung S (VA) · Leistungsfaktor cos φ
+- Überbrückungszeit = Akkuenergie (V · Ah = Wh) · Wirkungsgrad : Last in W (· 60 für Minuten)
+
+*Beispiel:* 10 PCs à 80 W, 8 h an 220 Tagen: 10 · 80 · 8 · 220 = 1.408 kWh; bei 0,32 €/kWh 450,56 €""",
+    "raid": """| RAID | Nutzkapazität (n Platten, je c) | verkraftbare Ausfälle |
+| --- | --- | --- |
+| 0 | n · c | 0 |
+| 1 | c | n − 1 |
+| 5 | (n − 1) · c | 1 |
+| 6 | (n − 2) · c | 2 |
+| 10 | n : 2 · c | 1 sicher (bis n : 2, wenn nie beide eines Paares) |
+
+- Verschieden große Platten: jede zählt nur so viel wie die kleinste
+- Effizienz = Nutzkapazität : Gesamtkapazität
+
+*Beispiel:* RAID 5 aus 4 × 8 TB: 3 · 8 = 24 TB nutzbar, Effizienz 75 %, 1 Ausfall""",
+}
+
+
 PREISE = [0.28, 0.30, 0.32, 0.34, 0.35, 0.38, 0.40]  # €/kWh
 
 
 @art("energie", "Energie und Strom", "Strom & Hardware", "Stromkosten, Einsparung und Amortisation, P = U · I, USV",
-     ("Energiekosten", "Energieeffizien", "Stromkosten", "Stromverbrauch", "Elektrische Größe", "USV", "Unterbrechungsfrei"))
+     ("Energiekosten", "Energieeffizien", "Stromkosten", "Stromverbrauch", "Elektrische Größe", "USV", "Unterbrechungsfrei"),
+     formeln=FORMELN["energie"])
 def energie(rng):
     return rng.choice([_kosten, _einsparung, _elektrisch, _usv])(rng)
 
@@ -151,7 +177,7 @@ GROESSEN = [1, 2, 4, 6, 8, 10, 12, 16, 18, 20]
 
 
 @art("raid", "RAID", "Strom & Hardware", "Nutzkapazität und verkraftbare Plattenausfälle für RAID 0, 1, 5, 6 und 10",
-     ("RAID", "Festplattenverbund"))
+     ("RAID", "Festplattenverbund"), formeln=FORMELN["raid"])
 def raid(rng):
     return rng.choice([_kapazitaet, _plattenzahl, _gemischt])(rng)
 

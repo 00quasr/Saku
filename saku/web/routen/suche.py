@@ -26,6 +26,7 @@ BEFEHLE = [
     ("list-checks", "Verlauf", "bewertungen gemacht erledigt historie protokoll", ("keiko.verlauf", {})),
     ("messages-square", "Fachgespräch üben", "projekt mündlich präsentation prüfer", ("shiken.fachgespraech", {})),
     ("shuffle", "Rechnen: gemischt", "rechentrainer rechenaufgaben üben ap1", ("rechnen.gemischt", {})),
+    ("sigma", "Rechnen: Formelsammlung", "formeln spickzettel merksätze drucken rechentrainer", ("rechnen.formeln", {})),
     *(("calculator", f"Rechnen: {a.titel}", f"rechentrainer {a.beschreibung} {' '.join(a.themen)}", ("rechnen.aufgabe", {"art": a.slug}))
       for a in rechnen.ARTEN.values()),
     ("settings", "Einstellungen", "optionen sensei daten", ("kern.einstellungen", {})),

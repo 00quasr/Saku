@@ -64,19 +64,20 @@ class Art:
     beschreibung: str
     themen: tuple[str, ...]  # Stichworte, an denen passende Themen in der Datenbank erkannt werden
     erzeugen: Callable
+    formeln: str = ""  # Markdown: Formeln, Merksätze, ein Mini-Beispiel; Formelsammlung und Rechenweg zeigen dasselbe
 
 
 ARTEN: dict[str, Art] = {}
 
 
-def art(slug: str, titel: str, gruppe: str, beschreibung: str, themen: tuple[str, ...]):
+def art(slug: str, titel: str, gruppe: str, beschreibung: str, themen: tuple[str, ...], formeln: str = ""):
     """Meldet einen Generator (rng) -> Aufgabe an; Art, Themen und fehlender Titel kommen von hier."""
     def anmelden(funktion):
         def erzeugen(rng):
             aufgabe = funktion(rng)
             aufgabe.art, aufgabe.themen, aufgabe.titel = slug, themen, aufgabe.titel or titel
             return aufgabe
-        ARTEN[slug] = Art(slug, titel, gruppe, beschreibung, themen, erzeugen)
+        ARTEN[slug] = Art(slug, titel, gruppe, beschreibung, themen, erzeugen, formeln.strip())
         return erzeugen
     return anmelden
 
