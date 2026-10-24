@@ -3,5 +3,13 @@
 {% block main_klasse %}{{ ' fokus' if karte }}{% endblock %}
 {% block inhalt %}
 {{ m.kopf('keiko', '稽', 'Üben', 'Grundwissen', schmal=True) }}
-<div class="seite eng keiko">{% include "keiko/_begriff.html" %}</div>
+<div class="seite eng keiko">
+  {# Richtung: U schaltet um #}
+  <nav class="segment grundwissen-richtung" aria-label="Richtung">
+    <a href="{{ url_for('keiko.grundwissen') }}" {{ ('data-taste="u"' if umgekehrt else 'aria-current="true"')|safe }}>Begriff → Definition</a>
+    <a href="{{ url_for('keiko.grundwissen', modus='umgekehrt') }}" {{ ('aria-current="true"' if umgekehrt else 'data-taste="u"')|safe }}>Definition → Begriff</a>
+    <span class="grundwissen-taste" aria-hidden="true">{{ m.taste('U') }}</span>
+  </nav>
+  {% include "keiko/_begriff.html" %}
+</div>
 {% endblock %}
