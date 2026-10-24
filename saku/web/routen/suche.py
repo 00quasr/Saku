@@ -2,6 +2,7 @@
 
 from flask import Blueprint, render_template, request
 
+from saku.lernen import rechnen
 from saku.sensei import vektoren
 from saku.web import BEREICHE, db
 
@@ -24,6 +25,9 @@ BEFEHLE = [
     ("star", "Markierte üben", "markiert gemerkt", ("keiko.index", {"modus": "markiert"})),
     ("list-checks", "Verlauf", "bewertungen gemacht erledigt historie protokoll", ("keiko.verlauf", {})),
     ("messages-square", "Fachgespräch üben", "projekt mündlich präsentation prüfer", ("shiken.fachgespraech", {})),
+    ("shuffle", "Rechnen: gemischt", "rechentrainer rechenaufgaben üben ap1", ("rechnen.gemischt", {})),
+    *(("calculator", f"Rechnen: {a.titel}", f"rechentrainer {a.beschreibung} {' '.join(a.themen)}", ("rechnen.aufgabe", {"art": a.slug}))
+      for a in rechnen.ARTEN.values()),
     ("settings", "Einstellungen", "optionen sensei daten", ("kern.einstellungen", {})),
     ("briefcase", "Zu Anwendungsentwicklung wechseln", "ae fiae beruf umfang", ("einstellung", "beruf", "1201")),
     ("briefcase", "Zu Systemintegration wechseln", "si fisi beruf umfang", ("einstellung", "beruf", "1202")),

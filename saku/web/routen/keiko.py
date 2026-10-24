@@ -6,7 +6,7 @@ from datetime import date, datetime, timezone
 
 from flask import Blueprint, abort, make_response, render_template, request, url_for
 
-from saku.lernen import antwort, karten, tagesziel
+from saku.lernen import antwort, karten, rechnen, tagesziel
 from saku.web import db
 from saku.web.routen.heute import datum_lang
 
@@ -192,8 +192,12 @@ def _kontext(con, zustand: dict, erste: int | None = None, sicher_geworden: bool
     stand = _stand(con, t, zustand, tagesrunde, kontext["rundenname"], geplant)
     if ist_variante:  # das sagt schon der Hinweis „Ähnlich wie eben“
         stand["warum"] = []
+    themen = [z[0] for z in con.execute(
+        "SELECT th.name || ' ' || COALESCE(th.stichworte, '') FROM teilaufgabe_thema tt JOIN thema th ON th.id = tt.thema_id "
+        "WHERE tt.teilaufgabe_id = ? ORDER BY tt.gewicht DESC", (t["id"],))]
     return kontext | {
         "karte": t, "start": int(time.time()), "aehnlich": aehnlich, "muster": muster, "ist_variante": ist_variante,
+        "rechenart": rechnen.passend(themen),
         "thema_pfad": [n for n in (thema["eltern"], thema["name"]) if n] if thema else [], "stand": stand,
     }
 

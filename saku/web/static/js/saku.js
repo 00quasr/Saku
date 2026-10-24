@@ -277,6 +277,9 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
+// autofocus greift nicht in jedem Browser beim Laden (WebKit, Fenster ohne Fokus); Rechnen beginnt im ersten Feld
+addEventListener("DOMContentLoaded", () => document.querySelector("main [autofocus]")?.focus());
+
 // pywebview meldet sich erst nach dem Laden
 addEventListener("pywebviewready", () => saku.fensterfarbe());
 

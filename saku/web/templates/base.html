@@ -9,7 +9,7 @@
   {% if farbschema == 'system' %}<script>document.documentElement.classList.toggle("dark", matchMedia("(prefers-color-scheme: dark)").matches)</script>{% endif %}
   <link rel="stylesheet" href="{{ url_for('static', filename='vendor/basecoat.cdn.min.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/saku.css') }}">
-  {% for b in ['heute', 'michi', 'keiko', 'shiken', 'niwa', 'sensei', 'bunseki', 'suche', 'willkommen', 'einstellungen'] %}
+  {% for b in ['heute', 'michi', 'keiko', 'rechnen', 'shiken', 'niwa', 'sensei', 'bunseki', 'suche', 'willkommen', 'einstellungen'] %}
   <link rel="stylesheet" href="{{ url_for('static', filename='css/bereiche/' ~ b ~ '.css') }}">
   {% endfor %}
   <script src="{{ url_for('static', filename='vendor/htmx.min.js') }}" defer></script>
@@ -105,6 +105,7 @@
             <tr><td>{{ m.taste('T') }} {{ m.taste('E') }} {{ m.taste('P') }} {{ m.taste('V') }}</td><td>Üben: Sensei Tipp, Erklären, Prüfen, Variante</td></tr>
             <tr><td>{{ m.taste('M') }}</td><td>Üben: markieren</td></tr>
             <tr><td>{{ m.taste('←') }} {{ m.taste('→') }}</td><td>Üben: zurück (Bewertung wird zurückgenommen), überspringen</td></tr>
+            <tr><td>{{ m.taste('↵') }} {{ m.taste('␣') }}</td><td>Rechnen: prüfen, dann nächste Aufgabe; Rechenweg zeigen</td></tr>
           </tbody>
         </table>
         <p class="klein gedaempft">In Eingabefeldern sind die Einzeltasten abgeschaltet. <a href="{{ url_for('heute.willkommen') }}">Einführung noch einmal ansehen</a></p>

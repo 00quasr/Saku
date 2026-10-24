@@ -10,12 +10,23 @@ def pruefbar(antwort: dict | None) -> bool:
     return bool(antwort) and antwort["art"] in AUTOMATISCH and bool(antwort["richtig"])
 
 
-def _zahl(text: str) -> float | None:
-    text = re.sub(r"[^\d,.\-]", "", text or "")
-    if "," in text:  # deutsch: 1.234,56
-        text = text.replace(".", "").replace(",", ".")
+def zahl(text: str | None) -> float | None:
+    """Eingetippte Zahl, deutsch geschrieben: „1,5“, „1.024“ (= 1024), „1 024“, „1.234,5“, „2^16“; Einheit dahinter egal."""
+    text = (text or "").replace("\u2212", "-").replace("\xa0", " ").replace("\u202f", " ")
+    if potenz := re.match(r"\s*(\d+)\s*\^\s*(\d{1,3})", text):
+        return float(int(potenz[1]) ** int(potenz[2]))
+    treffer = re.search(r"-?\d[\d.,\s]*", text)
+    if not treffer:
+        return None
+    t = re.sub(r"\s", "", treffer.group()).rstrip(".,")
+    if "," in t and "." in t and t.rfind(".") > t.rfind(","):  # englisch: 1,234.5
+        t = t.replace(",", "")
+    elif "," in t:
+        t = t.replace(".", "").replace(",", ".")
+    elif re.fullmatch(r"-?[1-9]\d{0,2}(\.\d{3})+", t):  # nur Tausenderpunkte
+        t = t.replace(".", "")
     try:
-        return float(text)
+        return float(t)
     except ValueError:
         return None
 
@@ -45,7 +56,11 @@ def auswerten(antwort: dict, eingabe: dict) -> tuple[int, dict[str, bool]]:
         werte = {w: eingabe.get("ziel", {}).get(w, "").strip() == z.strip() for w, z in soll.items()}
         return _stufe(sum(werte.values()) / max(1, len(werte))), werte
     if art == "zahl":
-        ist, soll = _zahl(eingabe.get("zahl", "")), _zahl(richtig[0])
+        ist = zahl(eingabe.get("zahl", ""))
+        try:  # die Lösung steht mit Punkt als Dezimaltrenner da („1.125“ heißt 1,125)
+            soll = float(richtig[0])
+        except ValueError:
+            soll = zahl(richtig[0])
         ok = ist is not None and soll is not None and abs(ist - soll) <= max(0.01, abs(soll) * 0.01)
         return (3 if ok else 1), {"zahl": ok}
     raise ValueError(f"nicht automatisch prüfbar: {art}")

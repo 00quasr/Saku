@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block titel %}{{ art.titel }} · Rechnen{% endblock %}
+{% block inhalt %}
+{{ m.kopf('keiko', '算', 'Rechnen', art.titel, schmal=True) }}
+<div class="seite eng rechnen">{% include "rechnen/_karte.html" %}</div>
+{% endblock %}

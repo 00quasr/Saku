@@ -17,6 +17,7 @@ BEREICHE = [
     ("heute.index", "今", "Heute"),
     ("michi.index", "道", "Lernpfad"),
     ("keiko.index", "稽", "Üben"),
+    ("rechnen.index", "算", "Rechnen"),
     ("shiken.index", "試", "Prüfung"),
     ("niwa.index", "庭", "Themen"),
     ("bunseki.index", "析", "Analyse"),
@@ -62,8 +63,8 @@ def create_app(daten: Path | None = None) -> Flask:
     app.config["SENSEI_BEREIT"] = bool(config.API_KEY)
     app.config["FENSTER"] = False  # True im eigenen App-Fenster (python -m saku start)
 
-    from saku.web.routen import bunseki, heute, keiko, kern, michi, niwa, sensei, shiken, suche
-    for modul in (kern, heute, michi, keiko, shiken, niwa, sensei, bunseki, suche):
+    from saku.web.routen import bunseki, heute, keiko, kern, michi, niwa, rechnen, sensei, shiken, suche
+    for modul in (kern, heute, michi, keiko, rechnen, shiken, niwa, sensei, bunseki, suche):
         app.register_blueprint(modul.bp)
 
     app.add_template_filter(markdown_zu_html, "markdown")

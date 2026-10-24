@@ -85,6 +85,9 @@
 
       <div id="loesung" aria-live="polite"></div>
 
+      {% if rechenart %}
+      <p class="klein rechnen-link">Ähnliches rechnen, mit immer neuen Zahlen: <a href="{{ url_for('rechnen.aufgabe', art=rechenart.slug) }}">{{ rechenart.titel }} →</a></p>
+      {% endif %}
       {% if aehnlich %}
       <p class="klein gedaempft keiko-aehnlich">Kam so ähnlich auch dran:
         {% for a in aehnlich %}<a href="{{ url_for('keiko.index', teilaufgabe=a.teilaufgabe_id) }}">{{ a.termin }} · {{ a.aufgabe_nr }} {{ a.kennung }}</a>{{ ' · ' if not loop.last }}{% endfor %}

@@ -23,6 +23,14 @@
 </span>
 {% endmacro %}
 
+{# Die letzten Ergebnisse als Punkte, älteste zuerst; ergebnisse: Liste aus 0 und 1 #}
+{% macro verlauf(ergebnisse) %}
+{% set text = (ergebnisse|sum) ~ ' von ' ~ (ergebnisse|length) ~ ' zuletzt richtig' %}
+<span class="verlauf" role="img" aria-label="{{ text }}" title="{{ text }}">
+  {%- for r in ergebnisse %}<span class="verlauf-punkt{{ ' verlauf-punkt--richtig' if r }}"></span>{% endfor -%}
+</span>
+{% endmacro %}
+
 {# Prüfungsreife als Pinselkreis; prozent 0–100 #}
 {% macro enso(prozent, mankai=False, groesse=168) %}
 <svg class="enso{{ ' enso--mankai' if mankai }}" viewBox="0 0 120 120" width="{{ groesse }}" height="{{ groesse }}"
