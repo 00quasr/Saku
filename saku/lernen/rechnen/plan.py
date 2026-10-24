@@ -12,10 +12,11 @@ from saku.lernen.rechnen.basis import ARTEN, GRUPPEN
 #   Softwareproduktes“ (Projekt, Wirtschaft), Daten; WiSo prüfen alle.
 # AP2 Systemintegration: „Konzeption und Administration von IT-Systemen“ und „Analyse und Entwicklung von Netzwerken“
 #   (Netzwerk, Strom & Hardware), Daten, Wirtschaft; WiSo prüfen alle.
+# IT-Sicherheit und Datenschutz verlangt die Verordnung von 2020 in der AP1 und in der AP2 beider Berufe.
 UMFANG = {
     "AP1": [g for g in GRUPPEN if g != "Algorithmen"],
-    "AP2-1201": ["Programmieren", "Algorithmen", "Wirtschaft", "Projekt", "WiSo", "Daten & Medien"],
-    "AP2-1202": ["Netzwerk", "Strom & Hardware", "Daten & Medien", "Wirtschaft", "WiSo"],
+    "AP2-1201": ["Programmieren", "Algorithmen", "Wirtschaft", "Projekt", "WiSo", "Daten & Medien", "IT-Sicherheit"],
+    "AP2-1202": ["Netzwerk", "Strom & Hardware", "Daten & Medien", "Wirtschaft", "WiSo", "IT-Sicherheit"],
 }
 
 LETZTE = 5  # so viele Versuche zählen für die Quote

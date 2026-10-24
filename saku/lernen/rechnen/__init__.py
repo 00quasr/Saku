@@ -8,7 +8,7 @@ from datetime import date
 
 from saku.lernen.antwort import zahl
 # melden ihre Arten an; die Reihenfolge hier ist die Reihenfolge der Arten (nach Nutzen für die AP1)
-from saku.lernen.rechnen import netzwerk, daten, hardware, komponenten, wirtschaft, wiso, projekt, programmieren, algorithmen  # noqa: F401, I001
+from saku.lernen.rechnen import netzwerk, daten, hardware, komponenten, sicherheit, wirtschaft, wiso, projekt, programmieren, algorithmen  # noqa: F401, I001
 from saku.lernen.rechnen.plan import faellig, im_umfang
 from saku.lernen.rechnen.basis import ARTEN, GRUPPEN, Art, Aufgabe, Feld
 
@@ -114,7 +114,7 @@ def stimmt(feld: Feld, eingabe: str, toleranz: float = 0.0) -> bool:
         basis, praefix = (2, "0b") if feld.typ == "binaer" else (16, "0x")
         ist = _ganzzahl(eingabe, basis, praefix)
         return ist is not None and ist == int(soll, basis)
-    return re.sub(r"\s", "", eingabe).casefold() == re.sub(r"\s", "", soll).casefold()
+    return any(re.sub(r"\s", "", eingabe).casefold() == re.sub(r"\s", "", s).casefold() for s in (soll, *feld.auch))
 
 
 def pruefen(aufgabe: Aufgabe, eingaben: dict[str, str]) -> dict[str, bool]:

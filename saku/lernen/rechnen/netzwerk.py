@@ -1,4 +1,4 @@
-"""Netzwerk: Subnetting (IPv4), Übertragungszeiten und IPv6."""
+"""Netzwerk: Subnetting (IPv4), Übertragungszeiten, IPv6, Routing, Standardports und das OSI- und TCP/IP-Modell."""
 
 import ipaddress
 import math
@@ -488,3 +488,165 @@ def eui_64(rng):
     felder = [Feld("iid", "Interface-ID", iid_text, typ="ipv6"), Feld("global", "Globale Adresse", global_.compressed, typ="ipv6"),
               Feld("link", "Link-Local-Adresse", link.compressed, typ="ipv6")]
     return Aufgabe(frage, felder, weg, titel="EUI-64")
+
+
+# --- Ports und Protokolle ---------------------------------------------------------------
+
+# Kurzname, Port, Transport, von Anfang an verschlüsselt, Name in der Frage, wofür, weitere richtige Namen (IANA-Standardports).
+# Transport nur als „TCP“ oder „UDP“ und Verschlüsselung nur als True/False gefragt; ein Text heißt: nicht eindeutig, nur zum Lesen
+PORTS = [
+    ("FTP", 20, "TCP", False, "FTP-Daten (aktiver Modus)", "Dateiübertragung, Daten", ("FTP-Daten", "FTP-Data")),
+    ("FTP", 21, "TCP", False, "FTP-Steuerverbindung", "Dateiübertragung, Befehle", ("FTP-Steuerung", "FTP-Control")),
+    ("SSH", 22, "TCP", True, "SSH", "verschlüsselte Fernwartung und Dateiübertragung", ("SFTP", "SCP")),
+    ("Telnet", 23, "TCP", False, "Telnet", "unverschlüsselte Fernwartung, veraltet", ()),
+    ("SMTP", 25, "TCP", False, "SMTP zwischen Mailservern", "E-Mail-Transport zwischen Mailservern", ()),
+    ("DNS", 53, "UDP und TCP", False, "DNS", "Namensauflösung; TCP für Zonentransfers und große Antworten", ()),
+    ("DHCP", 67, "UDP", False, "DHCP-Server", "IP-Adressen vergeben, Server", ("BOOTP", "DHCP-Server")),
+    ("DHCP", 68, "UDP", False, "DHCP-Client", "IP-Adressen vergeben, Client", ("BOOTP", "DHCP-Client")),
+    ("TFTP", 69, "UDP", False, "TFTP", "einfache Dateiübertragung, z. B. PXE-Boot", ()),
+    ("HTTP", 80, "TCP", False, "HTTP", "Webseiten", ()),
+    ("POP3", 110, "TCP", False, "POP3", "E-Mails abholen", ("POP",)),
+    ("NTP", 123, "UDP", False, "NTP", "Uhrzeit synchronisieren", ()),
+    ("IMAP", 143, "TCP", False, "IMAP", "E-Mails auf dem Server verwalten", ("IMAP4",)),
+    ("SNMP", 161, "UDP", "nur SNMPv3, wenn eingestellt", "SNMP (Abfragen)", "Netzwerkgeräte überwachen", ()),
+    ("LDAP", 389, "TCP", False, "LDAP", "Verzeichnisdienst, z. B. Active Directory", ()),
+    ("HTTPS", 443, "TCP (HTTP/3: UDP)", True, "HTTPS", "Webseiten über TLS", ("HTTP über TLS",)),
+    ("SMB", 445, "TCP", "ab SMB 3 möglich", "SMB", "Datei- und Druckerfreigaben unter Windows", ("CIFS",)),
+    ("SMTPS", 465, "TCP", True, "SMTPS (implizites TLS)", "E-Mail einliefern mit implizitem TLS",
+     ("Submissions", "SMTP über TLS")),
+    ("Syslog", 514, "UDP", False, "Syslog", "Protokollmeldungen an einen Logserver", ()),
+    ("SMTP", 587, "TCP", False, "SMTP-Submission (STARTTLS)", "E-Mail vom Mailprogramm einliefern, meist mit STARTTLS",
+     ("Submission", "SMTP-Submission")),
+    ("LDAPS", 636, "TCP", True, "LDAPS", "Verzeichnisdienst über TLS", ("LDAP über TLS",)),
+    ("IMAPS", 993, "TCP", True, "IMAPS", "E-Mails auf dem Server verwalten, über TLS", ("IMAP über TLS",)),
+    ("POP3S", 995, "TCP", True, "POP3S", "E-Mails abholen über TLS", ("POP3 über TLS",)),
+    ("RDP", 3389, "TCP und UDP", "ja, nach kurzer Aushandlung (meist TLS)", "RDP", "Remotedesktop unter Windows", ()),
+]
+
+
+def _ja_nein(wert) -> str:
+    return wert if isinstance(wert, str) else "Ja" if wert else "Nein"
+
+
+def _port_zeilen(auswahl) -> list[list]:
+    return [[port, f"**{kurz}**" + (f" (auch {', '.join(auch)})" if auch else ""), transport, _ja_nein(verschluesselt), wofuer]
+            for kurz, port, transport, verschluesselt, _, wofuer, auch in sorted(auswahl, key=lambda p: p[1])]
+
+
+PORT_KOPF = ["Port", "Protokoll", "Transport", "von Anfang an verschlüsselt", "wofür"]
+FORMELN["ports"] = tabelle(PORT_KOPF, _port_zeilen(PORTS)) + """
+
+- Die IANA vergibt die Well-known Ports 0 bis 1.023 und registriert weitere bis 49.151 (z. B. RDP 3389); Server lauschen dort, Clients nehmen einen freien hohen Port
+- TCP: verbindungsorientiert und gesichert (Drei-Wege-Handshake, Bestätigungen); UDP: verbindungslos, schnell, ohne Bestätigung
+- Von Anfang an verschlüsselt: SSH und die Dienste mit S am Ende (HTTPS, SMTPS, IMAPS, POP3S, LDAPS: implizites TLS)
+- STARTTLS (SMTP 25 und 587, IMAP 143, POP3 110, LDAP 389, FTP 21) beginnt unverschlüsselt und schaltet erst danach um: zählt hier als nein
+
+*Beispiel:* Webserver mit HTTPS → TCP 443 freigeben; ein Mailprogramm holt per IMAPS (TCP 993) ab und liefert per SMTP-Submission (TCP 587, STARTTLS) ein"""
+
+
+@art("ports", "Ports und Protokolle", "Netzwerk", "Standardports nach IANA: Port ↔ Protokoll, TCP oder UDP, von Anfang an verschlüsselt?",
+     ("Portnummer", "Port-Nummer", "Well-known", "Firewall", "Netzwerkdienst"), formeln=FORMELN["ports"])
+def ports(rng):
+    return rng.choice([_port_zu_protokoll, _protokoll_zu_port, _steckbrief])(rng)
+
+
+def _port_zu_protokoll(rng):
+    auswahl = sorted(rng.sample(PORTS, 4), key=lambda p: p[1])
+    frage = (f"In den Firewall-Regeln der {rng.choice(FIRMEN)} tauchen diese Ports auf:\n\n" + "\n".join(f"- `{p[1]}`" for p in auswahl)
+             + "\n\nWelches Protokoll gehört jeweils zu diesem Standardport? (Kurzname wie HTTP)")
+    felder = [Feld(f"p{port}", f"Port {port}", kurz, typ="text", auch=auch) for kurz, port, *_, auch in auswahl]
+    return Aufgabe(frage, felder, tabelle(PORT_KOPF, _port_zeilen(auswahl)), titel="Port → Protokoll")
+
+
+def _protokoll_zu_port(rng):
+    auswahl = rng.sample(PORTS, 4)
+    frage = (f"Für neue Firewall-Regeln der {rng.choice(FIRMEN)} brauchen Sie die Standardports (nach IANA) dieser Dienste:\n\n"
+             + "\n".join(f"- {p[4]}" for p in auswahl) + "\n\nGeben Sie jeweils die Portnummer an.")
+    felder = [Feld(f"p{port}", name, port, stellen=0) for _, port, _, _, name, *_ in auswahl]
+    return Aufgabe(frage, felder, tabelle(PORT_KOPF, _port_zeilen(auswahl)), titel="Protokoll → Port")
+
+
+def _steckbrief(rng):
+    auswahl = rng.sample([p for p in PORTS if p[2] in ("TCP", "UDP") or isinstance(p[3], bool)], 3)
+    frage = (f"Die {rng.choice(FIRMEN)} dokumentiert die Dienste eines neuen Servers: " + ", ".join(p[4] for p in auswahl)
+             + ".\n\nErgänzen Sie für jeden Dienst den Standardport, das Transportprotokoll und ob die Verbindung von Anfang an "
+             "verschlüsselt ist (STARTTLS zählt nicht).")
+    felder = []
+    for _, port, transport, verschluesselt, name, *_ in auswahl:
+        felder.append(Feld(f"p{port}", f"{name}: Port", port, stellen=0))
+        if transport in ("TCP", "UDP"):
+            felder.append(Feld(f"t{port}", f"{name}: TCP oder UDP?", transport, typ="text", optionen=["TCP", "UDP"]))
+        if isinstance(verschluesselt, bool):
+            felder.append(Feld(f"v{port}", f"{name}: verschlüsselt?", _ja_nein(verschluesselt), typ="text",
+                               optionen=["Ja", "Nein"]))
+    return Aufgabe(frage, felder, tabelle(PORT_KOPF, _port_zeilen(auswahl)), titel="Steckbrief der Dienste")
+
+
+# --- OSI- und TCP/IP-Modell -------------------------------------------------------------
+
+OSI = ["Bitübertragungsschicht", "Sicherungsschicht", "Vermittlungsschicht", "Transportschicht", "Sitzungsschicht", "Darstellungsschicht",
+       "Anwendungsschicht"]
+TCP_IP = ["Netzzugangsschicht", "Internetschicht", "Transportschicht", "Anwendungsschicht"]
+ZU_TCP_IP = {1: 0, 2: 0, 3: 1, 4: 2, 5: 3, 6: 3, 7: 3}
+# Begriff, OSI-Schicht, warum; nur eindeutige Zuordnungen (kein ARP, kein TLS, keine Firewall, kein Access Point)
+ELEMENTE = [
+    ("Hub", 1, "verteilt Signale an alle Anschlüsse, ohne Adressen auszuwerten"), ("Repeater", 1, "verstärkt und erneuert das Signal"),
+    ("Twisted-Pair-Kabel", 1, "Übertragungsmedium"), ("Glasfaserkabel", 1, "Übertragungsmedium"),
+    ("Bit", 1, "Dateneinheit der Bitübertragungsschicht"),
+    ("Switch", 2, "leitet Frames anhand der MAC-Adresse weiter"), ("Bridge", 2, "verbindet Netzsegmente anhand der MAC-Adressen"),
+    ("MAC-Adresse", 2, "physische Adresse der Netzwerkkarte"), ("Frame (Rahmen)", 2, "Dateneinheit der Sicherungsschicht"),
+    ("PPP", 2, "Protokoll für Punkt-zu-Punkt-Verbindungen"),
+    ("Router", 3, "leitet Pakete anhand der IP-Adresse zwischen Netzen weiter"), ("IP", 3, "logische Adressierung und Wegewahl"),
+    ("ICMP", 3, "Fehler- und Diagnosemeldungen zu IP, z. B. ping"), ("IP-Adresse", 3, "logische Adresse eines Hosts"),
+    ("Paket", 3, "Dateneinheit der Vermittlungsschicht"),
+    ("TCP", 4, "verbindungsorientierter Transport zwischen Ports"), ("UDP", 4, "verbindungsloser Transport zwischen Ports"),
+    ("Portnummer", 4, "adressiert den Dienst auf dem Host"), ("Segment", 4, "Dateneinheit von TCP"),
+    ("HTTP", 7, "Anwendungsprotokoll für Webseiten"), ("DNS", 7, "Anwendungsprotokoll für die Namensauflösung"),
+    ("SMTP", 7, "Anwendungsprotokoll für den E-Mail-Versand"), ("FTP", 7, "Anwendungsprotokoll für Dateiübertragung"),
+    ("DHCP", 7, "Anwendungsprotokoll für die Adressvergabe (über UDP)"),
+]
+FORMELN["osi"] = tabelle(["Nr.", "OSI-Schicht", "englisch", "TCP/IP-Modell", "Beispiele", "Dateneinheit"], [
+    [7, "Anwendungsschicht", "Application", "Anwendung", "HTTP, DNS, SMTP, FTP, DHCP", "Daten"],
+    [6, "Darstellungsschicht", "Presentation", "Anwendung", "Kodierung, Kompression", "Daten"],
+    [5, "Sitzungsschicht", "Session", "Anwendung", "Sitzungen auf- und abbauen", "Daten"],
+    [4, "Transportschicht", "Transport", "Transport", "TCP, UDP, Portnummern", "Segment"],
+    [3, "Vermittlungsschicht", "Network", "Internet", "IP, ICMP, IP-Adressen, Router", "Paket"],
+    [2, "Sicherungsschicht", "Data Link", "Netzzugang", "MAC-Adressen, Switch, Bridge, PPP", "Frame (Rahmen)"],
+    [1, "Bitübertragungsschicht", "Physical", "Netzzugang", "Kabel, Stecker, Hub, Repeater", "Bit"],
+]) + """
+
+- Merksatz von 7 nach 1: **A**lle **d**eutschen **S**tudenten **t**rinken **v**erschiedene **S**orten **B**ier
+- Vermittlungsschicht heißt auch Netzwerkschicht, Sitzungsschicht auch Kommunikationssteuerungsschicht
+- TCP/IP-Modell mit vier Schichten: Netzzugang (OSI 1 und 2), Internet (3), Transport (4), Anwendung (5 bis 7)
+
+*Beispiel:* Ein Switch arbeitet mit Frames und MAC-Adressen → Schicht 2 (TCP/IP: Netzzugang); ein Router mit Paketen und IP-Adressen → Schicht 3 (Internet)"""
+
+
+@art("osi", "OSI- und TCP/IP-Modell", "Netzwerk", "Geräte, Protokolle, Adressen und Dateneinheiten der richtigen Schicht zuordnen",
+     ("OSI-", "ISO/OSI", "Schichtenmodell", "TCP/IP-Modell", "Kopplungselement"), formeln=FORMELN["osi"])
+def osi(rng):
+    return rng.choice([_schicht_nummer, _schicht_namen])(rng)
+
+
+def _osi_weg(auswahl) -> str:
+    return tabelle(["Begriff", "OSI-Schicht", "TCP/IP-Modell", "warum"],
+                   [[name, f"**{n}** {OSI[n - 1]}", TCP_IP[ZU_TCP_IP[n]], warum] for name, n, warum in auswahl])
+
+
+def _schicht_nummer(rng):
+    auswahl = rng.sample(ELEMENTE, 5)
+    frage = (f"Für eine Schulung der Auszubildenden ordnet die {rng.choice(FIRMEN)} Netzwerkbegriffe dem OSI-Referenzmodell zu:\n\n"
+             + "\n".join(f"- {name}" for name, *_ in auswahl) + "\n\nGeben Sie zu jedem Begriff die Nummer der Schicht an (1 bis 7).")
+    felder = [Feld(f"e{i}", name, n, stellen=0) for i, (name, n, _) in enumerate(auswahl)]
+    return Aufgabe(frage, felder, _osi_weg(auswahl), titel="OSI-Schicht zuordnen")
+
+
+def _schicht_namen(rng):
+    auswahl = rng.sample(ELEMENTE, 3)
+    frage = (f"In der Netzwerkdokumentation der {rng.choice(FIRMEN)} kommen vor: " + ", ".join(name for name, *_ in auswahl)
+             + ".\n\nNennen Sie für jeden Begriff die Schicht im OSI-Modell und im TCP/IP-Modell (vier Schichten).")
+    felder = []
+    for i, (name, n, _) in enumerate(auswahl):
+        felder += [Feld(f"o{i}", f"{name}: OSI-Schicht", OSI[n - 1], typ="text", optionen=OSI),
+                   Feld(f"t{i}", f"{name}: TCP/IP-Schicht", TCP_IP[ZU_TCP_IP[n]], typ="text", optionen=TCP_IP)]
+    return Aufgabe(frage, felder, _osi_weg(auswahl), titel="Schichten benennen")
