@@ -1,0 +1,2 @@
+{# Gegenrichtung zu „Ähnliches rechnen“: echte Teilaufgaben zur Rechenart; p aus routen/rechnen.in_pruefungen #}
+<p class="klein rechnen-link rechnen-pruefungen">In deinen Prüfungen: <span class="zahl">{{ p.anzahl }}</span> {{ 'Teilaufgabe' if p.anzahl == 1 else 'Teilaufgaben' }} zu {{ art.titel }} · zuletzt {{ p.zuletzt }} · <a href="{{ url_for('keiko.index', thema=p.themen) }}">üben →</a></p>

@@ -760,6 +760,28 @@ def test_lernpfad_zeigt_rechentraining(client, con):
     assert "Rechentraining" not in client.get(f"/michi/{nach_name['Anforderungen']}").get_data(as_text=True)
 
 
+def test_rechnen_verlinkt_die_echten_pruefungsaufgaben(client, con):
+    """Gegenrichtung zu „Ähnliches rechnen“: Übersicht und geprüfte Karte nennen die Teilaufgaben zur Art und öffnen Üben mit
+    genau diesen Themen. Netzplan hat in der Demo zwei (Sommer 2023), Subnetting keine."""
+    netzplan = con.execute("SELECT id FROM thema WHERE name = 'Netzplan'").fetchone()[0]
+    zeile = ('In deinen Prüfungen: <span class="zahl">2</span> Teilaufgaben zu Netzplan · zuletzt Sommer 2023 · '
+             f'<a href="/keiko/?thema={netzplan}">üben →</a>')
+    assert rechnen.themen_je_art([(netzplan, "Netzplan"), (1, "Normalisierung")]) == {"netzplan": [netzplan]}
+    uebersicht = client.get("/rechnen/").get_data(as_text=True)
+    assert zeile in uebersicht and "zu Subnetting" not in uebersicht
+    # die Karte erst nach dem Prüfen, unter dem Rechenweg
+    assert "In deinen Prüfungen" not in client.get("/rechnen/netzplan?seed=1").get_data(as_text=True)
+    karte = client.post("/rechnen/netzplan/pruefen", data={"seed": 1, "aufgeben": "1"}, headers=HTMX).get_data(as_text=True)
+    assert zeile in karte and karte.index("Rechenweg") < karte.index(zeile)
+    # „üben →“ öffnet genau diese zwei Teilaufgaben
+    ueben = client.get(f"/keiko/?thema={netzplan}").get_data(as_text=True)
+    assert "Netzplan" in ueben and '<span class="klein zahl">0 / 2</span>' in ueben  # Fortschritt der Runde
+    # nur im Umfang: in AP1 kam keine davon dran
+    con.execute("UPDATE einstellung SET wert = 'AP1' WHERE schluessel = 'teil'")
+    con.commit()
+    assert "In deinen Prüfungen" not in client.get("/rechnen/").get_data(as_text=True)
+
+
 
 # --- Datensicherung, Monitor, Bandbreite (Runde 7) ------------------------------------------
 

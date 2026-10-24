@@ -12,8 +12,8 @@ from saku.lernen.rechnen import netzwerk, daten, hardware, komponenten, wirtscha
 from saku.lernen.rechnen.plan import faellig, im_umfang
 from saku.lernen.rechnen.basis import ARTEN, GRUPPEN, Art, Aufgabe, Feld
 
-__all__ = ["ARTEN", "GRUPPEN", "Art", "Aufgabe", "Feld", "erzeugen", "pruefen", "stimmt", "passend", "passende", "gemischt",
-           "faellig", "im_umfang"]
+__all__ = ["ARTEN", "GRUPPEN", "Art", "Aufgabe", "Feld", "erzeugen", "pruefen", "stimmt", "passend", "passende",
+           "themen_je_art", "gemischt", "faellig", "im_umfang"]
 
 
 def erzeugen(art: str, seed: int) -> Aufgabe:
@@ -133,6 +133,15 @@ def passende(namen) -> list[Art]:
 def passend(namen) -> Art | None:
     """Die erste passende Rechenart (siehe passende)."""
     return next(iter(passende(namen)), None)
+
+
+def themen_je_art(themen) -> dict[str, list[int]]:
+    """Die Umkehrung von passende: je Rechenart die Themen (aus Paaren id, Name), zu denen sie passt."""
+    raus = {}
+    for t_id, name in themen:
+        for a in passende([name]):
+            raus.setdefault(a.slug, []).append(t_id)
+    return raus
 
 
 def gemischt(rng: random.Random, quoten: dict[str, float], ohne=()) -> str:
