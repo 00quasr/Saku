@@ -259,6 +259,10 @@ def test_pruefen_speichert_den_versuch(client, con):
     assert "1 von 3 zuletzt · 3 gerechnet" in client.get("/rechnen/").get_data(as_text=True)
     heute = client.get("/").get_data(as_text=True)
     assert 'Heute gerechnet: <span class="zahl">3 · 33 %</span>' in heute and 'href="/rechnen/"' in heute
+    # Rechnen zählt als Lerntag: Lernserie und Kalender, das Tagesziel bleibt, wie es war
+    from saku.lernen import tagesziel
+    assert tagesziel.lernserie(con) == 1 and tagesziel.tagesziel(con)["erledigt"] == 0
+    assert '<span class="zahl">1</span> Tag in Folge' in heute
     assert client.post("/rechnen/subnetz/pruefen", data={}).status_code == 400
 
 

@@ -559,10 +559,12 @@ WHERE teilaufgabe_id IN (SELECT teilaufgabe_id FROM v_teilaufgabe)
   AND faellig_am IS NOT NULL
   AND faellig_am <= datetime('now');
 
--- Heute: Lerntage für die Lernserie
+-- Heute: Lerntage für Lernserie und Kalender; Rechenübungen zählen mit (bewertungen = Bewertungen + Rechenaufgaben)
 CREATE VIEW v_lerntage AS
-SELECT date(zeitpunkt, 'localtime') AS tag, COUNT(*) AS bewertungen
-FROM bewertung
+SELECT tag, COUNT(*) AS bewertungen
+FROM (SELECT date(zeitpunkt, 'localtime') AS tag FROM bewertung
+      UNION ALL
+      SELECT date(zeitpunkt, 'localtime') FROM rechenuebung)
 GROUP BY tag;
 
 -- Bunseki: KI-Nutzung
@@ -577,4 +579,4 @@ SELECT
 FROM ki_aufruf
 GROUP BY zweck, modell;
 
-PRAGMA user_version = 7;
+PRAGMA user_version = 9;
