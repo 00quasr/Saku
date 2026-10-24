@@ -44,7 +44,7 @@ def _maske_erklaert(p: int) -> str:
 
 
 @art("subnetz", "Subnetting", "Netzwerk", "IPv4: Netz-ID, Broadcast, Hosts, Maske ↔ Präfix, Netze teilen",
-     ("Subnetz", "Subnetting", "IPv4", "IP-Adress", "IP-Konfiguration", "Netzmaske", "CIDR"))
+     ("Subnet", "IPv4", "IP-Adressierung", "IP-Adresskonzept", "IP-Konfiguration", "Netzmaske", "CIDR"))
 def subnetz(rng):
     return rng.choice([_host_infos, _maske_praefix, _teilen, _mindest_hosts])(rng)
 
@@ -175,7 +175,7 @@ def _rate(r: float) -> str:
 
 
 @art("uebertragung", "Übertragungszeit", "Netzwerk", "Datenmenge und Datenrate: Bit vs. Byte, MB vs. MiB, Overhead",
-     ("Übertragung", "Datenrate", "Bandbreite", "Download"))
+     ("Übertragungszeit", "Übertragungsdauer", "Downloadzeit", "Backupdauer", "Restoredauer"))
 def uebertragung(rng):
     return rng.choice([_dauer, _noetige_rate, _menge_in_zeit])(rng)
 

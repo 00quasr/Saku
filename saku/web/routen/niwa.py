@@ -25,8 +25,7 @@ def _thema(thema_id: int) -> dict:
     return {
         "thema": lernstand, "teilaufgaben": teilaufgaben, "stufen": niwa.STUFEN,
         "wissen": con.execute("SELECT beschreibung FROM thema WHERE id = ?", (thema_id,)).fetchone()[0],
-        "rechenart": rechnen.passend([z[0] for z in con.execute(
-            "SELECT name || ' ' || COALESCE(stichworte, '') FROM thema WHERE id = ?", (thema_id,))]),
+        "rechenart": rechnen.passend([lernstand["name"]]),
         "lernfelder": con.execute("SELECT lf.* FROM thema_lernfeld tl JOIN lernfeld lf ON lf.id = tl.lernfeld_id "
                                   "WHERE tl.thema_id = ? ORDER BY lf.id", (thema_id,)).fetchall(),
         "begriffe": con.execute(

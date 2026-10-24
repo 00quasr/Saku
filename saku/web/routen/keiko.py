@@ -193,7 +193,7 @@ def _kontext(con, zustand: dict, erste: int | None = None, sicher_geworden: bool
     if ist_variante:  # das sagt schon der Hinweis „Ähnlich wie eben“
         stand["warum"] = []
     themen = [z[0] for z in con.execute(
-        "SELECT th.name || ' ' || COALESCE(th.stichworte, '') FROM teilaufgabe_thema tt JOIN thema th ON th.id = tt.thema_id "
+        "SELECT th.name FROM teilaufgabe_thema tt JOIN thema th ON th.id = tt.thema_id "
         "WHERE tt.teilaufgabe_id = ? ORDER BY tt.gewicht DESC", (t["id"],))]
     return kontext | {
         "karte": t, "start": int(time.time()), "aehnlich": aehnlich, "muster": muster, "ist_variante": ist_variante,
