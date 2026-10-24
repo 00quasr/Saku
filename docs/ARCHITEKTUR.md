@@ -78,6 +78,7 @@ saku/
 │   │   ├── karten.py           Fahrschul-Regeln und FSRS
 │   │   ├── sql.py              SQL-Sandbox: sicher ausführen, mit der Lösung vergleichen
 │   │   ├── tagesziel.py
+│   │   ├── fahrplan.py         Prognose, Tempo, Abdeckung nach Prüfungsgewicht, Gewinn je Thema
 │   │   └── simulation.py       Zusammenstellung, Notenschlüssel
 │   ├── sensei/
 │   │   ├── client.py           Claude-API, Cache, Protokoll
@@ -238,6 +239,7 @@ Wichtige Regeln:
 | Route | Methode | Zweck | Antwort |
 |---|---|---|---|
 | `/` | GET | Heute | Seite |
+| `/fahrplan` | GET | Fahrplan bis zur Prüfung, `?tage=30` | Seite |
 | `/michi` | GET | Lernpfad | Seite |
 | `/michi/<station>` | GET | Station mit Einführung und Übungen | Seite |
 | `/michi/<station>/test` | GET, POST | Mini-Test | Seite, Fragment |
