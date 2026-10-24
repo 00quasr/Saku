@@ -1,11 +1,12 @@
 """Bereichsübergreifend: Bildausschnitte aus data/aufgaben und Einstellungen."""
 
-from datetime import date
+import sqlite3
+from datetime import date, datetime
 
 from flask import Blueprint, abort, current_app, redirect, render_template, request, send_from_directory, url_for
 
 from saku import config
-from saku.db import einstellung, setze_einstellung
+from saku.db import einstellung, letzte_sicherung, setze_einstellung, sichern
 from saku.web import db
 
 bp = Blueprint("kern", __name__)
@@ -65,7 +66,24 @@ def einstellungen():
         modelle=config.MODELLE,
         zahlen=zahlen,
         ki=ki,
+        sicherung=sicherung_info(),
     )
+
+
+def sicherung_info() -> str:
+    datei = letzte_sicherung(current_app.config["DB_PFAD"])
+    if not datei:
+        return "Noch keine Sicherung. Saku sichert beim Start einmal am Tag."
+    return f"Zuletzt am {datetime.fromtimestamp(datei.stat().st_mtime):%d.%m.%Y um %H:%M}: data/backups/{datei.name}"
+
+
+@bp.post("/einstellungen/sichern")
+def jetzt_sichern():
+    try:
+        sichern(current_app.config["DB_PFAD"], erzwingen=True)
+    except (OSError, sqlite3.Error) as fehler:
+        return f"Sicherung fehlgeschlagen: {fehler}"
+    return sicherung_info()
 
 
 @bp.post("/einstellungen/<schluessel>")

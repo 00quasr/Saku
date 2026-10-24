@@ -156,6 +156,15 @@
             <p class="klein gedaempft">{{ zahlen.pruefungen }} Prüfungen, {{ zahlen.teilaufgaben }} Teilaufgaben, {{ zahlen.mit_loesung }} mit Lösungshinweis, {{ zahlen.themen }} Themen.</p>
           </div>
         </div>
+        <div class="einstellung-zeile">
+          <div>
+            <p class="einstellung-name">Sicherung</p>
+            <p class="klein gedaempft">Beim Start und vor jeder Analyse einmal am Tag, die letzten sieben bleiben.</p>
+            <p class="klein einstellung-info" id="sicherung-info" aria-live="polite">{{ sicherung }}</p>
+          </div>
+          <button type="button" class="btn" data-variant="outline" data-size="sm" hx-post="{{ url_for('kern.jetzt_sichern') }}"
+                  hx-target="#sicherung-info" hx-disabled-elt="this">{{ m.icon('database-backup') }} Jetzt sichern</button>
+        </div>
         <div class="einstellung-zeile einstellung-befehle">
           <div>
             <p class="einstellung-name">Neue Prüfungen aufnehmen</p>

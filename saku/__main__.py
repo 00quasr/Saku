@@ -35,6 +35,7 @@ def main() -> None:
 
     elif args.befehl == "analyse":
         from saku.pipeline import ausfuehren
+        db.taeglich_sichern()  # vor Migrationen und Analyse
         db.init()
         ausfuehren(schritt=args.schritt, ohne_ki=args.ohne_ki, ki=args.ki)
 
@@ -45,6 +46,7 @@ def main() -> None:
 def starten(browser: bool = False) -> None:
     from saku.web import create_app
 
+    db.taeglich_sichern()  # vor den Migrationen von init
     db.init()
     app = create_app()
     url = f"http://127.0.0.1:{config.PORT}/"
