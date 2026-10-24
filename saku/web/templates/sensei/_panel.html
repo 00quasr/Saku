@@ -23,7 +23,7 @@
                 placeholder="Was wurde zu SQL-Joins schon gefragt?"
                 onkeydown="if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); this.form.requestSubmit(); }"></textarea>
       <div class="zeile zwischen">
-        <span class="klein gedaempft">{{ m.taste('↵') }} senden · {{ m.taste('⇧') }} {{ m.taste('↵') }} neue Zeile</span>
+        <span class="klein gedaempft nur-tastatur">{{ m.taste('↵') }} senden · {{ m.taste('⇧') }} {{ m.taste('↵') }} neue Zeile</span>
         <button type="submit" class="btn" data-size="sm">Fragen</button>
       </div>
     </form>

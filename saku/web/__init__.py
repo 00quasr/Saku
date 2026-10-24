@@ -24,6 +24,68 @@ BEREICHE = [
     ("bunseki.index", "析", "Analyse"),
 ]
 
+# Seiten je Bereich für Seitenleiste, Blatt „Mehr“, „Alle Seiten“ und ⌘K: (Name, Endpunkt, Argumente, ein Satz). Die erste
+# ist der Bereich selbst; _anchor springt zu einem Abschnitt der Seite, reiter öffnet einen Reiter der Analyse
+SEITEN = {
+    "heute.index": [
+        ("Heute", "heute.index", {}, "Tagesplan, Prüfungsreife, Lernserie und wo die Punkte liegen."),
+        ("Fahrplan", "heute.fahrplan", {}, "Prognose bis zur Prüfung, Meilensteine und Lern-Termine für deinen Kalender."),
+        ("Wochenrückblick", "heute.index", {"_anchor": "woche"}, "Die letzten sieben Tage im Vergleich zur Woche davor."),
+    ],
+    "michi.index": [
+        ("Lernpfad", "michi.index", {}, "Die Themen als Stationen in sinnvoller Reihenfolge, jede mit Einführung und Mini-Test."),
+    ],
+    "keiko.index": [
+        ("Üben", "keiko.index", {}, "Eine Teilaufgabe nach der anderen, fällige Wiederholungen zuerst."),
+        ("Fehlerkorb", "keiko.index", {"modus": "fehler"}, "Was zuletzt nicht saß, so lange, bis es sitzt."),
+        ("Markierte", "keiko.index", {"modus": "markiert"}, "Die Teilaufgaben, die du dir gemerkt hast."),
+        ("Grundwissen", "keiko.grundwissen", {}, "Fachbegriffe als Karten, auch umgekehrt: Definition lesen, Begriff wählen."),
+        ("Verlauf", "keiko.verlauf", {}, "Alle Bewertungen nach Tagen, oben der Wochenrückblick."),
+    ],
+    "rechnen.index": [
+        ("Rechnen", "rechnen.index", {}, "Jede Rechenart der Prüfung, unbegrenzt neu erzeugt und sofort geprüft."),
+        ("Sprint", "rechnen.sprint", {}, "Fünf Rechenaufgaben in 15 Minuten, mit Punkten und Note."),
+        ("Probeprüfung", "rechnen.probe", {}, "Eine ganze Prüfung aus den Generatoren, mit Uhr, Punkten und Note."),
+        ("Formelsammlung", "rechnen.formeln", {}, "Formeln und Merksätze zum Nachschlagen und Drucken."),
+    ],
+    "shiken.index": [
+        ("Prüfung", "shiken.index", {}, "Simulation aus Aufgaben verschiedener Jahrgänge, mit Note und Stempel."),
+        ("WiSo-Schnelltest", "shiken.index", {"_anchor": "schnelltest"}, "Anklickbare WiSo-Teilaufgaben quer durch alle Termine, sofort ausgewertet."),
+        ("Fachgespräch", "shiken.fachgespraech", {}, "Sensei fragt wie ein Prüfer zu deinem Projekt."),
+        ("Hochrechnung", "shiken.index", {"_anchor": "hochrechnung"}, "Deine Gesamtnote nach der Ausbildungsverordnung."),
+    ],
+    "niwa.index": [
+        ("Themen", "niwa.index", {}, "Wissensgraph aus Themen, Lernfeldern und Fachbegriffen."),
+        ("Lehrplan", "niwa.index", {"_anchor": "lehrplan-titel"}, "Die Lernfelder des Rahmenlehrplans und wie oft ihre Themen drankamen."),
+        ("Alle Themen", "niwa.index", {"_anchor": "themen-titel"}, "Jedes Thema mit Wachstumsstufe, Sicherheit und Punkten."),
+    ],
+    "bunseki.index": [
+        ("Analyse", "bunseki.index", {}, "Was in den Prüfungen drankam: Dauerbrenner, Lücken, nie Geprüftes."),
+        ("Katalog", "bunseki.index", {"reiter": "katalog"}, "Alle Inhalte der IHK-Prüfungskataloge als Checkliste."),
+        ("Heatmap", "bunseki.index", {"reiter": "heatmap"}, "Welches Thema an welchem Termin wie viele Punkte brachte."),
+        ("Inventar", "bunseki.index", {"reiter": "inventar"}, "Alle erfassten Prüfungen mit Teilaufgaben und Lösungshinweisen."),
+        ("KI-Nutzung", "bunseki.index", {"reiter": "ki"}, "Alle Aufrufe der Claude-API aus Pipeline und Sensei."),
+    ],
+}
+# Seiten außerhalb der Bereiche
+ALLGEMEIN = [
+    ("Sensei", "sensei.index", {}, "Frag nach allem aus den Prüfungen; als Panel geht das überall."),
+    ("Einstellungen", "kern.einstellungen", {}, "Prüfungstermine, Tagesziele, eigene Noten, Farbschema und Sicherung."),
+    ("Einführung", "heute.willkommen", {}, "Der Rundgang vom ersten Start, noch einmal."),
+]
+
+
+def seiten(teil: str) -> dict:
+    """SEITEN im Umfang: den WiSo-Schnelltest gibt es nur in der AP2."""
+    return {b: [s for s in liste if teil == "AP2" or s[0] != "WiSo-Schnelltest"] for b, liste in SEITEN.items()}
+
+
+def unterseite(liste: list) -> tuple | None:
+    """Die Unterseite eines Bereichs, auf der man gerade ist: Endpunkt (auch Sprint-Lauf und Heft der Probeprüfung) und
+    Argumente passen. Sprungmarken liegen auf der Seite des Bereichs selbst und zählen nicht."""
+    return next((s for s in liste[1:] if "_anchor" not in s[2] and (request.endpoint or "").startswith(s[1])
+                 and all(request.args.get(k) == v for k, v in s[2].items())), None)
+
 
 def db():
     """Datenbankverbindung für die laufende Anfrage."""
@@ -134,15 +196,21 @@ def create_app(daten: Path | None = None) -> Flask:
 
     @app.context_processor
     def kontext():
-        from saku.web.routen.suche import befehle
+        from saku.web.routen.suche import befehle, seiten_zu
+        umfang = db().execute("SELECT beruf, teil FROM v_umfang").fetchone()
+        im_umfang = seiten(umfang["teil"])
         return {
             "befehle_start": befehle(""),
+            "seiten_start": seiten_zu(umfang["teil"], ""),
             "BEREICHE": BEREICHE,
+            "SEITEN": im_umfang,
+            "ALLGEMEIN": ALLGEMEIN,
             "bereich": request.blueprint,
+            "unterseite": unterseite(im_umfang.get(f"{request.blueprint}.index", [])),
             "farbschema": einstellung(db(), "farbschema", "dunkel"),
             "sensei_bereit": app.config["SENSEI_BEREIT"],
             "faellig": db().execute("SELECT COUNT(*) FROM v_faellig").fetchone()[0],
-            "umfang": db().execute("SELECT beruf, teil FROM v_umfang").fetchone(),
+            "umfang": umfang,
             "BERUFE": BERUFE,
         }
 

@@ -302,10 +302,11 @@ Wichtige Regeln:
 | `/sensei/<modus>` | POST | Anfrage anlegen: tipp, erklaeren, pruefen, variante, thema, chat | Fragment |
 | `/sensei/stream/<anfrage>` | GET | Antwort als Server-Sent Events | `text/event-stream` |
 | `/sensei/punkte` | POST | Punktevorschlag für die Auswertung der Simulation | Fragment |
-| `/bunseki/` | GET | Analyse | Seite |
+| `/bunseki/` | GET | Analyse; `?reiter=katalog\|heatmap\|inventar\|ki …` öffnet einen Reiter | Seite |
 | `/bunseki/zuordnung/<id>` | POST | Themenzuordnung einer Teilaufgabe korrigieren | Fragment |
 | `/suche/` | GET | Befehlspalette und Live-Suche (Volltext + Bedeutung), `?q=` | Fragment |
 | `/bild/<pfad>` | GET | Bildausschnitte aus `data/aufgaben` | Bild |
+| `/seiten` | GET | Alle Seiten nach Bereich, je mit einem Satz (aus `SEITEN` in `saku/web/__init__.py`) | Seite |
 | `/einstellungen` | GET | Einstellungen | Seite |
 | `/einstellungen/<schluessel>` | POST | eine Einstellung speichern (Prüfer je Schlüssel in `kern.FELDER`) | Text |
 | `/einstellungen/sichern` | POST | jetzt sichern | Text |

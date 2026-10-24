@@ -129,6 +129,20 @@ a.flaeche:hover { border-color: var(--sumi-mittel); }
   .plan-zahlen > div + div { padding-left: 0; border-left: 0; }
 }
 
+/* Handy: das Bildband wächst mit seinem Inhalt, der Lernkalender passt in die Breite (20 Wochen à 11 + 3 px) */
+@media (max-width: 720px) {
+  .kopf--gross { height: auto; padding-top: 32px; }
+  .kopf--gross .kopf-inhalt { padding: 0 16px 20px; }
+  .held { gap: 20px; }
+  .held-titel { font-size: 1.75rem; }
+  .held-countdown { justify-items: start; text-align: left; }
+  .heute .flaeche { padding: 18px 16px; }
+  .kalender-monate, .kalender { grid-auto-columns: 11px; gap: 3px; }
+  .kalender { grid-template-rows: repeat(7, 11px); }
+  .karte-kopf { flex-wrap: wrap; }
+  .heute-rechnen, .kalender-rechts a { min-height: 44px; display: inline-flex; align-items: center; }
+}
+
 /* Fahrplan: Kennzahlen im Bildband, Säulen der Prognose, gestapelte Balken der Abdeckung, was am meisten bringt */
 .fahrplan-kennzahlen { display: flex; flex-wrap: wrap; gap: 12px 36px; }
 .fahrplan-kennzahlen > div { display: grid; justify-items: end; text-align: right; }

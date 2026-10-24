@@ -35,7 +35,7 @@
     <button type="button" class="btn" data-variant="ghost" data-taste=" " title="Zählt als nicht gelöst"
             hx-post="{{ url_for('rechnen.pruefen', art=art.slug) }}" hx-vals='{"aufgeben": "1"}' hx-target="#karte" hx-swap="outerHTML">
       Rechenweg zeigen {{ m.taste('␣') }}</button>
-    <span class="klein gedaempft">{% if a.sandbox or a.testfaelle %}Esc verlässt den Editor, danach prüft {{ m.taste('↵') }}{% else %}Tab: nächstes Feld · Komma oder Punkt, die Einheit darf dahinter stehen{% endif %}</span>
+    <span class="klein gedaempft">{% if a.sandbox or a.testfaelle %}<span class="nur-tastatur">Esc verlässt den Editor, danach prüft {{ m.taste('↵') }}</span>{% else %}<span class="nur-tastatur">Tab: nächstes Feld · </span>Komma oder Punkt, die Einheit darf dahinter stehen{% endif %}</span>
   </div>
   {% if a.testfaelle and art.formeln %}
   <details class="kontext rechnen-formeln">

@@ -1,5 +1,5 @@
 {% import "_makros.html" as m %}
-{% if q and not (befehle or bereiche or themen or treffer) %}
+{% if q and not (befehle or seiten or themen or treffer) %}
 <p class="suche-leer gedaempft">Nichts gefunden für „{{ q }}“. Versuch einen Wortteil, etwa „netz“.</p>
 {% endif %}
 
@@ -21,11 +21,13 @@
 </ul>
 {% endif %}
 
-{% if bereiche %}
-<p class="etikett suche-gruppe">Bereiche</p>
+{% if seiten %}
+<p class="etikett suche-gruppe">{{ 'Seiten' if q else 'Bereiche' }}</p>
 <ul class="suche-liste">
-  {% for endpunkt, kanji, wort in bereiche %}
-  <li><a href="{{ url_for(endpunkt) }}"><span class="suche-zeichen" lang="ja" aria-hidden="true">{{ kanji }}</span> {{ wort }}</a></li>
+  {% for kanji, name, wort, ziel in seiten %}
+  <li><a href="{{ url_for(ziel[0], **ziel[1]) }}">
+    {% if kanji %}<span class="suche-zeichen" lang="ja" aria-hidden="true">{{ kanji }}</span>{% else %}<span class="suche-zeichen">{{ m.icon('file-text') }}</span>{% endif %}
+    {{ name }}{% if wort %} <span class="klein gedaempft">· {{ wort }}</span>{% endif %}</a></li>
   {% endfor %}
 </ul>
 {% endif %}
