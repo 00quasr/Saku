@@ -61,12 +61,16 @@ def _meldung(fehler: Exception) -> str:
     return f"SQLite meldet: {text}"
 
 
-def _holen(cur: sqlite3.Cursor) -> list[tuple]:
-    """Höchstens GRENZE + 1 Zeilen und BYTES an Text und Blobs; so lange zählt auch das Zeitlimit."""
-    zeilen, groesse = [], 0
+def _bytes(zeile: tuple) -> int:
+    return sum(len(w) for w in zeile if isinstance(w, (str, bytes)))
+
+
+def _holen(cur: sqlite3.Cursor, frei: int = BYTES) -> list[tuple]:
+    """Höchstens GRENZE + 1 Zeilen und frei Bytes an Text und Blobs."""
+    zeilen = []
     for zeile in cur:
-        groesse += sum(len(w) for w in zeile if isinstance(w, (str, bytes)))
-        if groesse > BYTES:
+        frei -= _bytes(zeile)
+        if frei < 0:
             raise SqlFehler(ZU_GROSS)
         zeilen.append(zeile)
         if len(zeilen) > GRENZE:
@@ -119,11 +123,16 @@ def _eigene(con: sqlite3.Connection, sql: str) -> tuple[list[str], list[tuple]] 
 
 
 def _stand(con: sqlite3.Connection) -> dict[str, tuple[list[str], list[tuple]]]:
-    """Alle Tabellen mit Spalten und Zeilen."""
-    stand = {}
-    for (name,) in con.execute("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name").fetchall():
-        cur = con.execute('SELECT * FROM "{}"'.format(name.replace('"', '""')))
-        stand[name] = [d[0] for d in cur.description], cur.fetchmany(GRENZE + 1)
+    """Alle Tabellen mit Spalten und Zeilen, zusammen in den Grenzen eines Ergebnisses: berechnete Spalten (b AS (…)) sind erst
+    beim Lesen groß. SqlFehler, wenn das Lesen scheitert."""
+    stand, frei = {}, BYTES
+    try:
+        for (name,) in con.execute("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name").fetchall():
+            cur = con.execute('SELECT * FROM "{}"'.format(name.replace('"', '""')))
+            stand[name] = [d[0] for d in cur.description], _holen(cur, frei)
+            frei -= sum(map(_bytes, stand[name][1]))
+    except sqlite3.Error as fehler:
+        raise SqlFehler(_meldung(fehler)) from None
     return stand
 
 
