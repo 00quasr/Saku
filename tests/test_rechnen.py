@@ -844,6 +844,21 @@ def test_monitor_und_bandbreite_nachgerechnet():
             assert l["sata"] == pytest.approx(gb * 1000 / 600) and l["faktor"] > 5
 
 
+def test_seitenverhaeltnis_verlangt_das_exakte_und_erklaert_gerundete_namen():
+    """1366 × 768 ist exakt 683:384, im Handel heißt es 16:9 (wie 21:9 für 3440 × 1440, exakt 43:18). Die Frage darf deshalb
+    nicht „die übliche Schreibweise“ anbieten, die die Kontrolle dann ablehnt; der Rechenweg nennt den gerundeten Namen."""
+    gesehen = set()
+    for seed in range(1500):
+        a = rechnen.erzeugen("monitor", seed)
+        if a.titel != "Seitenverhältnis":
+            continue
+        assert "exakte" in a.frage and "üblichen Schreibweise" not in a.frage
+        if gerundet := {"683:384": "16:9", "43:18": "21:9"}.get(a.loesung["verhaeltnis"]):
+            gesehen.add(gerundet)
+            assert f"als {gerundet} bezeichnet, das ist aber gerundet" in a.rechenweg and not rechnen.stimmt(a.felder[0], gerundet)
+    assert gesehen == {"16:9", "21:9"}
+
+
 # --- VLSM, Routing, EUI-64 (Runde 8) -------------------------------------------------------
 
 def test_vlsm_wie_ipaddress():
