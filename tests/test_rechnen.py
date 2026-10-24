@@ -252,7 +252,7 @@ def test_aufgabe_hat_feste_adresse(client):
 
 
 def test_pruefen_speichert_den_versuch(client, con):
-    assert "Heute gerechnet" not in client.get("/").get_data(as_text=True)  # erst, wenn heute gerechnet wurde
+    assert 'Rechnen <span class="zahl">0 / 5</span>' in client.get("/").get_data(as_text=True)  # Rechen-Tagesziel, Standard 5
     a = rechnen.erzeugen("subnetz", 7)
     n, erstes = len(a.felder), a.felder[0]
     richtig = {f"feld-{f.name}": f.anzeige for f in a.felder}
@@ -269,7 +269,7 @@ def test_pruefen_speichert_den_versuch(client, con):
     assert zeilen == [("subnetz", 7, 1, n, n), ("subnetz", 7, 0, n - 1, n), ("subnetz", 7, 0, 0, n)]
     assert "1 von 3 zuletzt · 3 gerechnet" in client.get("/rechnen/").get_data(as_text=True)
     heute = client.get("/").get_data(as_text=True)
-    assert 'Heute gerechnet: <span class="zahl">3 · 33 %</span>' in heute and 'href="/rechnen/"' in heute
+    assert 'Rechnen <span class="zahl">3 / 5</span>' in heute and 'href="/rechnen/gemischt"' in heute and "Heute gerechnet" not in heute
     # Rechnen zählt als Lerntag: Lernserie und Kalender, das Tagesziel bleibt, wie es war
     from saku.lernen import tagesziel
     assert tagesziel.lernserie(con) == 1 and tagesziel.tagesziel(con)["erledigt"] == 0
@@ -689,3 +689,22 @@ def test_gemischt_bevorzugt_faellige(client, con):
     # nichts mehr fällig: dann aus dem ganzen Umfang, nie außerhalb (Subnetting gehört nicht zur AP2 AE)
     gezogen = {re.match(r"/rechnen/(\w+)\?", client.get("/rechnen/gemischt").headers["Location"])[1] for _ in range(40)}
     assert gezogen <= set(ae) and len(gezogen) > 3
+
+
+def test_rechen_tagesziel_einstellung_und_anzeige(client, con):
+    assert client.post("/einstellungen/rechnen_ziel", data={"rechnen_ziel": "3"}).status_code == 200
+    assert all(client.post("/einstellungen/rechnen_ziel", data={"rechnen_ziel": w}).status_code == 400 for w in ("abc", "51", "-1", ""))
+    assert 'id="rechnen_ziel"' in client.get("/einstellungen").get_data(as_text=True)
+    con.execute("INSERT INTO rechenuebung (art, seed, richtig, felder_richtig, felder_gesamt) VALUES ('raid', 1, 1, 1, 1)")
+    con.commit()
+    heute = client.get("/").get_data(as_text=True)
+    assert 'Rechnen <span class="zahl">1 / 3</span>' in heute and heute.count('class="klein heute-rechnen"') == 1
+    uebersicht = client.get("/rechnen/").get_data(as_text=True)
+    faellig = len(rechnen.im_umfang("AP2-1201"))  # Demo: AP2 AE, alles noch nie (raid gehört nicht dazu) gerechnet
+    assert uebersicht.count('class="rechnen-faellig"') == faellig and f"· {faellig} fällig" in uebersicht
+    assert 'Heute <span class="zahl">1 / 3</span>' in uebersicht
+    # 0 schaltet das Ziel aus; dann steht nur, was heute gerechnet wurde, nicht doppelt
+    client.post("/einstellungen/rechnen_ziel", data={"rechnen_ziel": "0"})
+    heute = client.get("/").get_data(as_text=True)
+    assert 'Heute gerechnet: <span class="zahl">1 · 100 %</span>' in heute and "Rechnen <span" not in heute
+    assert 'class="klein rechnen-ziel"' not in client.get("/rechnen/").get_data(as_text=True)

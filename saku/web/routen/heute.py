@@ -9,7 +9,7 @@ from saku.db import einstellung, setze_einstellung
 from saku.lernen import fahrplan, karten, operatoren, pfad, rueckblick, simulation, tagesziel
 from saku.web import db
 from saku.web.routen.bunseki import dauerbrenner, termin_name
-from saku.web.routen.rechnen import heute_gerechnet
+from saku.web.routen.rechnen import heute_gerechnet, tagesziel as rechnen_ziel
 
 bp = Blueprint("heute", __name__)
 
@@ -94,6 +94,7 @@ def index():
         grundwissen=karten.begriffe(con, []),
         laufend=simulation.laufende(con),
         gerechnet=heute_gerechnet(con),
+        rechnen_ziel=rechnen_ziel(con),
         rueckblick=rueckblick.woche(con),
     )
 

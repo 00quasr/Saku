@@ -2,15 +2,21 @@
 {% block titel %}Rechnen{% endblock %}
 {% block inhalt %}
 {% call m.kopf('keiko', '算', 'Rechnen', 'Rechentrainer') %}
-<p class="klein">Unbegrenzt neue Aufgaben wie in der AP1, sofort geprüft, mit Rechenweg.{% if heute[0] %} Heute {{ heute[1] }} von {{ heute[0] }} richtig.{% endif %}</p>
+<p class="klein">Unbegrenzt neue Aufgaben wie in der Prüfung, sofort geprüft, mit Rechenweg.{% if heute[0] %} Heute {{ heute[1] }} von {{ heute[0] }} richtig.{% endif %}</p>
 {% endcall %}
 
 <div class="seite weit rechnen">
   <div class="zeile rechnen-start">
-    <a class="btn" href="{{ url_for('rechnen.gemischt') }}" data-taste="Enter">Gemischt üben {{ m.taste('↵') }}</a>
+    <a class="btn" href="{{ url_for('rechnen.gemischt') }}" data-taste="Enter">Gemischt üben{% if faellig %} · {{ faellig|length }} fällig{% endif %} {{ m.taste('↵') }}</a>
     <a class="btn" data-variant="outline" href="{{ url_for('rechnen.sprint') }}">{{ m.icon('timer') }} Sprint: 5 Aufgaben, 15 Minuten</a>
     <a class="btn" data-variant="outline" href="{{ url_for('rechnen.formeln') }}">{{ m.icon('sigma') }} Formelsammlung</a>
-    <p class="klein gedaempft">Was zuletzt oft falsch war, kommt häufiger dran.</p>
+    {% if ziel %}
+    <span class="klein rechnen-ziel" title="Rechenaufgaben am Tag, einstellbar unter Einstellungen › Lernen">
+      Heute <span class="zahl">{{ heute[0] }} / {{ ziel }}</span>
+      <span class="linie-fortschritt" aria-hidden="true"><span style="width: {{ [100, 100 * heute[0] / ziel]|min }}%"></span></span>
+      {{ '✓' if heute[0] >= ziel }}</span>
+    {% endif %}
+    <p class="klein gedaempft">Fällig ist, was du noch nie, zuletzt unsicher oder seit über einer Woche nicht gerechnet hast; „Gemischt“ nimmt das zuerst.</p>
   </div>
 
   {% for gruppe, arten in gruppen %}
@@ -20,7 +26,7 @@
       {% for a in arten %}{% set s = stand[a.slug] %}
       <li>
         <a class="rechnen-art" href="{{ url_for('rechnen.aufgabe', art=a.slug) }}">
-          <span class="rechnen-art-titel">{{ a.titel }}</span>
+          <span class="rechnen-art-titel">{{ a.titel }}{% if a.slug in faellig %} <span class="rechnen-faellig">fällig</span>{% endif %}</span>
           <span class="klein gedaempft">{{ a.beschreibung }}</span>
           <span class="rechnen-art-stand klein">
             {% if s.anzahl %}{{ m.verlauf(s.letzte) }}

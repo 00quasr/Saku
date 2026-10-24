@@ -100,6 +100,17 @@
             <output class="zahl einstellung-wert" for="stationstest_schwelle">{{ ((werte.stationstest_schwelle or 0.8)|float * 100)|round|int }} %</output>
           </span>
         </div>
+        <div class="einstellung-zeile">
+          <div>
+            <label class="einstellung-name" for="rechnen_ziel">Rechenaufgaben am Tag</label>
+            <p class="klein gedaempft">Ein kleines Ziel für <span lang="ja">算</span> Rechnen, neben den Teilaufgaben. Heute zeigt den Fortschritt. 0 schaltet es aus.</p>
+          </div>
+          <span class="zeile">
+            <input class="input einstellung-zahl" type="number" min="0" max="50" id="rechnen_ziel" name="rechnen_ziel" value="{{ werte.rechnen_ziel or 5 }}"
+                   hx-post="{{ url_for('kern.speichern', schluessel='rechnen_ziel') }}" hx-trigger="change" hx-swap="none">
+            <span class="gedaempft">Aufgaben</span>
+          </span>
+        </div>
       </div>
     </section>
 

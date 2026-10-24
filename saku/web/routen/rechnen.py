@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 
 from flask import Blueprint, abort, make_response, redirect, render_template, request, url_for
 
+from saku.db import einstellung
 from saku.lernen import rechnen, simulation
 from saku.web import db, ist_fragment, seite_oder_fragment
 
@@ -36,6 +37,11 @@ def heute_gerechnet(con) -> tuple[int, int]:
                              "WHERE date(zeitpunkt, 'localtime') = date('now', 'localtime')").fetchone())
 
 
+def tagesziel(con) -> int:
+    """Rechenaufgaben am Tag aus den Einstellungen; 0 = aus. Das Tagesziel der Teilaufgaben bleibt davon unberührt."""
+    return int(einstellung(con, "rechnen_ziel", "5") or 5)
+
+
 def _gruppen() -> list[tuple[str, list]]:
     """(Gruppe, Arten) in der Reihenfolge der Übersicht, leere Gruppen fallen weg."""
     gruppen = [(g, [a for a in rechnen.ARTEN.values() if a.gruppe == g]) for g in rechnen.GRUPPEN]
@@ -59,7 +65,8 @@ def _kontext(art: str, seed: int, gemischt: bool, eingaben: dict | None = None, 
 @bp.get("/")
 def index():
     con = db()
-    return render_template("rechnen/index.html", gruppen=_gruppen(), stand=stand(con), heute=heute_gerechnet(con))
+    return render_template("rechnen/index.html", gruppen=_gruppen(), stand=stand(con), heute=heute_gerechnet(con),
+                           ziel=tagesziel(con), faellig=faellige(con))
 
 
 @bp.get("/formeln")

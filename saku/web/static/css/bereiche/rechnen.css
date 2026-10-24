@@ -14,6 +14,16 @@
 .rechnen-art-titel { font-family: var(--schrift-titel); font-weight: 600; font-size: 1.125rem; line-height: 1.5rem; }
 .rechnen-art-stand { display: flex; align-items: center; gap: 10px; margin-top: 6px; }
 
+/* Fällig (Leitner: nie, unsicher oder lange her) und das kleine Tagesziel */
+.rechnen-faellig {
+  display: inline-block; margin-left: 6px; padding: 0 8px; border-radius: 999px; vertical-align: 0.15em;
+  font-family: var(--schrift); font-size: 0.6875rem; font-weight: 500; line-height: 1.25rem; letter-spacing: .02em;
+  color: var(--shu); border: 1px solid color-mix(in oklab, var(--shu) 45%, transparent);
+}
+.rechnen-ziel { display: inline-flex; align-items: center; gap: 8px; }
+.rechnen-ziel .linie-fortschritt { width: 80px; }
+.rechnen-ziel .linie-fortschritt > span { background: var(--shu); }
+
 /* Die letzten zehn Versuche: gefüllt richtig, hohl falsch (nicht nur Farbe) */
 .verlauf { display: inline-flex; gap: 3px; }
 .verlauf-punkt { width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid var(--beni); }
