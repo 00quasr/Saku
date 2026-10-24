@@ -13,6 +13,9 @@ GRENZE = 5000        # mehr Zeilen liest Saku nicht
 SEKUNDEN = 2         # je Ausführung
 ANWEISUNGEN = 20     # ein kleines Skript, kein Programm
 ZEICHEN = 20_000
+# Speicher: Text je Wert, Spalten, Text und Blobs eines Ergebnisses zusammen (5000 Zeilen langer Texte wären sonst Gigabytes)
+LAENGE, SPALTEN, BYTES = 100_000, 100, 20_000_000
+ZU_GROSS = "Zu groß: Die Sandbox ist für kleine Beispieldaten gedacht."
 
 _VERBOTEN = {sqlite3.SQLITE_ATTACH, sqlite3.SQLITE_DETACH, sqlite3.SQLITE_PRAGMA}
 _FUNKTIONEN = {"load_extension", "fts3_tokenizer"}
@@ -54,8 +57,21 @@ def _meldung(fehler: Exception) -> str:
     if "not authorized" in text or "authorization denied" in text:
         return "Nicht erlaubt: ATTACH, PRAGMA und Erweiterungen sind in der Sandbox gesperrt."
     if "database or disk is full" in text or "too big" in text:
-        return "Zu groß: Die Sandbox ist für kleine Beispieldaten gedacht."
+        return ZU_GROSS
     return f"SQLite meldet: {text}"
+
+
+def _holen(cur: sqlite3.Cursor) -> list[tuple]:
+    """Höchstens GRENZE + 1 Zeilen und BYTES an Text und Blobs; so lange zählt auch das Zeitlimit."""
+    zeilen, groesse = [], 0
+    for zeile in cur:
+        groesse += sum(len(w) for w in zeile if isinstance(w, (str, bytes)))
+        if groesse > BYTES:
+            raise SqlFehler(ZU_GROSS)
+        zeilen.append(zeile)
+        if len(zeilen) > GRENZE:
+            break
+    return zeilen
 
 
 def _ausfuehren(con: sqlite3.Connection, sql: str) -> tuple[list[str], list[tuple]] | None:
@@ -67,7 +83,7 @@ def _ausfuehren(con: sqlite3.Connection, sql: str) -> tuple[list[str], list[tupl
         for teil in anweisungen(sql):
             cur = con.execute(teil)
             if cur.description:
-                ergebnis = [d[0] for d in cur.description], cur.fetchmany(GRENZE + 1)
+                ergebnis = [d[0] for d in cur.description], _holen(cur)
     except (sqlite3.Error, ValueError) as fehler:  # ValueError: Nullzeichen im Text
         raise SqlFehler(_meldung(fehler)) from None
     finally:
@@ -79,7 +95,8 @@ def _datenbank(ddl: str, daten: str) -> sqlite3.Connection:
     """Frische Datenbank im Speicher mit Tabellen und Beispieldaten, schon mit allen Grenzen."""
     con = sqlite3.connect(":memory:", isolation_level=None)
     con.setlimit(sqlite3.SQLITE_LIMIT_ATTACHED, 0)
-    con.setlimit(sqlite3.SQLITE_LIMIT_LENGTH, 1_000_000)
+    con.setlimit(sqlite3.SQLITE_LIMIT_LENGTH, LAENGE)
+    con.setlimit(sqlite3.SQLITE_LIMIT_COLUMN, SPALTEN)
     con.execute("PRAGMA max_page_count = 5000")  # höchstens 20 MB, auch für temporäre Tabellen
     con.execute("PRAGMA temp.max_page_count = 5000")
     con.set_authorizer(_erlaubt)
