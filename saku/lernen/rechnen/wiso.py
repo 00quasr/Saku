@@ -9,23 +9,23 @@ from datetime import date, timedelta
 from saku.lernen.rechnen.basis import FIRMEN, Aufgabe, Feld, art, de, schritte
 
 FORMELN = {
-    "kuendigung": """- § 622 Abs. 1 BGB, Grundkündigungsfrist: 4 Wochen zum 15. oder zum Ende eines Kalendermonats; gilt für Arbeitnehmer immer
+    "kuendigung": r"""- § 622 Abs. 1 BGB, Grundkündigungsfrist: 4 Wochen zum 15. oder zum Ende eines Kalendermonats; gilt für Arbeitnehmer immer
 - § 622 Abs. 2 BGB, Kündigung durch den Arbeitgeber nach 2 / 5 / 8 / 10 / 12 / 15 / 20 Jahren Betriebszugehörigkeit (beim Zugang): 1 / 2 / 3 / 4 / 5 / 6 / 7 Monate zum Monatsende
 - § 622 Abs. 3 BGB, vereinbarte Probezeit (höchstens 6 Monate): 2 Wochen, zu jedem Tag
-- Fristbeginn am Tag nach dem Zugang (§ 187 BGB); 4 Wochen enden 28 Tage nach dem Zugang, n Monate am gleichen Tag n Monate später (§ 188 BGB); danach der nächste zulässige Termin
+- Fristbeginn am Tag nach dem Zugang (§ 187 BGB); 4 Wochen enden 28 Tage nach dem Zugang, $n$ Monate am gleichen Tag $n$ Monate später (§ 188 BGB); danach der nächste zulässige Termin
 - Ausbildung (§ 22 BBiG): in der Probezeit (1 bis 4 Monate) jederzeit ohne Frist; danach Azubi mit 4 Wochen, wenn er die Ausbildung aufgibt oder wechselt; der Betrieb nur fristlos aus wichtigem Grund
 - *Typische Fehler:* den Tag des Zugangs mitgezählt, nach den 4 Wochen nicht bis zum 15. oder Monatsende weitergezählt, die verlängerten Fristen auch bei Kündigung durch den Arbeitnehmer
 
 *Beispiel:* Zugang 3. März, + 28 Tage = 31. März → Termin 31. März; Zugang 4. März, + 28 Tage = 1. April → Termin 15. April""",
-    "urlaub": """- § 3 BUrlG: mindestens 24 Werktage im Jahr; Werktage sind Montag bis Samstag (6-Tage-Woche)
-- Umrechnung: Urlaubstage = Werktage : 6 · Arbeitstage je Woche (24 Werktage = 20 Tage bei der 5-Tage-Woche)
+    "urlaub": r"""- § 3 BUrlG: mindestens 24 Werktage im Jahr; Werktage sind Montag bis Samstag (6-Tage-Woche)
+- Umrechnung: $\text{Urlaubstage} = \dfrac{\text{Werktage}}{6} \cdot \text{Arbeitstage je Woche}$ (24 Werktage = 20 Tage bei der 5-Tage-Woche)
 - § 19 JArbSchG, Alter zu Beginn des Kalenderjahres: noch nicht 16 → 30, noch nicht 17 → 27, noch nicht 18 → 25 Werktage
 - § 4 BUrlG: voller Anspruch erst nach 6 Monaten (Wartezeit); wer ab 2. Juli eintritt, erfüllt sie im Jahr nicht
-- § 5 BUrlG: 1/12 je vollem Beschäftigungsmonat, wenn die Wartezeit im Jahr nicht erfüllt ist oder man in der ersten Jahreshälfte ausscheidet; wer nach erfüllter Wartezeit in der zweiten Hälfte ausscheidet, behält den vollen Urlaub
+- § 5 BUrlG: $\frac{1}{12}$ je vollem Beschäftigungsmonat, wenn die Wartezeit im Jahr nicht erfüllt ist oder man in der ersten Jahreshälfte ausscheidet; wer nach erfüllter Wartezeit in der zweiten Hälfte ausscheidet, behält den vollen Urlaub
 - § 5 Abs. 2 BUrlG: Bruchteile ab einem halben Tag werden auf volle Tage aufgerundet
 - *Typische Fehler:* Werktage nicht in Arbeitstage umgerechnet oder durch 7 statt 6 geteilt, das im Jahr erreichte Alter statt des Alters am 1. Januar, angefangene Monate mitgezählt, nicht aufgerundet
 
-*Beispiel:* 30 Tage Jahresurlaub, Eintritt 1. August: 5 volle Monate → 30 · 5 : 12 = 12,5 → 13 Tage""",
+*Beispiel:* 30 Tage Jahresurlaub, Eintritt 1. August: 5 volle Monate → $\dfrac{30 \cdot 5}{12} = 12{,}5$ → 13 Tage""",
 }
 
 WOCHENTAGE = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"]

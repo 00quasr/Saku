@@ -37,34 +37,34 @@ FORMELN = {
 - Fällt das Ende einer Frist, in der etwas zu erklären oder zu leisten ist, auf einen Samstag, Sonntag oder Feiertag, endet sie am nächsten Werktag (§ 193); solche Tage meiden die Aufgaben
 
 *Beispiel:* Kaufvertrag 18.01.2027, Ablieferung 25.01.2027 → Gewährleistung bis 25.01.2029; 3 Jahre Herstellergarantie ab Kaufdatum → bis 18.01.2030""",
-    "maengel": """- Mangelarten: **Sachmangel** (§ 434: die Sache weicht von der vereinbarten oder üblichen Beschaffenheit ab, auch von Werbeaussagen des Herstellers), **Rechtsmangel** (§ 435: ein Dritter hat Rechte an der Sache, etwa ein Urheber- oder Patentrecht), **Falschlieferung** (eine andere Sache, steht dem Sachmangel gleich, § 434 Abs. 5), **Zuweniglieferung** (die Menge gehört zur vereinbarten Beschaffenheit, § 434 Abs. 2 Satz 2; der Rest ist nachzuliefern), **Montagemangel** (der Verkäufer montiert unsachgemäß oder seine Montageanleitung ist fehlerhaft, § 434 Abs. 4)
+    "maengel": r"""- Mangelarten: **Sachmangel** (§ 434: die Sache weicht von der vereinbarten oder üblichen Beschaffenheit ab, auch von Werbeaussagen des Herstellers), **Rechtsmangel** (§ 435: ein Dritter hat Rechte an der Sache, etwa ein Urheber- oder Patentrecht), **Falschlieferung** (eine andere Sache, steht dem Sachmangel gleich, § 434 Abs. 5), **Zuweniglieferung** (die Menge gehört zur vereinbarten Beschaffenheit, § 434 Abs. 2 Satz 2; der Rest ist nachzuliefern), **Montagemangel** (der Verkäufer montiert unsachgemäß oder seine Montageanleitung ist fehlerhaft, § 434 Abs. 4)
 - Rechte des Käufers (§ 437): **zuerst Nacherfüllung** (§ 439); der Käufer wählt zwischen Nachbesserung (Reparatur) und Ersatzlieferung, der Verkäufer trägt die Kosten und darf nur eine unverhältnismäßig teure Art verweigern (§ 439 Abs. 4)
 - Erst wenn die Nacherfüllung scheitert (angemessene Frist ergebnislos abgelaufen, zweiter Nachbesserungsversuch fehlgeschlagen nach § 440, ernsthaft verweigert): **Rücktritt** (§ 323) oder **Minderung** (§ 441), dazu Schadensersatz, wenn der Verkäufer den Mangel zu vertreten hat (§§ 280, 281)
 - Bei einem unerheblichen Mangel ist der Rücktritt ausgeschlossen (§ 323 Abs. 5 Satz 2), die Minderung nicht (§ 441 Abs. 1 Satz 2); ein behebbarer Mangel ist in der Regel unerheblich, wenn ihn zu beseitigen höchstens 5 % des Kaufpreises kostet (Rechtsprechung des BGH)
-- Minderung (§ 441 Abs. 3): **geminderter Preis = Kaufpreis · Wert mit Mangel : Wert ohne Mangel**; zu viel Gezahltes erstattet der Verkäufer (§ 441 Abs. 4)
+- Minderung (§ 441 Abs. 3): $\text{geminderter Preis} = \text{Kaufpreis} \cdot \dfrac{\text{Wert mit Mangel}}{\text{Wert ohne Mangel}}$; zu viel Gezahltes erstattet der Verkäufer (§ 441 Abs. 4)
 - Nach Ablauf der Gewährleistungsfrist (2 Jahre ab Ablieferung) kann sich der Verkäufer auf Verjährung berufen; dann sind auch Rücktritt und Minderung unwirksam (§ 438 Abs. 4 und 5, § 218)
 - Beim Werkvertrag wählt dagegen der Unternehmer, ob er nachbessert oder neu herstellt (§ 635 Abs. 1); dazu kommt die Selbstvornahme (§ 637)
 
-*Beispiel:* Kaufpreis 1.200 €, Wert ohne Mangel 1.500 €, mit Mangel 1.000 € → 1.200 · 1.000 : 1.500 = 800 €, erstattet werden 400 € (nicht 1.200 − 500 = 700 €)""",
-    "verzug": """- Verzug (§ 286 BGB): die fällige Zahlung bleibt trotz **Mahnung** aus (Abs. 1, Verzug mit dem Zugang der Mahnung); ohne Mahnung, wenn der Zahlungstermin **im Vertrag** nach dem Kalender bestimmt ist (Abs. 2 Nr. 1, Verzug ab dem Tag danach; ein Datum nur auf der Rechnung reicht dafür nicht)
+*Beispiel:* Kaufpreis 1.200 €, Wert ohne Mangel 1.500 €, mit Mangel 1.000 € → $\dfrac{1.200 \cdot 1.000}{1.500} = 800\,\text{€}$, erstattet werden 400 € (nicht $1.200 - 500 = 700\,\text{€}$)""",
+    "verzug": r"""- Verzug (§ 286 BGB): die fällige Zahlung bleibt trotz **Mahnung** aus (Abs. 1, Verzug mit dem Zugang der Mahnung); ohne Mahnung, wenn der Zahlungstermin **im Vertrag** nach dem Kalender bestimmt ist (Abs. 2 Nr. 1, Verzug ab dem Tag danach; ein Datum nur auf der Rechnung reicht dafür nicht)
 - **30-Tage-Regel** (Abs. 3): spätestens 30 Tage nach Fälligkeit und Zugang der Rechnung; gegenüber Verbrauchern nur, wenn die Rechnung **besonders darauf hinweist**; eine Mahnung vorher wirkt früher
 - Frist nach §§ 187, 188: Zugang am 1. März → die 30 Tage enden am 31. März → Verzug ab 1. April; fällt das Fristende auf einen Samstag, Sonntag oder Feiertag, endet sie am nächsten Werktag (§ 193)
 - Verzugszinssatz (§ 288): **Basiszinssatz + 5 Prozentpunkte**, wenn ein Verbraucher beteiligt ist (Abs. 1); **+ 9 Prozentpunkte** zwischen Unternehmern (Abs. 2); der Basiszinssatz (§ 247) ändert sich zum 1. Januar und 1. Juli und steht in der Aufgabe
 - Zwischen Unternehmern zusätzlich **40 € Pauschale** (§ 288 Abs. 5), nicht gegenüber Verbrauchern
-- Zinsen = Betrag · Zinssatz · Tage : 365. Konvention hier: Zinstage vom ersten Verzugstag bis einschließlich zum Zahlungstag, taggenau, das Jahr mit 365 Tagen, am Ende auf Cent gerundet (Zinsrechner und Gerichte zählen teils anders); nach einer Mahnung laufen die Zinsen ab dem Tag nach ihrem Zugang
+- $\text{Zinsen} = \dfrac{\text{Betrag} \cdot \text{Zinssatz} \cdot \text{Tage}}{365}$. Konvention hier: Zinstage vom ersten Verzugstag bis einschließlich zum Zahlungstag, taggenau, das Jahr mit 365 Tagen, am Ende auf Cent gerundet (Zinsrechner und Gerichte zählen teils anders); nach einer Mahnung laufen die Zinsen ab dem Tag nach ihrem Zugang
 - *Typische Fehler:* 5 und 9 Prozentpunkte verwechselt, mit 360 statt 365 Tagen gerechnet, Verzug schon am Termin statt am Tag danach, die Pauschale auch gegenüber Verbrauchern
 
-*Beispiel:* 2.000 € zwischen Unternehmern, Basiszinssatz 1,27 %, 30 Zinstage: 10,27 % → 2.000 · 0,1027 · 30 : 365 = 16,88 € und 40 € Pauschale""",
-    "lizenz": """- **OEM-Lizenz**: zusammen mit neuer Hardware verkauft, günstig, laut Lizenzbedingungen an das Gerät gebunden
+*Beispiel:* 2.000 € zwischen Unternehmern, Basiszinssatz 1,27 %, 30 Zinstage: 10,27 % → $\dfrac{2.000\,\text{€} \cdot 0{,}1027 \cdot 30}{365} = 16{,}88\,\text{€}$ und 40 € Pauschale""",
+    "lizenz": r"""- **OEM-Lizenz**: zusammen mit neuer Hardware verkauft, günstig, laut Lizenzbedingungen an das Gerät gebunden
 - **Einzelplatzlizenz**: eine Installation auf einem Arbeitsplatz; **Volumenlizenz**: viele Lizenzen auf einmal, Mengenrabatt, zentrale Verwaltung, oft ein gemeinsamer Schlüssel
 - **Abonnement** (Subscription, SaaS): Gebühr je Monat oder Jahr und Benutzer, Updates inklusive, mit der Kündigung endet die Nutzung; SaaS läuft beim Anbieter (im Browser)
 - **Freeware**: kostenlos nutzbar (manchmal nur privat), Quellcode geschlossen, Verändern und Weiterverkaufen verboten; **Open Source**: Quellcode offen, Nutzen, Ändern und Weitergeben erlaubt, nach den Bedingungen der Lizenz
 - **Copyleft (GNU GPL)**: wer veränderten Code weitergibt, muss ihn wieder unter der GPL und mit Quellcode weitergeben; interne Nutzung ohne Weitergabe löst das nicht aus; Geld für die Weitergabe zu verlangen ist erlaubt. Die AGPL verlangt den Quellcode auch, wenn andere ein verändertes Programm nur über ein Netzwerk nutzen
 - **Permissiv (MIT, BSD)**: Einbau in eigene Produkte mit geschlossenem Quellcode erlaubt; Pflicht ist, den Urheber- und Lizenzhinweis beizulegen; die 3-Klausel-BSD verbietet, ohne Erlaubnis mit den Namen der Urheber zu werben
 - Gebrauchte Software: eine dauerhaft gegen Einmalzahlung gekaufte Lizenz darf weiterverkauft werden, wenn die eigene Kopie unbrauchbar gemacht wird (Erschöpfung, § 69c Nr. 3 UrhG, EuGH „UsedSoft“ 2012)
-- Kostenvergleich: Kauf = Lizenzpreis · Benutzer + Wartung je Jahr · Jahre; Abo = Preis je Benutzer und Monat · Benutzer · 12 · Jahre
+- Kostenvergleich: $\text{Kauf} = \text{Lizenzpreis} \cdot \text{Benutzer} + \text{Wartung je Jahr} \cdot \text{Jahre}$; $\text{Abo} = \text{Preis je Benutzer und Monat} \cdot \text{Benutzer} \cdot 12 \cdot \text{Jahre}$
 
-*Beispiel:* 10 Benutzer, Kauf 400 € je Lizenz und 20 % Wartung im Jahr, 3 Jahre: 4.000 + 3 · 800 = 6.400 €; Abo 15 € im Monat: 10 · 15 · 36 = 5.400 € → das Abo ist günstiger""",
+*Beispiel:* 10 Benutzer, Kauf 400 € je Lizenz und 20 % Wartung im Jahr, 3 Jahre: $4.000\,\text{€} + 3 \cdot 800\,\text{€} = 6.400\,\text{€}$; Abo 15 € im Monat: $10 \cdot 15\,\text{€} \cdot 36 = 5.400\,\text{€}$ → das Abo ist günstiger""",
 }
 
 JA_NEIN = ["Ja", "Nein"]

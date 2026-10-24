@@ -4,15 +4,15 @@ from saku.lernen.rechnen.basis import FIRMEN, Aufgabe, Feld, art, schritte, tabe
 
 # Formeln und Merksätze je Art: Formelsammlung und Karte zeigen sie nach dem Rechenweg
 FORMELN = {
-    "netzplan": """- Vorwärts: FAZ = größter FEZ der Vorgänger (Start 0), FEZ = FAZ + Dauer
-- Projektdauer = FEZ des letzten Vorgangs
-- Rückwärts: SEZ = kleinster SAZ der Nachfolger (Ende = Projektdauer), SAZ = SEZ − Dauer
-- Gesamtpuffer GP = SAZ − FAZ = SEZ − FEZ
-- Freier Puffer FP = kleinster FAZ der Nachfolger − FEZ
-- Kritischer Pfad: alle Vorgänge mit GP = 0, vom Start bis zum Ende
-- *Typische Fehler:* alle Dauern addiert statt den längsten Weg genommen, FAZ aus dem kleinsten FEZ, Gesamt- und freien Puffer verwechselt, SEZ − FAZ statt SAZ − FAZ
+    "netzplan": r"""- Vorwärts: $\text{FAZ} = \max(\text{FEZ der Vorgänger})$ (Start 0), $\text{FEZ} = \text{FAZ} + \text{Dauer}$
+- $\text{Projektdauer} = \text{FEZ des letzten Vorgangs}$
+- Rückwärts: $\text{SEZ} = \min(\text{SAZ der Nachfolger})$ (Ende = Projektdauer), $\text{SAZ} = \text{SEZ} - \text{Dauer}$
+- Gesamtpuffer $\text{GP} = \text{SAZ} - \text{FAZ} = \text{SEZ} - \text{FEZ}$
+- Freier Puffer $\text{FP} = \min(\text{FAZ der Nachfolger}) - \text{FEZ}$
+- Kritischer Pfad: alle Vorgänge mit $\text{GP} = 0$, vom Start bis zum Ende
+- *Typische Fehler:* alle Dauern addiert statt den längsten Weg genommen, FAZ aus dem kleinsten FEZ, Gesamt- und freien Puffer verwechselt, $\text{SEZ} - \text{FAZ}$ statt $\text{SAZ} - \text{FAZ}$
 
-*Beispiel:* A (3 Tage) → B (2 Tage): FAZ B = FEZ A = 3, FEZ B = 5""",
+*Beispiel:* A (3 Tage) → B (2 Tage): $\text{FAZ}_B = \text{FEZ}_A = 3$, $\text{FEZ}_B = 5$""",
 }
 
 

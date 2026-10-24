@@ -167,7 +167,7 @@ SAKU_DATENORDNER=/tmp/saku-demo python -m saku start --browser
 |---|---|
 | `python -m saku start` | App im eigenen Fenster öffnen; `--browser` öffnet sie im Standardbrowser |
 | `python -m saku init` | Datenbank anlegen oder auf den neuesten Stand bringen |
-| `python -m saku assets` | Basecoat, htmx, force-graph, Lucide und Schriften einmalig laden |
+| `python -m saku assets` | Basecoat, htmx, force-graph, Lucide, KaTeX und Schriften einmalig laden |
 | `python -m saku analyse` | alle Schritte der Pipeline; `--schritt NAME` nur einen, `--ohne-ki` nur die lokalen, `--ki claude-code` KI über Claude Code statt API |
 | `python -m saku analyse --schritt sandbox --ki claude-code` | nur die SQL-Sandboxen bauen; bearbeitet nur Aufgaben, die noch keine haben |
 | `python -m saku lernstand export DATEI` | Lernstand als JSON-Datei mitnehmen (auch in den Einstellungen unter Daten) |

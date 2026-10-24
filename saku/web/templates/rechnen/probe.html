@@ -127,7 +127,7 @@
       {% if fertig %}
       <details class="kontext" {{ 'open' if x.erreicht < x.punkte }}>
         <summary>Lösungsweg</summary>
-        <div class="prosa aufgabe-inhalt rechnen-weg">{{ a.rechenweg|markdown }}</div>
+        <div class="prosa aufgabe-inhalt rechnen-weg">{{ a.rechenweg|markdown(formeln=True) }}</div>
         {{ a.weg_struktogramm }}
       </details>
       <p><a class="btn" data-variant="ghost" data-size="sm" href="{{ url_for('rechnen.aufgabe', art=x.art.slug) }}">{{ m.icon('shuffle') }} Ähnliches rechnen</a></p>

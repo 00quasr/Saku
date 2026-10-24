@@ -35,11 +35,11 @@ FORMELN = {
 - Datentypen hier INTEGER, REAL, TEXT; in der Prüfung auch INT, DECIMAL(8,2), VARCHAR(50), DATE
 
 *Beispiel:* UPDATE artikel SET preis = preis * 1.05 WHERE kategorie = 'Papier';""",
-    "ermodell": """- Jede Entität wird eine Tabelle mit eigenem Primärschlüssel
+    "ermodell": r"""- Jede Entität wird eine Tabelle mit eigenem Primärschlüssel
 - 1 : n: der Primärschlüssel der 1-Seite kommt als Fremdschlüssel in die Tabelle der n-Seite
 - 1 : 1: der Fremdschlüssel kommt in die Tabelle der Seite, die genau einen Partner hat (die andere darf ohne sein), mit UNIQUE
 - n : m: eigene Zwischentabelle mit beiden Fremdschlüsseln, zusammen bilden sie ihren Primärschlüssel
-- Tabellen = Entitäten + n:m-Beziehungen; Fremdschlüssel = je 1:n- und 1:1-Beziehung einer, je n:m-Beziehung zwei
+- $\text{Tabellen} = \text{Entitäten} + \text{n:m-Beziehungen}$; $\text{Fremdschlüssel} = \text{1:n- und 1:1-Beziehungen} + 2 \cdot \text{n:m-Beziehungen}$
 
 *Beispiel:* Kunde 1 : n Auftrag, Auftrag n : m Artikel → kunde, auftrag (kunden_nr → kunde), artikel, auftrag_artikel = 4 Tabellen""",
     "normalform": """- 1. NF: jede Zelle enthält genau einen Wert (atomar), keine Wiederholungsgruppen

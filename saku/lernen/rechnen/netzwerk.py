@@ -3,49 +3,49 @@
 import ipaddress
 import math
 
-from saku.lernen.rechnen.basis import (ABTEILUNGEN, ANDERS, BIT_BYTE, BYTE, FAKTOR, FIRMEN, Aufgabe, Feld, art, de, hoch, praefix_fehler,
-                                       schritte, tabelle)
+from saku.lernen.rechnen.basis import (ABTEILUNGEN, ANDERS, BIT_BYTE, BYTE, FAKTOR_TEX, FIRMEN, Aufgabe, Feld, art, de, hoch,
+                                       praefix_fehler, schritte, tabelle, tex)
 
 # Formeln und Merksätze je Art: Formelsammlung und Karte zeigen sie nach dem Rechenweg
 FORMELN = {
-    "subnetz": """- Präfix /p: p Einsen in der Maske, 32 − p Hostbits
-- Hosts je Netz = 2^(32 − p) − 2 (Netz-ID und Broadcast sind nicht nutzbar)
+    "subnetz": r"""- Präfix $/p$: $p$ Einsen in der Maske, $32 - p$ Hostbits
+- $\text{Hosts je Netz} = 2^{32 - p} - 2$ (Netz-ID und Broadcast sind nicht nutzbar)
 - Maskenwerte im Oktett: 128, 192, 224, 240, 248, 252, 254, 255
-- Blockgröße = 256 − Maskenwert im angebrochenen Oktett
-- Netz-ID: Oktett auf ein Vielfaches der Blockgröße abrunden, dahinter 0; Broadcast: nächste Netz-ID − 1, dahinter 255
-- n gleich große Subnetze: log₂ n Bits leihen → neues Präfix p + log₂ n; k. Subnetz = Netz-ID + (k − 1) · Blockgröße
-- *Typische Fehler:* Netz-ID und Broadcast mitgezählt (2^h statt 2^h − 2), Netz-ID und Broadcast vertauscht, die Blockgröße statt des Maskenwerts in die Maske geschrieben
+- $\text{Blockgröße} = 256 - \text{Maskenwert}$ im angebrochenen Oktett
+- Netz-ID: Oktett auf ein Vielfaches der Blockgröße abrunden, dahinter 0; Broadcast: $\text{nächste Netz-ID} - 1$, dahinter 255
+- $n$ gleich große Subnetze: $\log_2 n$ Bits leihen → neues Präfix $p + \log_2 n$; $\text{Subnetz}_k = \text{Netz-ID} + (k - 1) \cdot \text{Blockgröße}$
+- *Typische Fehler:* Netz-ID und Broadcast mitgezählt ($2^h$ statt $2^h - 2$), Netz-ID und Broadcast vertauscht, die Blockgröße statt des Maskenwerts in die Maske geschrieben
 
-*Beispiel:* 192.168.1.77/26 → Maske 255.255.255.192, Block 256 − 192 = 64, Netz-ID 192.168.1.64, Broadcast 192.168.1.127, 2⁶ − 2 = 62 Hosts""",
-    "uebertragung": """- Dauer = Datenmenge in Bit : Datenrate in Bit/s
-- 1 Byte = 8 Bit; Datenraten sind dezimal: 1 Mbit/s = 10⁶ Bit/s, 1 Gbit/s = 1.000 Mbit/s
-- Dateigrößen in MiB oder GiB erst in Byte umrechnen (· 1.024² bzw. · 1.024³)
-- Overhead p %: nutzbare Datenrate = Datenrate · (1 − p : 100)
-- Nötige Datenrate = Datenmenge : Zeit, mit Overhead geteilt durch (1 − p : 100)
+*Beispiel:* 192.168.1.77/26 → Maske 255.255.255.192, Block $256 - 192 = 64$, Netz-ID 192.168.1.64, Broadcast 192.168.1.127, $2^6 - 2 = 62$ Hosts""",
+    "uebertragung": r"""- $\text{Dauer} = \dfrac{\text{Datenmenge in Bit}}{\text{Datenrate in Bit/s}}$
+- $1\,\text{Byte} = 8\,\text{Bit}$; Datenraten sind dezimal: $1\,\text{Mbit/s} = 10^6\,\text{Bit/s}$, $1\,\text{Gbit/s} = 1.000\,\text{Mbit/s}$
+- Dateigrößen in MiB oder GiB erst in Byte umrechnen ($\cdot\, 1.024^2$ bzw. $\cdot\, 1.024^3$)
+- Overhead $p\,\%$: $\text{nutzbare Datenrate} = \text{Datenrate} \cdot \left(1 - \frac{p}{100}\right)$
+- $\text{Nötige Datenrate} = \dfrac{\text{Datenmenge}}{\text{Zeit}}$, mit Overhead geteilt durch $\left(1 - \frac{p}{100}\right)$
 - *Typische Fehler:* Byte nicht mal 8 genommen, MB und MiB verwechselt (1.000 und 1.024), Minuten nicht in Sekunden umgerechnet, Overhead vergessen oder mit dem Anteil multipliziert statt geteilt
 
-*Beispiel:* 650 MB über 25 Mbit/s: 650 · 8 = 5.200 Mbit; 5.200 : 25 = 208 s ≈ 3,47 min""",
-    "ipv6": """- 128 Bit in 8 Blöcken zu je 4 Hexadezimalziffern (16 Bit)
+*Beispiel:* 650 MB über 25 Mbit/s: $650 \cdot 8 = 5.200\,\text{Mbit}$; $5.200 : 25 = 208\,\text{s} \approx 3{,}47\,\text{min}$""",
+    "ipv6": r"""- 128 Bit in 8 Blöcken zu je 4 Hexadezimalziffern (16 Bit)
 - Kürzen: führende Nullen je Block weglassen; die längste Folge von Nullblöcken (bei Gleichstand die erste) einmal durch `::` ersetzen
 - Ausschreiben: `::` steht für so viele Nullblöcke, dass es 8 Blöcke werden; jeden Block auf 4 Ziffern auffüllen
-- Anzahl /64-Netze in einem Präfix /p = 2^(64 − p)
+- Anzahl /64-Netze in einem Präfix $/p$: $2^{64 - p}$
 
-*Beispiel:* `2001:0db8:0000:0000:0000:00ff:0000:0001` → `2001:db8::ff:0:1`; ein /48 enthält 2¹⁶ = 65.536 /64-Netze""",
-    "vlsm": """- VLSM: Subnetze unterschiedlicher Größe aus einem Netz, die größte zuerst, lückenlos ab dem Netzanfang
-- Blockgröße je Abteilung: kleinste Zweierpotenz ≥ Hosts + 2 (Netz-ID und Broadcast), Präfix = 32 − log₂ Blockgröße
+*Beispiel:* `2001:0db8:0000:0000:0000:00ff:0000:0001` → `2001:db8::ff:0:1`; ein /48 enthält $2^{16} = 65.536$ /64-Netze""",
+    "vlsm": r"""- VLSM: Subnetze unterschiedlicher Größe aus einem Netz, die größte zuerst, lückenlos ab dem Netzanfang
+- Blockgröße je Abteilung: kleinste Zweierpotenz $\geq \text{Hosts} + 2$ (Netz-ID und Broadcast), $\text{Präfix} = 32 - \log_2 \text{Blockgröße}$
 - Das nächste Subnetz beginnt direkt nach dem Broadcast des vorigen; so liegt jedes Netz auf einer Grenze seiner Größe
-- Broadcast = Netz-ID + Blockgröße − 1
+- $\text{Broadcast} = \text{Netz-ID} + \text{Blockgröße} - 1$
 
 *Beispiel:* 192.168.10.0/24, Vertrieb 50 Hosts → 64er-Block /26: .0 bis .63; Lager 20 Hosts → 32er-Block /27: .64 bis .95""",
-    "routing": """- Ein Eintrag passt, wenn die ersten p Bit (Präfix) der Zieladresse mit der Netzadresse übereinstimmen
+    "routing": r"""- Ein Eintrag passt, wenn die ersten $p$ Bit (Präfix) der Zieladresse mit der Netzadresse übereinstimmen
 - Passen mehrere, gewinnt der längste Präfix (Longest Prefix Match), egal in welcher Reihenfolge die Einträge stehen
 - 0.0.0.0/0 (Default-Route) passt immer und greift nur, wenn sonst nichts passt
 - Prüfen im angebrochenen Oktett: Zielwert auf ein Vielfaches der Blockgröße abrunden und mit der Netzadresse vergleichen
 
 *Beispiel:* Ziel 10.20.30.200, Einträge 10.20.0.0/16 und 10.20.30.128/25: 200 liegt im Block 128 bis 255 → /25 gewinnt""",
-    "eui64": """- Modifiziertes EUI-64: MAC-Adresse (48 Bit) in der Mitte teilen, FF:FE einfügen → 64 Bit Interface-ID
+    "eui64": r"""- Modifiziertes EUI-64: MAC-Adresse (48 Bit) in der Mitte teilen, FF:FE einfügen → 64 Bit Interface-ID
 - Im ersten Byte das 7. Bit von links (Universal/Local, Wert 2) umdrehen: 00 → 02, 02 → 00, 0C → 0E
-- Adresse = /64-Präfix + Interface-ID; Link-Local: fe80::/64 + Interface-ID
+- $\text{Adresse} = \text{/64-Präfix} + \text{Interface-ID}$; Link-Local: $\texttt{fe80::/64} + \text{Interface-ID}$
 - Zum Schluss kürzen: führende Nullen je Block weg, die längste Nullfolge einmal durch :: ersetzen
 
 *Beispiel:* MAC 00:1A:2B:3C:4D:5E → 02:1A:2B:FF:FE:3C:4D:5E → Interface-ID 21a:2bff:fe3c:4d5e, Link-Local fe80::21a:2bff:fe3c:4d5e"""
@@ -134,7 +134,7 @@ def _host_infos(rng):
         f"Broadcast: {wert // block * block} + {block} − 1 = {wert // block * block + block - 1}"
         f"{'' if i == 3 else ', dahinter alles 255'} → **{_ip(broadcast)}**",
         f"Erster Host = Netz-ID + 1 → **{_ip(netz + 1)}**, letzter Host = Broadcast − 1 → **{_ip(broadcast - 1)}**",
-        f"Hosts: 32 − {p} = {hostbits} Hostbits → 2{hoch(hostbits)} − 2 = **{de(2 ** hostbits - 2)}** "
+        f"Hosts: 32 − {p} = {hostbits} Hostbits → $2{hoch(hostbits)} - 2$ = **{de(2 ** hostbits - 2)}** "
         "(Netz-ID und Broadcast sind nicht nutzbar)",
     ]
     netz_feld = Feld("netz", "Netz-ID", _ip(netz), typ="ip", typisch=(
@@ -167,7 +167,7 @@ def _maske_praefix(rng):
     p = rng.randint(8, 30)
     hostbits = 32 - p
     hosts = Feld("hosts", "Nutzbare Hosts", 2 ** hostbits - 2, stellen=0, typisch=_hosts_typisch(hostbits))
-    host_weg = f"Hosts: 32 − {p} = {hostbits} Hostbits → 2{hoch(hostbits)} − 2 = **{de(2 ** hostbits - 2)}**"
+    host_weg = f"Hosts: 32 − {p} = {hostbits} Hostbits → $2{hoch(hostbits)} - 2$ = **{de(2 ** hostbits - 2)}**"
     if rng.random() < 0.5:
         frage = (f"In der Netzwerkdokumentation der {rng.choice(FIRMEN)} ist ein Netz mit dem Präfix `/{p}` angegeben.\n\n"
                  "Geben Sie die Subnetzmaske in Punktschreibweise an und berechnen Sie die Anzahl der nutzbaren Host-Adressen.")
@@ -203,9 +203,9 @@ def _teilen(rng):
                   (_ip(netz + (k + 1) * block - 1), ab_eins),
                   (_ip(netz + k * block), "Das ist schon die Netz-ID des nächsten Subnetzes; der Broadcast liegt davor.")))]
     weg = schritte(
-        f"{n} Subnetze = 2{hoch(bits)} → {bits} Bit vom Hostanteil leihen → /{p0} + {bits} = **/{p}**",
-        f"Hostbits: 32 − {p} = {32 - p} → 2{hoch(32 - p)} − 2 = **{de(block - 2)}** Hosts je Subnetz",
-        f"Blockgröße: 2{hoch(32 - p)} = {de(block)} Adressen; das k. Subnetz beginnt bei Netz-ID + (k − 1) · {de(block)}",
+        f"{n} Subnetze = $2{hoch(bits)}$ → {bits} Bit vom Hostanteil leihen → /{p0} + {bits} = **/{p}**",
+        f"Hostbits: 32 − {p} = {32 - p} → $2{hoch(32 - p)} - 2$ = **{de(block - 2)}** Hosts je Subnetz",
+        rf"Blockgröße: $2{hoch(32 - p)} = {tex(block)}$ Adressen; das $k$. Subnetz beginnt bei $\text{{Netz-ID}} + (k - 1) \cdot {tex(block)}$",
     )
     return Aufgabe(frage, felder, weg + "\n\n" + tabelle(["Subnetz", "Netz-ID", "Broadcast"], zeilen), titel="Netz teilen")
 
@@ -227,11 +227,11 @@ def _mindest_hosts(rng):
               Feld("anzahl", "Anzahl Subnetze", 2 ** (p - p0), stellen=0, typisch=(
                   (2 ** (p - p0) - 2, "Du hast 2 abgezogen; das gilt nur für Hosts, nicht für die Anzahl der Subnetze."),
                   (p - p0, "Das sind die geliehenen Bits; die Anzahl der Subnetze ist 2 hoch diese Bits.")))]
-    kleiner = f"2{hoch(hostbits - 1)} − 2 = {de(2 ** (hostbits - 1) - 2)} reicht nicht, " if hostbits > 2 else ""
+    kleiner = f"${2}{hoch(hostbits - 1)} - 2 = {tex(2 ** (hostbits - 1) - 2)}$ reicht nicht, " if hostbits > 2 else ""
     weg = schritte(
-        f"Kleinste Hostbit-Zahl b mit 2ᵇ − 2 ≥ {bedarf}: {kleiner}2{hoch(hostbits)} − 2 = {de(2 ** hostbits - 2)} reicht → b = {hostbits}",
+        rf"Kleinste Hostbit-Zahl $b$ mit $2^b - 2 \geq {bedarf}$: {kleiner}$2{hoch(hostbits)} - 2 = {tex(2 ** hostbits - 2)}$ reicht → $b = {hostbits}$",
         f"Präfix: 32 − {hostbits} = **/{p}**, also **{de(2 ** hostbits - 2)}** Hosts je Subnetz",
-        f"Geliehene Bits: {p} − {p0} = {p - p0} → 2{hoch(p - p0)} = **{de(2 ** (p - p0))}** Subnetze",
+        f"Geliehene Bits: {p} − {p0} = {p - p0} → $2{hoch(p - p0)}$ = **{de(2 ** (p - p0))}** Subnetze",
     )
     return Aufgabe(frage, felder, weg, titel="Subnetze nach Hostbedarf")
 
@@ -294,7 +294,7 @@ def _dauer(rng):
         dauer.append((mbit / rate, "Du hast den Overhead nicht abgezogen; nur ein Teil der Datenrate trägt Nutzdaten."))
     felder = [Feld("mbit", "Datenmenge", mbit, "Mbit", typisch=tuple(menge)), Feld("sekunden", "Dauer", sekunden, "s", typisch=tuple(dauer)),
               Feld("minuten", "Dauer", sekunden / 60, "min", typisch=tuple((d / 60, h) for d, h in dauer))]
-    weg = [f"In Byte: {de(wert)} {einheit} = {de(wert)} · {FAKTOR[einheit]} Byte = {de(byte, 0)} Byte",
+    weg = [rf"In Byte: {de(wert)} {einheit} = ${tex(wert)} \cdot {FAKTOR_TEX[einheit]}$ Byte = {de(byte, 0)} Byte",
            f"In Bit: · 8 = {de(byte * 8, 0)} Bit = **{de(mbit)} Mbit**"]
     if rate >= 1000:
         weg.append(f"Datenrate: {_rate(rate)} = {de(rate)} Mbit/s")
@@ -326,7 +326,7 @@ def _noetige_rate(rng):
                                                   "nicht langsamer.")]
     felder = [Feld("mbit", "Datenmenge", mbit, "Mbit", typisch=tuple(menge)),
               Feld("rate", "Nötige Datenrate", brutto, "Mbit/s", typisch=tuple(noetig))]
-    weg = [f"Datenmenge: {de(wert)} · {FAKTOR[einheit]} Byte · 8 = **{de(mbit)} Mbit**",
+    weg = [rf"Datenmenge: ${tex(wert)} \cdot {FAKTOR_TEX[einheit]}\,\text{{Byte}} \cdot 8$ = **{de(mbit)} Mbit**",
            f"Zeit: {zeit} = {de(minuten * 60)} s",
            f"Nutzdatenrate = {de(mbit)} Mbit : {de(minuten * 60)} s = **{de(netto)} Mbit/s**"]
     if overhead:
@@ -346,10 +346,10 @@ def _menge_in_zeit(rng):
                   (byte * 8 / 2 ** 30, BIT_BYTE), (byte / 10 ** 9, praefix_fehler("GiB")), (byte / 60 / 2 ** 30, MINUTEN)))]
     weg = schritte(
         f"Zeit: {minuten} min = {de(minuten * 60)} s",
-        f"Bit: {de(rate)} · 10⁶ Bit/s · {de(minuten * 60)} s = {de(rate * 10 ** 6 * minuten * 60, 0)} Bit",
+        rf"Bit: ${tex(rate)} \cdot 10^6\,\text{{Bit/s}} \cdot {tex(minuten * 60)}\,\text{{s}}$ = {de(rate * 10 ** 6 * minuten * 60, 0)} Bit",
         f"Byte: : 8 = {de(byte, 0)} Byte",
-        f"GB: : 10⁹ = **{de(byte / 10 ** 9)} GB**",
-        f"GiB: : 1.024³ = : {de(2 ** 30)} = **{de(byte / 2 ** 30)} GiB**",
+        f"GB: geteilt durch $10^9$ = **{de(byte / 10 ** 9)} GB**",
+        f"GiB: geteilt durch $1.024^3 = {tex(2 ** 30)}$ = **{de(byte / 2 ** 30)} GiB**",
     )
     return Aufgabe(frage, felder, weg, toleranz=0.005, titel="Datenmenge in einer Zeit")
 
@@ -403,7 +403,7 @@ def _netze(rng):
     frage = (f"Der Provider weist der {rng.choice(FIRMEN)} das Präfix `{netz}` zu. Intern sollen ausschließlich /64-Netze "
              "verwendet werden.\n\nWie viele Bits stehen für die Subnetz-ID zur Verfügung, und wie viele /64-Netze lassen sich bilden?")
     felder = [Feld("bits", "Bits für Subnetze", bits, "Bit", stellen=0), Feld("anzahl", "Anzahl /64-Netze", 2 ** bits, stellen=0)]
-    weg = schritte(f"Subnetz-ID: 64 − {p} = **{bits} Bit**", f"Anzahl: 2{hoch(bits)} = **{de(2 ** bits)}** Netze")
+    weg = schritte(f"Subnetz-ID: 64 − {p} = **{bits} Bit**", f"Anzahl: $2{hoch(bits)}$ = **{de(2 ** bits)}** Netze")
     return Aufgabe(frage, felder, weg, titel="/64-Netze zählen")
 
 
@@ -437,11 +437,11 @@ def vlsm(rng):
              "Tragen Sie je Abteilung Netz-ID, Präfix und Broadcast-Adresse ein.")
     zellen = [[Feld(f"{i}_netz", f"{n}: Netz-ID", _ip(plan[n][0]), typ="ip"), Feld(f"{i}_praefix", f"{n}: Präfix", plan[n][1], stellen=0),
                Feld(f"{i}_bc", f"{n}: Broadcast", _ip(plan[n][2]), typ="ip")] for i, n in enumerate(reihenfolge)]
-    zeilen = [[n, bedarf[n], f"{bedarf[n]} + 2 → {b} = 2{hoch(b.bit_length() - 1)}", f"/{p}", _ip(s), _ip(e)]
+    zeilen = [[n, bedarf[n], f"{bedarf[n]} + 2 → {b} = $2{hoch(b.bit_length() - 1)}$", f"/{p}", _ip(s), _ip(e)]
               for n, (s, p, e, b) in sorted(plan.items(), key=lambda x: -x[1][3])]
-    weg = (schritte("Blockgröße je Abteilung: kleinste Zweierpotenz ≥ Hosts + 2, Präfix = 32 − Hostbits",
+    weg = (schritte(r"Blockgröße je Abteilung: kleinste Zweierpotenz $\geq \text{Hosts} + 2$, $\text{Präfix} = 32 - \text{Hostbits}$",
                     "Nach Blockgröße sortieren, die größte zuerst, und lückenlos ab der Netz-ID vergeben",
-                    "Broadcast = Netz-ID + Blockgröße − 1, das nächste Netz beginnt eine Adresse danach")
+                    r"$\text{Broadcast} = \text{Netz-ID} + \text{Blockgröße} - 1$, das nächste Netz beginnt eine Adresse danach")
            + "\n\n" + tabelle(["Abteilung", "Hosts", "Block", "Präfix", "Netz-ID", "Broadcast"], zeilen)
            + (f"\n\nFrei bleibt ab {_ip(start)} bis {_ip(netz + 2 ** (32 - p0) - 1)}." if start < netz + 2 ** (32 - p0) else ""))
     return Aufgabe(frage, [f for zeile in zellen for f in zeile], weg, titel=f"VLSM aus einem /{p0}",

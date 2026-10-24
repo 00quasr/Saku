@@ -35,6 +35,19 @@ def test_markdown_ohne_html():
     assert "x<br>y<br>z" in zelle and "&lt;" not in zelle
 
 
+def test_formeln_vor_markdown_geschuetzt():
+    """$…$ und $$…$$ kommen unverändert als LaTeX in <span class="formel"> zurück, * und | darin liest Markdown nicht;
+    ohne formeln=True bleibt $ Text (Sensei schreibt Preise)."""
+    from saku.web import markdown_zu_html
+    assert "<em>" in markdown_zu_html("$a*b$ und $c*d$")
+    html = markdown_zu_html(r"*kursiv* $a*b$ und $c*d$, $$\frac{x_1}{y_2}$$ | $|x| < 2$ $<b>$", formeln=True)
+    assert '<span class="formel">a*b</span> und <span class="formel">c*d</span>' in html and "<em>kursiv</em>" in html
+    assert r'<span class="formel formel--block">\frac{x_1}{y_2}</span>' in html
+    assert '<span class="formel">|x| &lt; 2</span>' in html and "&lt;b&gt;" in html and "<b>" not in html
+    tabelle = markdown_zu_html("| a | b |\n|---|---|\n| $|x|$ | 2 |", formeln=True)
+    assert '<td><span class="formel">|x|</span></td>' in tabelle  # der Strich in der Formel teilt keine Zelle
+
+
 def test_einstellungen_speichern(client, con):
     antwort = client.post("/einstellungen/pruefungstermin", data={"pruefungstermin": "2099-04-28"})
     assert antwort.headers["HX-Trigger"] == "gespeichert" and "Tage" in antwort.text
@@ -46,6 +59,21 @@ def test_einstellungen_speichern(client, con):
     assert client.post("/einstellungen/farbschema", data={"farbschema": "pink"}).status_code == 400
     assert client.post("/einstellungen/beruf", data={"beruf": "x"}).status_code == 400  # nicht freigegeben
     assert db.einstellung(con, "puffer_tage") == "7"
+
+
+def test_einstellungen_raster(client, con):
+    """Sprungmarken zu allen Abschnitten, der gewählte Prüfungsteil zuerst (der andere zurückgenommen), IHK-Termine als Auswahl
+    unter dem Datumsfeld, Befehle mit Kopier-Knopf."""
+    from saku.lernen.tagesziel import ihk_termine
+    html = client.get("/einstellungen").get_data(as_text=True)
+    assert "data-sprungmarken" in html
+    assert all(f'<a href="#{a}">' in html and f'id="{a}"' in html for a in ("ausbildung", "termin", "lernen", "darstellung", "sensei", "daten"))
+    assert html.index("Termin der AP2") < html.index("Termin der AP1") and html.count("einstellung-zeile--ruhig") == 1
+    assert ('id="pruefungstermin-ihk"' in html) == bool(ihk_termine("AP2"))
+    assert html.count('onclick="saku.kopieren(this)"') == 3 and 'aria-label="Befehl kopieren: python -m saku lernstand import DATEI.json"' in html
+    con.execute("INSERT OR REPLACE INTO einstellung (schluessel, wert) VALUES ('teil', 'AP1')")
+    con.commit()
+    assert (html := client.get("/einstellungen").get_data(as_text=True)).index("Termin der AP1") < html.index("Termin der AP2")
 
 
 SCHEMA = {"type": "object", "properties": {"x": {"type": "integer"}}, "required": ["x"], "additionalProperties": False}

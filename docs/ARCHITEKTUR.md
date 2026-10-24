@@ -39,7 +39,7 @@ flowchart LR
 | Terminal | rich | Fortschrittsbalken und Tabellen in der Pipeline |
 | Fenster | pywebview | eigenes App-Fenster statt Browser-Tab |
 
-Eigenes JavaScript steht in einer Datei, `static/js/saku.js`: Tastenkürzel (`data-taste`), Dialoge, Rückmeldung „Gespeichert“, Farbschema, Code-Editor, ausfüllbare Tabellen und das Zeichnen des Wissensgraphen. Alles andere bringen Basecoat, htmx und force-graph mit; die Uhr der Simulation und des Rechen-Sprints steht im jeweiligen Template.
+Eigenes JavaScript steht in einer Datei, `static/js/saku.js`: Tastenkürzel (`data-taste`), Dialoge, Rückmeldung „Gespeichert“, Farbschema, Code-Editor, ausfüllbare Tabellen, das Zeichnen des Wissensgraphen, Formeln (KaTeX, nachgeladen nur auf Seiten mit Formeln) und die Sprungmarken von Einstellungen und Formelsammlung. Alles andere bringen Basecoat, htmx, force-graph und KaTeX mit; die Uhr der Simulation und des Rechen-Sprints steht im jeweiligen Template.
 
 ## Projektstruktur
 
@@ -388,6 +388,7 @@ return Response(stream_with_context(ereignisse()), mimetype="text/event-stream")
 | Basecoat (CSS und JS) | MIT |
 | htmx 2 und SSE-Erweiterung | 0BSD |
 | force-graph | MIT |
+| KaTeX (Formelsatz, mit Schriften) | MIT |
 | Lucide-Icons | ISC |
 | Inter, Shippori Mincho, JetBrains Mono | SIL Open Font License |
 

@@ -276,7 +276,77 @@ window.saku = {
     const farbe = getComputedStyle(document.documentElement).getPropertyValue("--washi").trim();
     window.pywebview?.api?.setze(farbe);
   },
+  // Formeln (LaTeX aus markdown_zu_html) mit KaTeX setzen: geladen erst, wenn eine Seite Formeln zeigt, gesetzt nur im neuen Teil
+  formeln(wurzel) {
+    const offen = [...(wurzel.querySelectorAll?.(".formel:not([data-gesetzt])") || [])];
+    if (!offen.length) return;
+    const laden = (tag, felder) => new Promise((fertig, fehler) => document.head.append(Object.assign(document.createElement(tag), felder, { onload: fertig, onerror: fehler })));
+    saku.katex ??= Promise.all([laden("link", { rel: "stylesheet", href: "/static/vendor/katex/katex.min.css" }),
+      laden("script", { src: "/static/vendor/katex/katex.min.js" })]);
+    saku.katex.then(() => offen.forEach((el) => {
+      el.dataset.gesetzt = "";
+      katex.render(el.textContent, el, { displayMode: el.classList.contains("formel--block"), throwOnError: false, strict: "ignore" });
+      // Klammer und Satzzeichen direkt an der Formel in ihren ersten bzw. letzten Block: um KaTeX' Inline-Blöcke bricht der Browser
+      // sonst auch zwischen „(“ und Formel oder vor dem Komma um
+      const zeichen = (text) => Object.assign(document.createElement("span"), { className: "formel-zeichen", textContent: text });
+      const [davor, danach] = [el.previousSibling, el.nextSibling];
+      if (davor?.nodeType === Node.TEXT_NODE && /[(„]$/.test(davor.data)) {
+        el.querySelector(".katex-base")?.prepend(zeichen(davor.data.at(-1)));
+        davor.deleteData(davor.length - 1, 1);
+      }
+      if (danach?.nodeType === Node.TEXT_NODE && /^[.,;:)“]/.test(danach.data)) {
+        el.querySelector(".katex-base:last-of-type")?.append(zeichen(danach.data[0]));
+        danach.deleteData(0, 1);
+      }
+    }), () => {});  // ohne KaTeX bleibt der LaTeX-Quelltext lesbar stehen
+  },
+  // Sprungmarken (Einstellungen, Formelsammlung): markiert den letzten Abschnitt, der oben ins Fenster gerückt ist, am Seitenende den letzten
+  sprungmarken(nav) {
+    const links = [...nav.querySelectorAll("a[href^='#']")];
+    const markieren = () => {
+      if (!nav.isConnected) return removeEventListener("scroll", markieren);
+      const sichtbar = links.filter((a) => !a.hidden);
+      const oben = (a) => document.getElementById(a.hash.slice(1)).getBoundingClientRect().top < innerHeight / 3;
+      const aktiv = innerHeight + scrollY >= document.documentElement.scrollHeight - 8 ? sichtbar.at(-1) : sichtbar.findLast(oben) || sichtbar[0];
+      links.forEach((a) => (a === aktiv ? a.setAttribute("aria-current", "true") : a.removeAttribute("aria-current")));
+      // schmal stehen die Marken als Chips nebeneinander: den aktiven ins Bild schieben
+      if (aktiv && nav.scrollWidth > nav.clientWidth && (aktiv.offsetLeft < nav.scrollLeft || aktiv.offsetLeft + aktiv.offsetWidth > nav.scrollLeft + nav.clientWidth)) {
+        nav.scrollLeft = aktiv.offsetLeft - 16;
+      }
+    };
+    addEventListener("scroll", markieren, { passive: true });
+    markieren();
+  },
+  // Befehl neben dem Knopf in die Zwischenablage; geht das nicht (eigenes App-Fenster), ist er markiert für ⌘C
+  async kopieren(knopf) {
+    const code = knopf.parentElement.querySelector("code");
+    try {
+      await navigator.clipboard.writeText(code.textContent);
+      saku.melden("Kopiert");
+    } catch {
+      getSelection().selectAllChildren(code);
+      saku.melden("Markiert, mit ⌘C kopieren");
+    }
+  },
+  // Formelsammlung: Karten nach Text filtern; Gruppen ohne Treffer und ihre Sprungmarken verschwinden
+  formelSuche(text) {
+    const q = text.trim().toLowerCase();
+    document.querySelectorAll(".formel-gruppe").forEach((gruppe) => {
+      const karten = [...gruppe.querySelectorAll(".formel-art")];
+      karten.forEach((k) => { k.hidden = Boolean(q) && !k.textContent.toLowerCase().includes(q); });
+      gruppe.hidden = karten.every((k) => k.hidden);
+      document.querySelector(`.sprungmarken a[href="#${gruppe.id}"]`).hidden = gruppe.hidden;
+    });
+    document.getElementById("formel-leer").hidden = Boolean(document.querySelector(".formel-gruppe:not([hidden])"));
+    dispatchEvent(new Event("scroll"));  // Markierung neu setzen
+  },
 };
+
+// nach dem Laden und nach jedem htmx-Tausch (Prüfen, Rechenweg, Sprint, Probeprüfung, Bereichswechsel)
+document.addEventListener("htmx:load", (e) => {
+  saku.formeln(e.target);
+  e.target.querySelectorAll?.("[data-sprungmarken]").forEach((nav) => saku.sprungmarken(nav));
+});
 
 // Antwort mit HX-Trigger: gespeichert
 document.addEventListener("gespeichert", () => saku.melden("Gespeichert"));

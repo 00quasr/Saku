@@ -6,7 +6,7 @@ from urllib.parse import urlsplit
 
 from flask import Flask, abort, current_app, g, render_template, request
 from markdown_it import MarkdownIt
-from markupsafe import Markup
+from markupsafe import Markup, escape
 
 from saku import config
 from saku.db import einstellung, verbinden
@@ -95,12 +95,26 @@ def db():
 
 
 _markdown = MarkdownIt("commonmark", {"html": False}).enable("table")
+# LaTeX in $…$ (im Satz) und $$…$$ (abgesetzt); die Platzhalter \ue000 und \ue001 (Privatbereich) lässt Markdown stehen
+FORMEL = re.compile(r"\$\$(.+?)\$\$|\$([^$\n]+)\$", re.S)
+PLATZHALTER = re.compile(r"\ue000(\d+)\ue001")
 
 
-def markdown_zu_html(text: str | None) -> Markup:
+def markdown_zu_html(text: str | None, formeln: bool = False) -> Markup:
     """Markdown (z. B. von Sensei) als HTML; eingebettetes HTML wird angezeigt, nicht ausgeführt.
-    Einzige Ausnahme: <br> – Markdown-Tabellen kennen keinen Zeilenumbruch in Zellen, Claude schreibt dort <br>."""
-    return Markup(re.sub(r"&lt;br\s*/?&gt;", "<br>", _markdown.render(text or ""), flags=re.I))
+    Einzige Ausnahme: <br> – Markdown-Tabellen kennen keinen Zeilenumbruch in Zellen, Claude schreibt dort <br>.
+    formeln: Formeln (Merkblätter, Rechenwege) vor Markdown schützen, das _ und * darin sonst als Betonung läse; sie kommen
+    als <span class="formel"> mit dem LaTeX-Quelltext zurück, den saku.js mit KaTeX setzt. Nur dort: Sensei schreibt auch Preise in $."""
+    gefunden = []
+    if formeln:
+        text = FORMEL.sub(lambda f: gefunden.append(f) or f"\ue000{len(gefunden) - 1}\ue001", text or "")
+    html = re.sub(r"&lt;br\s*/?&gt;", "<br>", _markdown.render(text or ""), flags=re.I)
+    return Markup(PLATZHALTER.sub(lambda p: _formel(gefunden[int(p[1])]), html))
+
+
+def _formel(f: re.Match) -> str:
+    block = f[1] is not None
+    return f'<span class="formel{" formel--block" if block else ""}">{escape(f[1] if block else f[2])}</span>'
 
 
 def klartext(text: str | None) -> str:

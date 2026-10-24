@@ -6,35 +6,35 @@ from saku.lernen.rechnen.basis import FIRMEN, Aufgabe, Feld, art, de, euro, schr
 
 # Formeln und Merksätze je Art: Formelsammlung und Karte zeigen sie nach dem Rechenweg
 FORMELN = {
-    "kalkulation": """| Schritt | gerechnet vom |
+    "kalkulation": r"""| Schritt | gerechnet vom |
 | --- | --- |
 | Listeneinkaufspreis − Liefererrabatt = Zieleinkaufspreis | Listeneinkaufspreis |
 | − Liefererskonto = Bareinkaufspreis | Zieleinkaufspreis |
 | + Bezugskosten = **Bezugspreis** | |
 | + Handlungskosten = **Selbstkosten** | Bezugspreis |
 | + Gewinn = Barverkaufspreis | Selbstkosten |
-| + Kundenskonto = Zielverkaufspreis | im Hundert: Barverkaufspreis : (100 − s) · 100 |
-| + Kundenrabatt = Listenverkaufspreis netto | im Hundert: Zielverkaufspreis : (100 − r) · 100 |
+| + Kundenskonto = Zielverkaufspreis | im Hundert: $\dfrac{\text{Barverkaufspreis}}{100 - s} \cdot 100$ |
+| + Kundenrabatt = Listenverkaufspreis netto | im Hundert: $\dfrac{\text{Zielverkaufspreis}}{100 - r} \cdot 100$ |
 | + Umsatzsteuer 19 % = brutto | Listenverkaufspreis netto |
 
 - Angebotsvergleich: Bezugspreis jedes Angebots für die ganze Menge, das günstigste gewinnt
-- Differenzkalkulation (Verkaufspreis vom Markt vorgegeben): vorwärts bis zu den Selbstkosten, rückwärts vom Listenverkaufspreis bis zum Barverkaufspreis (Rabatt und Skonto jetzt vom Hundert); Gewinn = Barverkaufspreis − Selbstkosten, in % der Selbstkosten
-- Rückwärtskalkulation (höchster Einkaufspreis): Kundenrabatt und -skonto vom Hundert abziehen, Gewinn und Handlungskosten auf Hundert herausrechnen (: (100 + p) · 100), Bezugskosten abziehen, Liefererskonto und -rabatt im Hundert (: (100 − p) · 100)
+- Differenzkalkulation (Verkaufspreis vom Markt vorgegeben): vorwärts bis zu den Selbstkosten, rückwärts vom Listenverkaufspreis bis zum Barverkaufspreis (Rabatt und Skonto jetzt vom Hundert); $\text{Gewinn} = \text{Barverkaufspreis} - \text{Selbstkosten}$, in % der Selbstkosten
+- Rückwärtskalkulation (höchster Einkaufspreis): Kundenrabatt und -skonto vom Hundert abziehen, Gewinn und Handlungskosten auf Hundert herausrechnen ($\cdot \frac{100}{100 + p}$), Bezugskosten abziehen, Liefererskonto und -rabatt im Hundert ($\cdot \frac{100}{100 - p}$)
 - *Typische Fehler:* Skonto vom Listenpreis statt vom Zieleinkaufspreis, Zuschläge addiert statt nacheinander, Kundenskonto und -rabatt vom statt im Hundert, Gewinn in Prozent vom Barverkaufspreis statt von den Selbstkosten
 
-*Beispiel:* 1.000 € − 10 % = 900 €, − 2 % Skonto = 882 €, + 20 € Bezugskosten = 902 € Bezugspreis""",
-    "vergleich": """- Gesamtkosten = einmalige Kosten + monatliche Kosten · Monate
-- Kauf: Preis + Wartung · Monate; Leasing: Sonderzahlung + Rate · Monate; Miete: Rate · Monate
-- Ab wann lohnt sich der Kauf? Kauf + w · m < Rate · m ⇔ m > Kaufpreis : (Rate − w) → der erste ganze Monat danach
+*Beispiel:* $1.000\,\text{€} - 10\,\% = 900\,\text{€}$; $900\,\text{€} - 2\,\%\ \text{Skonto} = 882\,\text{€}$; $882\,\text{€} + 20\,\text{€ Bezugskosten} = 902\,\text{€}$ Bezugspreis""",
+    "vergleich": r"""- $\text{Gesamtkosten} = \text{einmalige Kosten} + \text{monatliche Kosten} \cdot \text{Monate}$
+- Kauf: $\text{Preis} + \text{Wartung} \cdot \text{Monate}$; Leasing: $\text{Sonderzahlung} + \text{Rate} \cdot \text{Monate}$; Miete: $\text{Rate} \cdot \text{Monate}$
+- Ab wann lohnt sich der Kauf? $\text{Kauf} + w \cdot m < \text{Rate} \cdot m \iff m > \dfrac{\text{Kaufpreis}}{\text{Rate} - w}$ → der erste ganze Monat danach
 - Fixkosten fallen unabhängig von der Nutzung an, variable Kosten mit ihr
 - *Typische Fehler:* Wartung oder Sonderzahlung vergessen, mit Jahren statt Monaten multipliziert, den Monat des Gleichstands statt des ersten Monats danach angegeben
 
-*Beispiel:* 4.800 € + 30 €/Monat gegen Miete 190 €/Monat: m > 4.800 : 160 = 30 → ab Monat 31""",
-    "nutzwert": """- Gewichtungen zusammen 100 %; eine fehlende = 100 % − Summe der übrigen
-- Teilnutzwert = Punkte · Gewichtung (als Anteil, 40 % = 0,4)
-- Nutzwert = Summe der Teilnutzwerte; der höchste Nutzwert gewinnt
+*Beispiel:* 4.800 € + 30 €/Monat gegen Miete 190 €/Monat: $m > \dfrac{4.800}{190 - 30} = 30$ → ab Monat 31""",
+    "nutzwert": r"""- Gewichtungen zusammen 100 %; $\text{eine fehlende} = 100\,\% - \text{Summe der übrigen}$
+- $\text{Teilnutzwert} = \text{Punkte} \cdot \text{Gewichtung}$ (als Anteil, $40\,\% = 0{,}4$)
+- $\text{Nutzwert} = \sum \text{Teilnutzwerte}$; der höchste Nutzwert gewinnt
 
-*Beispiel:* Punkte 8, 6, 9 bei 50 %, 30 %, 20 %: 8 · 0,5 + 6 · 0,3 + 9 · 0,2 = 7,6""",
+*Beispiel:* Punkte 8, 6, 9 bei 50 %, 30 %, 20 %: $8 \cdot 0{,}5 + 6 \cdot 0{,}3 + 9 \cdot 0{,}2 = 7{,}6$""",
 }
 
 

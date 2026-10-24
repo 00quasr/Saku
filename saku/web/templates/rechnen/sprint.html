@@ -69,7 +69,7 @@
       {% if fertig %}
       <details class="kontext" {{ 'open' if punkte_je[i - 1] < punkte }}>
         <summary>Rechenweg</summary>
-        <div class="prosa aufgabe-inhalt rechnen-weg">{{ a.rechenweg|markdown }}</div>
+        <div class="prosa aufgabe-inhalt rechnen-weg">{{ a.rechenweg|markdown(formeln=True) }}</div>
       </details>
       {% endif %}
     </section>
