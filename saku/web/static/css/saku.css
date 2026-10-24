@@ -361,8 +361,6 @@ dialog.dialog > div { background: var(--washi-hell); border: 1px solid var(--lin
   border: 1px solid color-mix(in oklab, currentColor 30%, transparent); background: transparent; color: inherit; opacity: .85;
 }
 .termin-chip:hover { opacity: 1; border-color: currentColor; }
-.einstellung-termin { display: grid; justify-items: end; }
-.einstellung-termin .termin-vorschlaege { justify-content: flex-end; max-width: 300px; }
 
 /* Fokusziel nach einem htmx-Tausch (tabindex="-1"): der Screenreader liest es vor; kein Rahmen, weil man es nicht bedient */
 .fokus-ziel:focus { outline: none; }

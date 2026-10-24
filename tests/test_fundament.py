@@ -61,6 +61,21 @@ def test_einstellungen_speichern(client, con):
     assert db.einstellung(con, "puffer_tage") == "7"
 
 
+def test_einstellungen_raster(client, con):
+    """Sprungmarken zu allen Abschnitten, der gewählte Prüfungsteil zuerst (der andere zurückgenommen), IHK-Termine als Auswahl
+    unter dem Datumsfeld, Befehle mit Kopier-Knopf."""
+    from saku.lernen.tagesziel import ihk_termine
+    html = client.get("/einstellungen").get_data(as_text=True)
+    assert "data-sprungmarken" in html
+    assert all(f'<a href="#{a}">' in html and f'id="{a}"' in html for a in ("ausbildung", "termin", "lernen", "darstellung", "sensei", "daten"))
+    assert html.index("Termin der AP2") < html.index("Termin der AP1") and html.count("einstellung-zeile--ruhig") == 1
+    assert ('id="pruefungstermin-ihk"' in html) == bool(ihk_termine("AP2"))
+    assert html.count('onclick="saku.kopieren(this)"') == 3 and 'aria-label="Befehl kopieren: python -m saku lernstand import DATEI.json"' in html
+    con.execute("INSERT OR REPLACE INTO einstellung (schluessel, wert) VALUES ('teil', 'AP1')")
+    con.commit()
+    assert (html := client.get("/einstellungen").get_data(as_text=True)).index("Termin der AP1") < html.index("Termin der AP2")
+
+
 SCHEMA = {"type": "object", "properties": {"x": {"type": "integer"}}, "required": ["x"], "additionalProperties": False}
 
 

@@ -312,6 +312,17 @@ window.saku = {
     addEventListener("scroll", markieren, { passive: true });
     markieren();
   },
+  // Befehl neben dem Knopf in die Zwischenablage; geht das nicht (eigenes App-Fenster), ist er markiert für ⌘C
+  async kopieren(knopf) {
+    const code = knopf.parentElement.querySelector("code");
+    try {
+      await navigator.clipboard.writeText(code.textContent);
+      saku.melden("Kopiert");
+    } catch {
+      getSelection().selectAllChildren(code);
+      saku.melden("Markiert, mit ⌘C kopieren");
+    }
+  },
   // Formelsammlung: Karten nach Text filtern; Gruppen ohne Treffer und ihre Sprungmarken verschwinden
   formelSuche(text) {
     const q = text.trim().toLowerCase();
