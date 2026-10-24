@@ -3,7 +3,8 @@
 from dataclasses import dataclass, field
 from typing import Callable
 
-GRUPPEN = ["Netzwerk", "Daten & Medien", "Strom & Hardware", "IT-Sicherheit", "Wirtschaft", "WiSo", "Projekt", "Programmieren", "Algorithmen"]
+GRUPPEN = ["Netzwerk", "Daten & Medien", "Strom & Hardware", "IT-Sicherheit", "Wirtschaft", "WiSo", "Projekt", "Programmieren", "Datenbanken",
+           "Algorithmen"]
 
 # alles erfunden, wie in der Demo-Datenbank
 FIRMEN = ["Demo GmbH", "Muster AG", "Beispiel KG", "Fiktiv Systemhaus GmbH", "Probe & Partner OHG"]
@@ -20,7 +21,8 @@ class Feld:
     pfad (nur Buchstaben und Ziffern zählen, z. B. kritischer Pfad); binaer, hex (der Wert zählt);
     liste (Zahlenfolge wie „3, 8, 1“: nur die Zahlen zählen); datum (TT.MM.JJJJ, auch „3.3.27“ oder „2027-03-03“);
     wochentage („Mo, Di, Mi“ oder „Montag und Dienstag“: die Tage in Reihenfolge zählen);
-    verhaeltnis („16:10“, „8:5“, „16/10“, „1,6:1“ sind gleich: verglichen als Bruch); ipv6 (nach Wert, auch Interface-ID).
+    verhaeltnis („16:10“, „8:5“, „16/10“, „1,6:1“ sind gleich: verglichen als Bruch); ipv6 (nach Wert, auch Interface-ID);
+    sql (SQL-Anweisung, ausgeführt in der Sandbox der Aufgabe: Ergebnis bzw. Tabellen wie nach der Musterlösung).
     Lösung "" heißt: das Feld bleibt leer.
     optionen: Auswahl statt Eingabe. auch: weitere richtige Antworten eines Textfelds (SSH auch als SFTP)."""
     name: str
@@ -50,6 +52,7 @@ class Aufgabe:
     themen: tuple[str, ...] = ()
     # Eingabetabelle (Wertetabelle, Array): erste Zeile Kopf, danach Zellen als Text oder Feld; die Felder stehen auch in felder
     tabelle: list[list] | None = None
+    sandbox: tuple[str, str] | None = None  # SQL-Aufgabe: (ddl, daten) für lernen/sql, frisch je Ausführung
 
     @property
     def loesung(self) -> dict:
@@ -69,19 +72,20 @@ class Art:
     themen: tuple[str, ...]  # Stichworte, an denen passende Themen in der Datenbank erkannt werden
     erzeugen: Callable
     formeln: str = ""  # Markdown: Formeln, Merksätze, ein Mini-Beispiel; Formelsammlung und Rechenweg zeigen dasselbe
+    sprint: bool = True  # kommt im Rechen-Sprint vor (5 Aufgaben in 15 Minuten, ohne Ausführen)
 
 
 ARTEN: dict[str, Art] = {}
 
 
-def art(slug: str, titel: str, gruppe: str, beschreibung: str, themen: tuple[str, ...], formeln: str = ""):
+def art(slug: str, titel: str, gruppe: str, beschreibung: str, themen: tuple[str, ...], formeln: str = "", sprint: bool = True):
     """Meldet einen Generator (rng) -> Aufgabe an; Art, Themen und fehlender Titel kommen von hier."""
     def anmelden(funktion):
         def erzeugen(rng):
             aufgabe = funktion(rng)
             aufgabe.art, aufgabe.themen, aufgabe.titel = slug, themen, aufgabe.titel or titel
             return aufgabe
-        ARTEN[slug] = Art(slug, titel, gruppe, beschreibung, themen, erzeugen, formeln.strip())
+        ARTEN[slug] = Art(slug, titel, gruppe, beschreibung, themen, erzeugen, formeln.strip(), sprint)
         return erzeugen
     return anmelden
 

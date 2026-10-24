@@ -6,13 +6,14 @@ import random
 import re
 from datetime import date
 
+from saku.lernen import sql
 from saku.lernen.antwort import zahl
 # melden ihre Arten an; die Reihenfolge hier ist die Reihenfolge der Arten (nach Nutzen für die AP1)
-from saku.lernen.rechnen import netzwerk, daten, hardware, komponenten, sicherheit, wirtschaft, wiso, projekt, programmieren, algorithmen  # noqa: F401, I001
+from saku.lernen.rechnen import netzwerk, daten, hardware, komponenten, sicherheit, wirtschaft, wiso, projekt, programmieren, algorithmen, datenbanken  # noqa: F401, I001
 from saku.lernen.rechnen.plan import faellig, im_umfang
 from saku.lernen.rechnen.basis import ARTEN, GRUPPEN, Art, Aufgabe, Feld
 
-__all__ = ["ARTEN", "GRUPPEN", "Art", "Aufgabe", "Feld", "erzeugen", "pruefen", "stimmt", "passend", "passende",
+__all__ = ["ARTEN", "GRUPPEN", "Art", "Aufgabe", "Feld", "erzeugen", "pruefen", "stimmt", "sql_vergleich", "passend", "passende",
            "themen_je_art", "gemischt", "faellig", "im_umfang"]
 
 
@@ -117,9 +118,27 @@ def stimmt(feld: Feld, eingabe: str, toleranz: float = 0.0) -> bool:
     return any(re.sub(r"\s", "", eingabe).casefold() == re.sub(r"\s", "", s).casefold() for s in (soll, *feld.auch))
 
 
+def sql_vergleich(aufgabe: Aufgabe, eingabe: str) -> dict:
+    """SQL-Feld: die eigene Anweisung gegen die Musterlösung, wie sql.pruefen ({ergebnis 1–3, hinweise, tabellen}); bei CREATE
+    TABLE zählen auch Primär- und Fremdschlüssel und NOT NULL. Läuft die eigene nicht: ergebnis 1 und die Meldung unter fehler."""
+    loesung = next(f.loesung for f in aufgabe.felder if f.typ == "sql")
+    try:
+        vergleich = sql.pruefen(*aufgabe.sandbox, loesung, eingabe)
+        if vergleich["ergebnis"] == 3 and re.match(r"\s*create\b", loesung, re.I):
+            soll, ist = (sql.schluessel(*aufgabe.sandbox, anweisung) for anweisung in (loesung, eingabe))
+            hinweise = [f"{t}.{s}: {was} fehlt." for t, s, was in sorted(soll - ist)]
+            hinweise += [f"{t}.{s}: {was} ist zu viel." for t, s, was in sorted(ist - soll)]
+            if hinweise:
+                vergleich |= {"ergebnis": 2, "hinweise": hinweise}
+    except sql.SqlFehler as fehler:
+        return {"ergebnis": 1, "hinweise": [], "tabellen": [], "fehler": str(fehler)}
+    return vergleich
+
+
 def pruefen(aufgabe: Aufgabe, eingaben: dict[str, str]) -> dict[str, bool]:
-    """Je Feld: richtig?"""
-    return {f.name: stimmt(f, eingaben.get(f.name, ""), aufgabe.toleranz) for f in aufgabe.felder}
+    """Je Feld: richtig? SQL zählt nur, wenn es genau stimmt (sql.pruefen: 3)."""
+    return {f.name: sql_vergleich(aufgabe, eingaben.get(f.name, ""))["ergebnis"] == 3 if f.typ == "sql"
+            else stimmt(f, eingaben.get(f.name, ""), aufgabe.toleranz) for f in aufgabe.felder}
 
 
 def passende(namen) -> list[Art]:

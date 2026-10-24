@@ -8,14 +8,16 @@ from saku.lernen.rechnen.basis import ARTEN, GRUPPEN
 # Gruppen je Lernpfad (v_umfang.pfad).
 # AP1 „Einrichten eines IT-gestützten Arbeitsplatzes“ ist für alle IT-Berufe gleich und prüft die Grundlagen aus allen Gruppen,
 #   auch Pseudocode; Algorithmen und Datenstrukturen (Sortieren, Hashing, Bäume …) kommen erst in der AP2 Anwendungsentwicklung.
+#   Datenbanken gehören dazu: Lernfeld 5 „Software zur Verwaltung von Daten anpassen“ (Datenmodell, SQL-Abfragen) liegt in der AP1.
 # AP2 Anwendungsentwicklung: „Entwicklung und Umsetzung von Algorithmen“ (Programmieren, Algorithmen), „Planen eines
-#   Softwareproduktes“ (Projekt, Wirtschaft), Daten; WiSo prüfen alle.
+#   Softwareproduktes“ (Projekt, Wirtschaft), Daten; Datenbanken (SQL, ER-Modell, Normalisierung) in fast jeder Prüfung; WiSo prüfen alle.
 # AP2 Systemintegration: „Konzeption und Administration von IT-Systemen“ und „Analyse und Entwicklung von Netzwerken“
-#   (Netzwerk, Strom & Hardware), Daten, Wirtschaft; WiSo prüfen alle.
+#   (Netzwerk, Strom & Hardware), Daten, Wirtschaft; WiSo prüfen alle. Datenbanken nicht: SQL schreiben oder normalisieren
+#   prüft die AP2 Systemintegration kaum, das bleibt bei der AP1.
 # IT-Sicherheit und Datenschutz verlangt die Verordnung von 2020 in der AP1 und in der AP2 beider Berufe.
 UMFANG = {
     "AP1": [g for g in GRUPPEN if g != "Algorithmen"],
-    "AP2-1201": ["Programmieren", "Algorithmen", "Wirtschaft", "Projekt", "WiSo", "Daten & Medien", "IT-Sicherheit"],
+    "AP2-1201": ["Programmieren", "Algorithmen", "Datenbanken", "Wirtschaft", "Projekt", "WiSo", "Daten & Medien", "IT-Sicherheit"],
     "AP2-1202": ["Netzwerk", "Strom & Hardware", "Daten & Medien", "Wirtschaft", "WiSo", "IT-Sicherheit"],
 }
 

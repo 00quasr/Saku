@@ -225,7 +225,7 @@ def test_passende_art_zu_themen():
                  "Fehlersuche im Netzwerk", "Hashwerte und digitale Signaturen", "Gruppenrichtlinien", "Netzwerkmonitoring",
                  "Bildschirmmasken entwerfen", "Namensauflösung mit DNS", "Qualitätssicherung", "Sozialversicherung",
                  # Stichworte der IT-Sicherheit und Ports nicht als Teilwort anderer Begriffe: Port, OSI, EAN, Schlüssel, Gefährdung
-                 "Report mit SQL erstellen", "Import und Export", "Git-Repository anlegen", "Clean Code", "Primärschlüssel und Fremdschlüssel",
+                 "Report im Teamtreffen", "Import und Export", "Git-Repository anlegen", "Clean Code", "Primärschlüssel und Fremdschlüssel",
                  "Gefährdungsbeurteilung am Arbeitsplatz", None]:
         assert rechnen.passend([name]) is None, name
     # mehrere Themen: das erste passende (Keiko sortiert nach Gewicht)
@@ -784,7 +784,7 @@ def test_rechnen_verlinkt_die_echten_pruefungsaufgaben(client, con):
     netzplan = con.execute("SELECT id FROM thema WHERE name = 'Netzplan'").fetchone()[0]
     zeile = ('In deinen Prüfungen: <span class="zahl">2</span> Teilaufgaben zu Netzplan · zuletzt Sommer 2023 · '
              f'<a href="/keiko/?thema={netzplan}">üben →</a>')
-    assert rechnen.themen_je_art([(netzplan, "Netzplan"), (1, "Normalisierung")]) == {"netzplan": [netzplan]}
+    assert rechnen.themen_je_art([(netzplan, "Netzplan"), (1, "Normalisierung"), (2, "Scrum")]) == {"netzplan": [netzplan], "normalform": [1]}
     uebersicht = client.get("/rechnen/").get_data(as_text=True)
     assert zeile in uebersicht and "zu Subnetting" not in uebersicht
     # die Karte erst nach dem Prüfen, unter dem Rechenweg
@@ -1216,3 +1216,200 @@ def test_sicherheit_auf_der_seite(client):
     assert karte.count('<select class="select"') == 6 and ">sehr hoch</option>" in karte
     weg = client.post("/rechnen/schutzbedarf/pruefen", data={"seed": seed, "aufgeben": "1"}, headers=HTMX).get_data(as_text=True)
     assert "Hier ist der Rechenweg." in weg and "Maximumprinzip" in weg and "Formeln: Schutzbedarf" in weg
+
+
+# --- Datenbanken: SQL in der Sandbox, ER-Modell, Normalisierung (Runde 8) -------------
+
+SQL_ARTEN = ("select", "join", "aendern")
+
+# typische Fehler: der erste passende wird gemacht; jeder muss laufen und als falsch erkannt werden
+TYPISCH_FALSCH = [
+    (r"LEFT JOIN", "JOIN"),
+    (r"IS NOT NULL", "IS NULL"),
+    (r" IS NULL", " = NULL"),
+    (r"DISTINCT ", ""),
+    (r"LIKE '%?([^'%]+)%'", r"= '\1'"),
+    (r"IN \('([^']*)', '[^']*'\)", r"= '\1'"),
+    (r"(\S+) BETWEEN (\S+) AND (\S+);", r"\1 > \2 AND \1 < \3;"),
+    (r"AVG\(", "MIN("), (r"MAX\(", "MIN("), (r"MIN\(", "MAX("), (r"SUM\(", "MAX("),
+    (r">=", ">"), (r"<=", "<"), (r" > ", " >= "), (r" < ", " <= "),
+    (r" \* [\d.]+ AS", " AS"),
+    (r"NULL\);", "'NULL');"),
+    (r",\n    FOREIGN KEY [^\n]*(?=\n\);)", ""),  # der letzte Fremdschlüssel fehlt
+    (r"\nWHERE .*;", ";"),
+    (r"ORDER BY (\S+?)( DESC)?([,;])", lambda m: f"ORDER BY {m[1]}{'' if m[2] else ' DESC'}{m[3]}"),
+]
+
+
+def _typisch_falsch(loesung: str) -> str:
+    for muster, ersatz in TYPISCH_FALSCH:
+        if re.search(muster, loesung):
+            return re.sub(muster, ersatz, loesung, count=1)
+    raise AssertionError(f"kein typischer Fehler für {loesung}")
+
+
+@pytest.mark.parametrize("art", SQL_ARTEN)
+def test_sql_musterloesung_laeuft_und_typische_fehler_fallen_auf(art):
+    from saku.lernen import sql
+    for seed, a in _alle(art):
+        (feld,) = a.felder
+        assert feld.typ == "sql" and a.sandbox and "Tabellen ansehen" in a.frage and "```sql" in a.rechenweg
+        sql.testen(*a.sandbox, {seed: feld.loesung})  # läuft und liefert Zeilen bzw. ändert etwas
+        assert rechnen.sql_vergleich(a, feld.loesung)["ergebnis"] == 3
+        falsch = rechnen.sql_vergleich(a, _typisch_falsch(feld.loesung))
+        assert "fehler" not in falsch and falsch["ergebnis"] < 3 and falsch["hinweise"], (seed, a.titel, feld.loesung)
+        assert not rechnen.pruefen(a, {"sql": "SELECT 1"})["sql"] and not rechnen.pruefen(a, {"sql": "SELEKT"})["sql"]
+
+
+def test_sql_daten_lassen_typische_fehler_auffallen():
+    from saku.lernen.rechnen.datenbanken import SZENARIEN
+    for s in SZENARIEN:
+        wer, was, vorgang = s.tabellen
+        assert all(6 <= len(t.zeilen) <= 12 for t in s.tabellen)
+        assert len(set(wer.werte(1))) == len(wer.zeilen)  # Namen eindeutig: GROUP BY Name ist so gut wie GROUP BY Schlüssel
+        assert set(vorgang.werte(1)) <= set(wer.werte(0)) and set(vorgang.werte(2)) <= set(was.werte(0))
+        assert len(set(wer.werte(0)) - set(vorgang.werte(1))) >= 2 and set(was.werte(0)) - set(vorgang.werte(2))  # ohne Partner
+        assert None in wer.werte(3) and None in vorgang.werte(5)  # NULL-Werte
+        preise, anzahl = was.werte(3), [vorgang.werte(1).count(k) for k in wer.werte(0)]
+        assert len(set(preise)) < len(preise) and any(anzahl.count(n) > 1 for n in anzahl if n)  # Gleichstand
+        assert all(sum(n.startswith(a) for n in wer.werte(1)) >= 3 for a in s.w["anfaenge"])
+        treffer = [sum(w in t and w != t for t in was.werte(1)) for w in s.w["teilwoerter"]]  # LIKE '%…%' findet mehr als =
+        assert min(treffer) >= 1 and max(treffer) >= 2
+
+
+def test_create_table_prueft_schluessel_nicht_die_datentypen():
+    from saku.lernen import sql
+    seed, a = next((seed, a) for seed, a in _alle("aendern") if a.titel == "CREATE TABLE" and "FOREIGN KEY" in a.felder[0].loesung
+                   and " NOT NULL" in a.felder[0].loesung)
+    loesung = a.felder[0].loesung
+    andere_typen = loesung.replace("INTEGER", "INT").replace("TEXT", "VARCHAR(50)").replace("REAL", "DECIMAL(8,2)")
+    assert rechnen.sql_vergleich(a, andere_typen)["ergebnis"] == 3
+    ohne_fk = rechnen.sql_vergleich(a, _typisch_falsch(loesung))
+    assert ohne_fk["ergebnis"] == 2 and any("Fremdschlüssel auf" in h and "fehlt" in h for h in ohne_fk["hinweise"])
+    ohne_pflicht = rechnen.sql_vergleich(a, loesung.replace(" NOT NULL", "", 1))
+    assert ohne_pflicht["ergebnis"] == 2 and any("NOT NULL fehlt" in h for h in ohne_pflicht["hinweise"])
+    assert "Primärschlüssel fehlt" in " ".join(rechnen.sql_vergleich(a, re.sub(r" PRIMARY KEY|,\n    PRIMARY KEY \([^)]*\)", "", loesung))["hinweise"])
+    assert rechnen.sql_vergleich(a, "PRAGMA foreign_keys = ON")["fehler"].startswith("Nicht erlaubt")  # die Sandbox bleibt dicht
+    with pytest.raises(sql.SqlFehler):
+        sql.schluessel(*a.sandbox, "SELECT * FROM pragma_table_info('kunde')")
+
+
+def _er_beziehungen(a):
+    from saku.lernen.rechnen.datenbanken import ER
+    _, _, ent, slots = next(e for e in ER if e[0] == a.titel)
+    return ent, [next(v for v in slot if v[3] in a.frage) for slot in slots]
+
+
+def test_er_modell_nachgerechnet():
+    kard = {"1:1": "1 : 1", "1:n": "1 : n", "n:m": "n : m"}
+    for seed, a in _alle("ermodell"):
+        ent, bez = _er_beziehungen(a)
+        nm = [b for b in bez if b[2] == "n:m"]
+        felder = {f.name: f for f in a.felder}
+        assert felder["tabellen"].loesung == len(ent) + len(nm)  # jede n:m-Beziehung bringt eine Zwischentabelle
+        x, y = re.fullmatch(r"Kardinalität (.+) : (.+)", felder["kard"].label).groups()
+        b = next(b for b in bez if {b[0], b[1]} == {x, y})
+        assert felder["kard"].loesung == (kard[b[2]] if b[:2] == (x, y) else "n : 1")
+        x, y = re.fullmatch(r"Fremdschlüssel für (.+) – (.+) steht in", felder["fk"].label).groups()
+        b = next(b for b in bez if b[:2] == (x, y))
+        assert felder["fk"].loesung == ("eine eigene Zwischentabelle" if b[2] == "n:m" else ent[y][0]) and b[2] != "1:1"
+        assert ("zw_pk" in felder) == bool(nm) and (not nm or felder["zw_pk"].loesung.endswith("zusammen"))
+        if "fks" in felder:
+            assert felder["fks"].loesung == len(bez) + len(nm)
+        assert all(f.loesung in f.optionen for f in a.felder if f.optionen)
+        assert a.rechenweg.count("Zwischentabelle ") >= len(nm) and all(f"{ent[b[0]][0]}_{ent[b[1]][0]} (" in a.rechenweg for b in nm)
+
+
+def _normalform_selbst(schluessel: set, fds: list, atomar: bool) -> int:
+    """Unabhängig nachgerechnet: teilweise Abhängigkeit → 1. NF, Nichtschlüssel → Nichtschlüssel → 2. NF."""
+    if not atomar:
+        return 0
+    nicht = set().union(*(set(r) for _, r in fds)) - schluessel
+    if any(set(l) < schluessel and set(r) & nicht for l, r in fds):
+        return 1
+    return 2 if any(set(l) & nicht and set(r) & nicht for l, r in fds) else 3
+
+
+def test_normalisierung_nachgerechnet():
+    from saku.lernen.rechnen.datenbanken import ANOMALIEN, NORMALFORMEN
+    gesehen = set()
+    for seed, a in _alle("normalform"):
+        f = a.frage
+        schluessel = set(re.findall(r"`(\w+)`", re.search(r"Primärschlüssel: (.+?)\. Es gelten", f)[1]))
+        fds = [(re.findall(r"`(\w+)`", l), re.findall(r"`(\w+)`", r)) for l, r in re.findall(r"^- (.+?) → (.+)$", f, re.M)]
+        zeilen = [z for z in f.splitlines() if z.startswith("| ") and "---" not in z][1:]
+        nf = _normalform_selbst(schluessel, fds, atomar="<br>" not in f)
+        l = a.loesung
+        assert l["nf"] == NORMALFORMEN[nf] and l["tabellen"] == len({tuple(x) for x, _ in fds}), seed
+        assert len(zeilen) >= 3 and (nf != 1 or len(schluessel) == 2) and (nf != 2 or len(schluessel) == 1)
+        if nf == 3:
+            assert l["tabellen"] == 1 and "anomalie" not in l and "**Fall:**" not in f
+        else:
+            fall = f.split("**Fall:** ")[1]
+            assert l["anomalie"] == ANOMALIEN[0 if "soll erfasst werden" in fall else 1 if "geändert" in fall else 2]
+        gesehen.add((nf, l.get("anomalie")))
+    assert {nf for nf, _ in gesehen} == {0, 1, 2, 3} and len(gesehen) >= 9
+
+
+def test_datenbanken_im_umfang_und_nicht_im_sprint(client, con):
+    from urllib.parse import parse_qs, urlparse
+    ap1, ae, si = (set(rechnen.im_umfang(p)) for p in ("AP1", "AP2-1201", "AP2-1202"))
+    datenbanken = {a for a, x in rechnen.ARTEN.items() if x.gruppe == "Datenbanken"}
+    assert datenbanken == {*SQL_ARTEN, "ermodell", "normalform"} and datenbanken <= ae and datenbanken <= ap1 and not datenbanken & si
+    assert {a for a, x in rechnen.ARTEN.items() if not x.sprint} == set(SQL_ARTEN)
+    for _ in range(25):  # Demo: AP2 AE, Datenbanken gehören dazu, SQL aber nicht in den Sprint
+        arten = {w.split(":")[0] for w in parse_qs(urlparse(client.get("/rechnen/sprint/neu").headers["Location"]).query)["a"]}
+        assert not arten & set(SQL_ARTEN)
+    assert "ohne SQL" in client.get("/rechnen/sprint").get_data(as_text=True)
+    from saku.web.routen.suche import befehle
+    assert befehle("normalisierung")[0][3] == ("rechnen.aufgabe", {"art": "normalform"})
+
+
+def test_datenbanken_passen_zu_themen():
+    passt = {"select": ["SQL: SELECT, JOIN, GROUP BY", "Datenbankabfragen"], "join": ["Joins und Aggregatfunktionen"],
+             "aendern": ["Datenmanipulation mit INSERT und UPDATE"], "normalform": ["Normalisierung: 1. NF bis 3. NF", "Normalformen"],
+             "ermodell": ["Entity-Relationship-Modell", "Datenmodellierung", "Kardinalitäten im ER-Diagramm"]}
+    for slug, namen in passt.items():
+        assert all(rechnen.passend([n]).slug == slug for n in namen), slug
+    assert [a.slug for a in rechnen.passende(["SQL: SELECT, JOIN, GROUP BY"])] == list(SQL_ARTEN)  # der Lernpfad zeigt alle drei
+    for name in ["Joint Venture", "Client-Server-Modell", "Software-Updates einspielen", "Anomalieerkennung im Netz", "Middleware"]:
+        assert rechnen.passend([name]) is None, name
+
+
+def test_sql_aufgabe_ausfuehren_pruefen_aufgeben(client, con):
+    seed, a = next((seed, a) for seed, a in _alle("join") if a.titel == "Ohne Partner")
+    loesung = a.felder[0].loesung
+    tabelle = re.search(r"FROM (\w+)", loesung)[1]
+    html = client.get(f"/rechnen/join?seed={seed}").get_data(as_text=True)
+    assert '<textarea class="textarea editor" id="feld-sql" name="feld-sql"' in html and "autofocus" in html
+    assert 'data-sql-ausfuehren' in html and f'hx-get="/rechnen/join/tabellen?seed={seed}"' in html and "⌘↵ führt aus" in html
+
+    tabellen = client.get(f"/rechnen/join/tabellen?seed={seed}", headers=HTMX).get_data(as_text=True)
+    assert "Beispieldaten" in tabellen and tabellen.count('<figure class="sql-tabelle"') == 3 and "sql-null" in tabellen
+    ergebnis = client.post("/rechnen/join/sql", data={"seed": seed, "feld-sql": loesung}, headers=HTMX).get_data(as_text=True)
+    assert re.search(r"\d Zeilen", ergebnis) and '<figure class="sql-tabelle"' in ergebnis
+    assert "SQLite meldet" in client.post("/rechnen/join/sql", data={"seed": seed, "feld-sql": "SELEKT *"}).get_data(as_text=True)
+    assert "Nicht erlaubt" in client.post("/rechnen/join/sql", data={"seed": seed, "feld-sql": "ATTACH 'x.db' AS x"}).get_data(as_text=True)
+    assert client.post("/rechnen/join/sql", data={"feld-sql": loesung}).status_code == 400
+    assert client.get("/rechnen/ermodell/tabellen?seed=1").status_code == 404  # ohne Sandbox
+    assert client.get("/rechnen/gibtsnicht/tabellen?seed=1").status_code == 404
+
+    def pruefen(**daten):
+        return client.post("/rechnen/join/pruefen", data={"seed": seed} | daten, headers=HTMX).get_data(as_text=True)
+    # läuft nicht: Meldung, die Anweisung bleibt stehen, gespeichert wird nichts
+    html = pruefen(**{"feld-sql": f"SELECT * FROM {tabelle} WHERE"})
+    assert "SQLite meldet" in html and "Korrigier die Anweisung" in html and f"SELECT * FROM {tabelle} WHERE</textarea>" in html
+    assert con.execute("SELECT COUNT(*) FROM rechenuebung").fetchone()[0] == 0
+    html = pruefen(**{"feld-sql": loesung})
+    assert "Richtig." in html and "rechnen-sql--richtig" in html and 'class="language-sql"' in html and "Formeln: SQL" in html
+    html = pruefen(**{"feld-sql": _typisch_falsch(loesung)})  # INNER statt LEFT JOIN: alle fehlen
+    assert "Leider falsch." in html and re.search(r"\d Zeilen? fehl", html) and "Erwartet" in html and "Dein Ergebnis" in html
+    html = pruefen(aufgeben="1")
+    assert "Hier ist der Rechenweg." in html and "Ergebnis der Musterlösung" in html
+    assert [tuple(z) for z in con.execute("SELECT art, richtig, felder_richtig, felder_gesamt FROM rechenuebung ORDER BY id")] == \
+        [("join", 1, 1, 1), ("join", 0, 0, 1), ("join", 0, 0, 1)]
+    # Daten ändern: verglichen wird der Tabellenstand, die Abweichung steht dabei
+    seed, a = next((seed, a) for seed, a in _alle("aendern") if a.titel == "UPDATE")
+    html = client.post("/rechnen/aendern/pruefen", data={"seed": seed, "feld-sql": _typisch_falsch(a.felder[0].loesung)},
+                       headers=HTMX).get_data(as_text=True)
+    assert "Leider falsch." in html and re.search(r"Tabelle \w+: \d+ Zeilen? fehl", html)
