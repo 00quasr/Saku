@@ -8,6 +8,7 @@
 <div class="seite weit rechnen">
   <div class="zeile rechnen-start">
     <a class="btn" href="{{ url_for('rechnen.gemischt') }}" data-taste="Enter">Gemischt üben {{ m.taste('↵') }}</a>
+    <a class="btn" data-variant="outline" href="{{ url_for('rechnen.sprint') }}">{{ m.icon('timer') }} Sprint: 5 Aufgaben, 15 Minuten</a>
     <a class="btn" data-variant="outline" href="{{ url_for('rechnen.formeln') }}">{{ m.icon('sigma') }} Formelsammlung</a>
     <p class="klein gedaempft">Was zuletzt oft falsch war, kommt häufiger dran.</p>
   </div>

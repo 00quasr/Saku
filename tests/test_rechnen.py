@@ -196,6 +196,8 @@ def test_passende_art_zu_themen():
         "baum": ["Binärbaum durchlaufen", "Bäume und Graphen"],
         "stapel": ["Stack und Heap", "Warteschlangen im Druckdienst"],
         "verfuegbarkeit": ["Verfügbarkeit von Diensten", "Hochverfügbarkeit im Rechenzentrum", "MTBF und MTTR", "Redundanz im Netz"],
+        "kuendigung": ["Kündigungsfristen im Arbeitsverhältnis", "Ausbildungsvertrag und Probezeit", "Grundlagen Arbeitsrecht"],
+        "urlaub": ["Urlaubsanspruch berechnen", "Jugendarbeitsschutz in der Ausbildung"],
     }
     for slug, namen in passt.items():
         for name in namen:
@@ -484,3 +486,167 @@ def test_verfuegbarkeit_nachgerechnet():
             stunden = int(re.search(r"höchstens \*\*(\d+) Stunde", a.frage)[1])
             angebot = prozent(re.search(r"SLA mit \*\*([\d,]+) %", a.frage)[1])
             assert l["noetig"] == pytest.approx(100 * (1 - stunden / 8760)) and (l["reicht"] == "Ja") == (angebot > 1 - stunden / 8760)
+
+
+# --- WiSo (Runde 4) -------------------------------------------------------------------
+
+MONATSNAMEN = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"]
+
+
+def _zugang(text: str):
+    """Der Zugang steht als „Mittwoch, 2. Februar 2028“ in der Frage."""
+    from datetime import date
+    m = re.search(r"\*\*\w+, (\d+)\. (\w+) (\d{4})\*\*", text)
+    return date(int(m[3]), MONATSNAMEN.index(m[2]) + 1, int(m[1]))
+
+
+def _tag(text: str):
+    """Das erste Datum als TT.MM.JJJJ (Eintritt, Austritt, Geburtstag)."""
+    from datetime import date
+    t, mo, j = map(int, re.search(r"\*\*(\d\d)\.(\d\d)\.(\d{4})\*\*", text).groups())
+    return date(j, mo, t)
+
+
+def test_kuendigungstermine_anders_nachgerechnet():
+    import calendar
+    from datetime import date, timedelta
+
+    def letzter(j, m):
+        return date(j, m, calendar.monthrange(j, m)[1])
+
+    def grund(z):  # Tag für Tag: erster 15. oder Monatsletzter mit mindestens 28 Tagen Abstand
+        t = z + timedelta(days=1)
+        while not ((t - z).days >= 28 and (t.day == 15 or t == letzter(t.year, t.month))):
+            t += timedelta(days=1)
+        return t
+
+    def monatsende_mit_frist(z, n):  # Monatsende M ist erreichbar, wenn z spätestens am Letzten des Monats n Monate vor M liegt
+        j, m = z.year, z.month
+        while True:
+            vor_j, vor_m = (j * 12 + m - 1 - n) // 12, (j * 12 + m - 1 - n) % 12 + 1
+            if z <= letzter(vor_j, vor_m):
+                return letzter(j, m)
+            j, m = (j, m + 1) if m < 12 else (j + 1, 1)
+
+    for seed, a in _alle("kuendigung"):
+        l = a.loesung
+        if "ende" not in l:
+            assert l["frist"] == "Nur fristlos aus wichtigem Grund"
+            continue
+        zugang = _zugang(a.frage)
+        ende = date(*reversed([int(x) for x in l["ende"].split(".")]))
+        if a.titel in ("Kündigung durch den Arbeitnehmer",):
+            assert ende == grund(zugang) and l["frist"].startswith("4 Wochen zum 15.")
+        elif a.titel == "Kündigung in der Probezeit":
+            assert (ende - zugang).days == 14
+        elif a.titel == "Ausbildung: Kündigung":
+            assert (ende - zugang).days in (0, 28) and ((ende - zugang).days == 0) == ("Probezeit läuft" in a.rechenweg)
+        else:
+            eintritt = _tag(a.frage)
+            jahre = max(k for k in range(0, 40) if date(eintritt.year + k, eintritt.month, min(eintritt.day, 28)) <= zugang)
+            monate = next((m for j, m in [(20, 7), (15, 6), (12, 5), (10, 4), (8, 3), (5, 2), (2, 1)] if jahre >= j), 0)
+            assert ende == (monatsende_mit_frist(zugang, monate) if monate else grund(zugang)), (seed, jahre)
+
+
+def test_urlaub_nachgerechnet():
+    import math
+    from datetime import date
+    for seed, a in _alle("urlaub"):
+        l = a.loesung
+        if a.titel == "Werktage umrechnen":
+            geburt, jahr = _tag(a.frage), int(re.search(r"im Jahr (\d{4})", a.frage)[1])
+            alter = jahr - 1 - geburt.year  # Geburtstage liegen nie am 1. Januar
+            assert l["werktage"] == {15: 30, 16: 27, 17: 25}.get(alter, 24)
+            woche = int(re.search(r"an (\d) Tagen pro Woche", a.frage)[1])
+            assert l["tage"] == pytest.approx(l["werktage"] / 6 * woche)
+            continue
+        urlaub_ = int(re.search(r"sieht (\d+) Arbeitstage", a.frage)[1])
+        stichtag, jahr = _tag(a.frage), int(re.search(r"im Jahr (\d{4})", a.frage)[1])
+        if a.titel.startswith("Eintritt"):
+            voll = stichtag <= date(jahr, 6, 30)
+            monate = (12 - stichtag.month) + (1 if stichtag.day == 1 else 0)
+        else:
+            voll = stichtag > date(jahr, 6, 30)
+            monate = stichtag.month - (0 if stichtag.day > 15 else 1)
+        if voll:
+            assert l["anspruch"] == urlaub_ and l["art"].startswith("Voller")
+        else:
+            roh = urlaub_ * monate / 12
+            assert roh % 1 == 0 or roh % 1 >= 0.5  # Reste unter einem halben Tag erzeugt Saku nicht
+            assert l["anspruch"] == (math.ceil(roh) if roh % 1 >= 0.5 else roh) and l["art"].startswith("Anteilig"), seed
+
+
+def test_datum_eingaben():
+    feld = Feld("ende", "Ende", "31.03.2027", typ="datum")
+    assert all(rechnen.stimmt(feld, t) for t in ["31.03.2027", "31.3.2027", "31.03.27", "31. 3. 2027", "2027-03-31"])
+    assert not any(rechnen.stimmt(feld, t) for t in ["30.03.2027", "31.03.2026", "31.02.2027", "März", "31.03."])
+
+
+def test_differenz_und_rueckwaertskalkulation():
+    def wert(muster, text):
+        return _zahl(re.search(muster, text)[1])
+    for seed, a in _alle("kalkulation"):
+        if a.titel not in ("Differenzkalkulation", "Rückwärtskalkulation"):
+            continue
+        f = a.frage
+        r, s = wert(r"Liefererrabatt: ([\d,]+) %", f) / 100, wert(r"Liefererskonto: ([\d,]+) %", f) / 100
+        bk, hk = wert(r"Bezugskosten: ([\d.,]+) €", f), wert(r"Handlungskostenzuschlag: ([\d,]+) %", f) / 100
+        ks, kr = wert(r"Kundenskonto: ([\d,]+) %", f) / 100, wert(r"Kundenrabatt: ([\d,]+) %", f) / 100
+        lvp = wert(r"\*\*([\d.,]+) € netto\*\*", f)
+        bvp = lvp * (1 - kr) * (1 - ks)  # vom Hundert, ohne Zwischenrundung
+        assert a.loesung["bvp"] == pytest.approx(bvp, abs=0.02)
+        if a.titel == "Differenzkalkulation":
+            sk = (wert(r"Listeneinkaufspreis: ([\d.,]+) €", f) * (1 - r) * (1 - s) + bk) * (1 + hk)
+            assert a.loesung["sk"] == pytest.approx(sk, abs=0.03)
+            assert a.loesung["gewinn"] == pytest.approx(bvp - sk, abs=0.05) and a.loesung["prozent"] == pytest.approx((bvp - sk) / sk * 100, abs=0.01)
+        else:
+            g = wert(r"\*\*([\d,]+) % Gewinn\*\*", f) / 100
+            lep = (bvp / (1 + g) / (1 + hk) - bk) / (1 - s) / (1 - r)
+            assert a.loesung["lep"] == pytest.approx(lep, abs=0.05)
+            # Probe vorwärts: mit diesem Einkaufspreis kommt genau der Marktpreis heraus
+            vor = (a.loesung["lep"] * (1 - r) * (1 - s) + bk) * (1 + hk) * (1 + g) / (1 - ks) / (1 - kr)
+            assert vor == pytest.approx(lvp, abs=0.2)
+
+
+# --- Rechen-Sprint ---------------------------------------------------------------------
+
+def test_sprint_ablauf_punkte_note(client, con):
+    from urllib.parse import parse_qs, urlparse
+    from saku.lernen import simulation
+    from saku.web.routen.suche import befehle
+    assert 'href="/rechnen/sprint/neu" data-taste="Enter"' in client.get("/rechnen/sprint").get_data(as_text=True)
+    assert 'href="/rechnen/sprint"' in client.get("/rechnen/").get_data(as_text=True)
+    assert befehle("sprint")[0][3] == ("rechnen.sprint", {})
+
+    adresse = client.get("/rechnen/sprint/neu").headers["Location"]
+    q = parse_qs(urlparse(adresse).query)
+    arten = [w.split(":")[0] for w in q["a"]]
+    assert len(arten) == 5 == len(set(arten)) and all(a in rechnen.ARTEN for a in arten)
+    html = client.get(adresse).get_data(as_text=True)
+    assert html.count('class="sprint-aufgabe"') == 5 and html.count("autofocus") == 1 and 'id="sprint-uhr"' in html
+
+    aufgaben = [rechnen.erzeugen(art, int(seed)) for art, seed in (w.split(":") for w in q["a"])]
+    daten = {"a": q["a"], "start": q["start"][0]}
+    daten |= {f"a1-{f.name}": f.anzeige for f in aufgaben[0].felder}  # erste ganz richtig
+    zweite = aufgaben[1].felder
+    daten |= {f"a2-{zweite[0].name}": zweite[0].anzeige or "x"}  # zweite: ein Feld (leer richtig gilt nicht für ganz leere Aufgaben)
+    richtig_2 = sum(rechnen.pruefen(aufgaben[1], {zweite[0].name: zweite[0].anzeige or "x"}).values())
+    erreicht = 20 + round(20 * richtig_2 / len(zweite), 1)
+    html = client.post("/rechnen/sprint/lauf", data=daten).get_data(as_text=True)
+    note = simulation.note(simulation.umrechnen(erreicht, 100))
+    assert f"Note {note} · {simulation.NOTEN[note]}" in html and html.count('<details class="kontext"') == 5
+    zeilen = con.execute("SELECT art, richtig FROM rechenuebung ORDER BY id").fetchall()
+    assert [z[0] for z in zeilen] == arten and zeilen[0][1] == 1 and not any(z[1] for z in zeilen[2:])
+    client.post("/rechnen/sprint/lauf", data=daten)  # neu laden schickt noch einmal ab: nicht doppelt zählen
+    assert con.execute("SELECT COUNT(*) FROM rechenuebung").fetchone()[0] == 5
+    assert client.post("/rechnen/sprint/lauf", data={"a": "gibtsnicht:1"}).status_code == 400
+    assert client.get("/rechnen/sprint/lauf").status_code == 400
+
+
+def test_gemischt_ohne_doppelte():
+    rng = random.Random(3)
+    for _ in range(50):
+        gezogen = []
+        for _ in range(5):
+            gezogen.append(rechnen.gemischt(rng, {}, ohne=gezogen))
+        assert len(set(gezogen)) == 5

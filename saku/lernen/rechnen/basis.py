@@ -3,7 +3,7 @@
 from dataclasses import dataclass, field
 from typing import Callable
 
-GRUPPEN = ["Netzwerk", "Daten & Medien", "Strom & Hardware", "Wirtschaft", "Projekt", "Programmieren", "Algorithmen"]
+GRUPPEN = ["Netzwerk", "Daten & Medien", "Strom & Hardware", "Wirtschaft", "WiSo", "Projekt", "Programmieren", "Algorithmen"]
 
 # alles erfunden, wie in der Demo-Datenbank
 FIRMEN = ["Demo GmbH", "Muster AG", "Beispiel KG", "Fiktiv Systemhaus GmbH", "Probe & Partner OHG"]
@@ -18,7 +18,8 @@ FAKTOR = {"kB": "10³", "MB": "10⁶", "GB": "10⁹", "TB": "10¹²", "KiB": "1.
 class Feld:
     """Ein Eingabefeld. typ: zahl; text (Groß-/Kleinschreibung und Leerzeichen egal); ip (IPv4, führende Nullen egal);
     pfad (nur Buchstaben und Ziffern zählen, z. B. kritischer Pfad); binaer, hex (der Wert zählt);
-    liste (Zahlenfolge wie „3, 8, 1“: nur die Zahlen zählen). Lösung "" heißt: das Feld bleibt leer.
+    liste (Zahlenfolge wie „3, 8, 1“: nur die Zahlen zählen); datum (TT.MM.JJJJ, auch „3.3.27“ oder „2027-03-03“).
+    Lösung "" heißt: das Feld bleibt leer.
     optionen: Auswahl statt Eingabe."""
     name: str
     label: str

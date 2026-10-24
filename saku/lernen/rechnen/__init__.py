@@ -3,10 +3,11 @@ Jede Art ist eine Funktion (rng) -> Aufgabe; derselbe Seed ergibt immer dieselbe
 
 import random
 import re
+from datetime import date
 
 from saku.lernen.antwort import zahl
 # melden ihre Arten an; die Reihenfolge hier ist die Reihenfolge der Arten (nach Nutzen für die AP1)
-from saku.lernen.rechnen import netzwerk, daten, hardware, wirtschaft, projekt, programmieren, algorithmen  # noqa: F401, I001
+from saku.lernen.rechnen import netzwerk, daten, hardware, wirtschaft, wiso, projekt, programmieren, algorithmen  # noqa: F401, I001
 from saku.lernen.rechnen.basis import ARTEN, GRUPPEN, Art, Aufgabe, Feld
 
 __all__ = ["ARTEN", "GRUPPEN", "Art", "Aufgabe", "Feld", "erzeugen", "pruefen", "stimmt", "passend", "gemischt"]
@@ -19,6 +20,20 @@ def erzeugen(art: str, seed: int) -> Aufgabe:
 def _ipv4(text: str) -> list[int] | None:
     teile = re.sub(r"\s", "", text).split("/")[0].split(".")
     return [int(t) for t in teile] if len(teile) == 4 and all(t.isdigit() for t in teile) else None
+
+
+def _datum(text: str) -> date | None:
+    """„3.3.2027“, „03.03.27“, „3. 3. 2027“ oder „2027-03-03“; zweistellige Jahre sind 20xx."""
+    if m := re.fullmatch(r"(\d{1,2})\.\s*(\d{1,2})\.\s*(\d{2}|\d{4})", text):
+        tag, monat, jahr = int(m[1]), int(m[2]), int(m[3])
+    elif m := re.fullmatch(r"(\d{4})-(\d{1,2})-(\d{1,2})", text):
+        jahr, monat, tag = int(m[1]), int(m[2]), int(m[3])
+    else:
+        return None
+    try:
+        return date(jahr + 2000 if jahr < 100 else jahr, monat, tag)
+    except ValueError:
+        return None
 
 
 def _ganzzahl(text: str, basis: int, praefix: str) -> int | None:
@@ -40,6 +55,8 @@ def stimmt(feld: Feld, eingabe: str, toleranz: float = 0.0) -> bool:
     soll = str(feld.loesung)
     if feld.typ == "ip":
         return _ipv4(eingabe) is not None and _ipv4(eingabe) == _ipv4(soll)
+    if feld.typ == "datum":
+        return _datum(eingabe) is not None and _datum(eingabe) == _datum(soll)
     if feld.typ == "liste":  # ohne Vorzeichen: „3-8-1“ ist eine Folge mit Bindestrichen (Listen sind nie negativ)
         return [int(x) for x in re.findall(r"\d+", eingabe)] == [int(x) for x in re.findall(r"\d+", soll)]
     if feld.typ == "pfad":
@@ -66,7 +83,8 @@ def passend(namen) -> Art | None:
     return None
 
 
-def gemischt(rng: random.Random, quoten: dict[str, float]) -> str:
-    """Zufällige Art für „Gemischt üben“: je schwächer die Quote der letzten Versuche, desto häufiger; Neues wie Schwaches."""
-    arten = list(ARTEN)
+def gemischt(rng: random.Random, quoten: dict[str, float], ohne=()) -> str:
+    """Zufällige Art für „Gemischt üben“: je schwächer die Quote der letzten Versuche, desto häufiger; Neues wie Schwaches.
+    ohne: Arten, die schon dran sind (Sprint: keine Art doppelt)."""
+    arten = [a for a in ARTEN if a not in ohne]
     return rng.choices(arten, weights=[1.25 - quoten.get(a, 0.0) for a in arten])[0]
