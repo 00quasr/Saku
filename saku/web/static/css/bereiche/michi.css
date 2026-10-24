@@ -47,7 +47,8 @@
 }
 .michi-uebungen a:hover { background: var(--flaeche); }
 .michi-uebung { display: grid; min-width: 0; }
-.michi-test > * + * { margin-top: 16px; }
+.michi-station .abschnitt > * + * { margin-top: 16px; }  /* auch die Einführung bekommt Luft unter der Überschrift */
+.michi-hinweis { margin-top: 24px; }
 
 /* Mini-Test */
 .michi-testform > p:first-child { margin-top: 24px; }
