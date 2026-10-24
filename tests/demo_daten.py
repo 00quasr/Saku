@@ -63,6 +63,24 @@ PRUEFUNGEN = [
     ]),
 ]
 
+# Erfundene SQL-Sandboxen (wie aus dem Schritt sandbox): (Jahr, Saison, Aufgabe) → ddl, daten, {Kennung: Lösung in SQLite}
+SANDBOXEN = {
+    (2023, "Winter", 2): (
+        "CREATE TABLE lager (id INTEGER PRIMARY KEY, ort TEXT NOT NULL);\n"
+        "CREATE TABLE artikel (id INTEGER PRIMARY KEY, name TEXT NOT NULL, preis REAL, lager_id INTEGER REFERENCES lager(id));",
+        "INSERT INTO lager VALUES (1, 'Nord'), (2, 'Süd'), (3, 'Ost');\n"
+        "INSERT INTO artikel VALUES (1, 'Schraube', 0.1, 1), (2, 'Mutter', 0.05, 1), (3, 'Dübel', 0.2, 2), "
+        "(4, 'Winkel', 1.5, 2), (5, 'Haken', 0.8, 1), (6, 'Kabel', NULL, NULL);",
+        {"a": "SELECT lager_id, COUNT(*) FROM artikel GROUP BY lager_id;"}),
+    (2024, "Sommer", 1): (
+        "CREATE TABLE kunde (id INTEGER PRIMARY KEY, name TEXT NOT NULL);\n"
+        "CREATE TABLE ausleihe (id INTEGER PRIMARY KEY, kunde_id INTEGER REFERENCES kunde(id), fahrrad TEXT, datum TEXT);",
+        "INSERT INTO kunde VALUES (1, 'Ada'), (2, 'Bo'), (3, 'Cem');\n"
+        "INSERT INTO ausleihe VALUES (1, 1, 'Stadtrad', '2024-05-31'), (2, 1, 'E-Bike', '2024-06-01'), (3, 2, 'Lastenrad', '2024-06-02');",
+        {"a": "SELECT * FROM kunde k JOIN ausleihe a ON a.kunde_id = k.id;"}),
+}
+SQL_ANTWORT = json.dumps({"art": "sql", "optionen": [], "ziele": [], "richtig": [], "einheit": "", "vorlage": ""})
+
 
 def _slug(text: str) -> str:
     return "".join(c if c.isalnum() else "-" for c in text.lower()).strip("-")
@@ -124,6 +142,12 @@ def anlegen(daten: Path, pruefungstermin: date | None = None) -> Path:
                 con.execute("INSERT INTO suche (teilaufgabe_id, titel, text, loesung) VALUES (?, ?, ?, ?)",
                             (t_id, f"{saison} {jahr} · Aufgabe {nr} {kennung} · {titel}", f"{einleitung} {text}", loesung))
                 alle.append((t_id, themen[0]))
+            if (jahr, saison, nr) in SANDBOXEN:
+                ddl, daten_sql, loesungen = SANDBOXEN[(jahr, saison, nr)]
+                con.execute("INSERT INTO sql_sandbox (aufgabe_id, ddl, daten) VALUES (?, ?, ?)", (a_id, ddl, daten_sql))
+                for kennung, loesung in loesungen.items():
+                    con.execute("UPDATE teilaufgabe SET typ = 'sql', antwort = ?, loesung_sql = ? WHERE aufgabe_id = ? AND kennung = ?",
+                                (SQL_ANTWORT, loesung, a_id, kennung))
 
     # „Kam so ähnlich auch dran": gleiches erstes Unterthema
     for t_id, thema in alle:

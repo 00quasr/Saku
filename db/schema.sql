@@ -84,7 +84,16 @@ CREATE TABLE teilaufgabe (
     antwort         TEXT,                               -- JSON {art, optionen, richtig, einheit, vorlage}
     loesung_inhalt  TEXT,                               -- Markdown
     muster_id       INTEGER REFERENCES muster(id) ON DELETE SET NULL,
+    loesung_sql     TEXT,                               -- Musterlösung in SQLite (Schritt sandbox), nur bei SQL-Teilaufgaben
     UNIQUE (aufgabe_id, kennung)
+);
+
+-- SQL-Sandbox je Aufgabe (Schritt sandbox): erfundene Tabellen und Beispieldaten zum Ausführen und Prüfen in Üben
+CREATE TABLE sql_sandbox (
+    aufgabe_id  INTEGER PRIMARY KEY REFERENCES aufgabe(id) ON DELETE CASCADE,
+    ddl         TEXT NOT NULL,                          -- CREATE TABLE …
+    daten       TEXT NOT NULL,                          -- INSERT …
+    erstellt    TEXT DEFAULT (datetime('now'))
 );
 
 -- „Kam so ähnlich auch dran“: TF-IDF-Ähnlichkeit zwischen Teilaufgaben
@@ -568,4 +577,4 @@ SELECT
 FROM ki_aufruf
 GROUP BY zweck, modell;
 
-PRAGMA user_version = 5;
+PRAGMA user_version = 7;

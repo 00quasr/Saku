@@ -37,6 +37,11 @@ MIGRATIONEN = {
         "dauer_s INTEGER, zeitpunkt TEXT NOT NULL DEFAULT (datetime('now')))",
         "CREATE INDEX idx_rechenuebung_art ON rechenuebung(art, id)",
     ],
+    7: [
+        "CREATE TABLE sql_sandbox (aufgabe_id INTEGER PRIMARY KEY REFERENCES aufgabe(id) ON DELETE CASCADE, "
+        "ddl TEXT NOT NULL, daten TEXT NOT NULL, erstellt TEXT DEFAULT (datetime('now')))",
+        "ALTER TABLE teilaufgabe ADD COLUMN loesung_sql TEXT",
+    ],
 }
 
 

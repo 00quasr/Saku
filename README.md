@@ -23,7 +23,7 @@ Der Name kommt von 咲く (*saku*), „erblühen“. Wissen wächst in Saku wie 
 |---|---|---|
 | 今 | **Heute** | Cockpit: Tagesplan, Countdown, Prüfungsreife als Ensō, Lernkalender |
 | 道 | **Lernpfad** | Stationen, jede mit Einführung, Übungen und Mini-Test |
-| 稽 | **Üben** | Fokusmodus: Aufgabe als echter Text, anklickbare Antworten, Lösung per Leertaste, Bewertung mit 1, 2, 3; nach einem Fehler kommt eine ähnliche Aufgabe aus einem anderen Jahrgang; Grundwissen als Begriffs-Karten |
+| 稽 | **Üben** | Fokusmodus: Aufgabe als echter Text, anklickbare Antworten, SQL in einer Sandbox ausführen und automatisch prüfen, Lösung per Leertaste, Bewertung mit 1, 2, 3; nach einem Fehler kommt eine ähnliche Aufgabe aus einem anderen Jahrgang; Grundwissen als Begriffs-Karten |
 | 算 | **Rechnen** | Rechentrainer ohne KI: unbegrenzt neue Aufgaben wie in der AP1 (Subnetting, Datenmengen, Übertragungszeit, Speichereinheiten, Zahlensysteme, Energie und USV, RAID, Kalkulation und Angebotsvergleich, Kauf/Leasing/Miete, Nutzwertanalyse, Netzplan, IPv6); ↵ prüft sofort, danach steht der Rechenweg da |
 | 試 | **Prüfung** | Simulation mit Timer, Note und Hanko-Stempel |
 | 庭 | **Themen** | Wissensgraph aus Themen, Lernfeldern und Fachbegriffen; je Thema eine Wissensseite (was du können musst, so wird gefragt, Fallen) |

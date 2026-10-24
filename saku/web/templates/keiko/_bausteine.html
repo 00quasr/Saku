@@ -77,6 +77,23 @@
 {% else %}<p class="hinweis hinweis--fehler">Zu dieser Teilaufgabe fehlt der Lösungshinweis. Bewerte dich nach bestem Wissen oder frag Sensei.</p>{% endif %}
 {% endmacro %}
 
+{# Tabelle aus der SQL-Sandbox (Ergebnis, Beispieldaten, Vergleich): t aus lernen/sql._tabelle #}
+{% macro sql_tabelle(t) %}
+<figure class="sql-tabelle">
+  <figcaption class="etikett">{{ t.titel }}</figcaption>
+  <div class="tabelle-rahmen">
+    <table class="table">
+      <thead><tr>{% for s in t.spalten %}<th scope="col">{{ s }}</th>{% endfor %}</tr></thead>
+      <tbody>
+        {% for z in t.zeilen %}<tr>{% for w in z %}{% if w is none %}<td class="sql-null">NULL</td>{% else %}<td>{{ w|round(4) if w is float else w }}</td>{% endif %}{% endfor %}</tr>
+        {% else %}<tr><td colspan="{{ t.spalten|length or 1 }}" class="gedaempft">keine Zeilen</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if t.weitere %}<p class="klein gedaempft">… und {{ 'mehr als ' if t.abgeschnitten }}{{ t.weitere }} weitere Zeilen</p>{% endif %}
+</figure>
+{% endmacro %}
+
 {# Eingabe passend zur Antwortart; eingabe (aus antwort.eingabe) füllt die Felder vor;
    werte (nach dem Prüfen): je Option richtig/falsch, dann ist alles gesperrt.
    praefix: eigene Namen und IDs je Teilaufgabe, wenn mehrere auf einer Seite stehen (Simulation, nur prüfbare Arten) #}
@@ -154,9 +171,22 @@
   </div>
   <textarea name="antwort" hidden></textarea>
 {% elif art in ('code', 'sql') %}
-  <label class="etikett" for="antwort">{{ 'Deine SQL-Anweisung' if art == 'sql' else 'Dein Code' }} · Tab rückt ein, Esc verlässt das Feld</label>
+  {% set sandbox = art == 'sql' and t.sandbox and not praefix %}
+  <label class="etikett" for="antwort">{{ 'Deine SQL-Anweisung' if art == 'sql' else 'Dein Code' }} · Tab rückt ein{{ ', ⌘↵ führt aus' if sandbox }}, Esc verlässt das Feld</label>
   <textarea class="textarea editor" id="antwort" name="antwort" rows="9" spellcheck="false" autocapitalize="off" autocomplete="off"
             placeholder="{{ 'SELECT …' if art == 'sql' else '' }}" onkeydown="saku.editorTaste(event)">{{ a.vorlage }}</textarea>
+  {# SQL-Sandbox: auf erfundenen Beispieldaten ausführen (Schritt sandbox) #}
+  {% if sandbox %}
+  <div class="zeile sql-werkzeuge">
+    <button type="button" class="btn" data-variant="outline" data-size="sm" data-sql-ausfuehren
+            hx-post="{{ url_for('keiko.sql_ausfuehren', t_id=t.id) }}" hx-include="#antwort" hx-target="#sql-ergebnis">
+      {{ m.icon('play') }} Ausführen {{ m.taste('⌘↵') }}
+    </button>
+    <button type="button" class="btn" data-variant="ghost" data-size="sm"
+            hx-get="{{ url_for('keiko.sql_tabellen', t_id=t.id) }}" hx-target="#sql-ergebnis">{{ m.icon('table') }} Tabellen ansehen</button>
+  </div>
+  <div id="sql-ergebnis" class="sql-ergebnis" aria-live="polite"></div>
+  {% endif %}
 {% else %}
   <label class="etikett" for="antwort">Deine Antwort</label>
   <textarea class="textarea" id="antwort" name="antwort" rows="4"
