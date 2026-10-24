@@ -286,8 +286,9 @@ def test_schreibtisch_am_struktogramm():
         a = rechnen.erzeugen("schreibtisch", seed)
         if a.struktogramm:
             gesehen.add(a.titel)
-            assert "als Struktogramm" in a.frage and "```" not in a.frage and "Dasselbe Programm in Pseudocode" in a.rechenweg
-    assert gesehen == {"Ausgabe am Struktogramm", "Endwerte am Struktogramm", "Wertetabelle am Struktogramm"}
+            diagramm = a.titel.split(" am ")[1]
+            assert f"als {diagramm}" in a.frage and "```" not in a.frage and "Dasselbe Programm in Pseudocode" in a.rechenweg
+    assert gesehen == {f"{t} am {d}" for t in ("Ausgabe", "Endwerte", "Wertetabelle") for d in ("Struktogramm", "Aktivitätsdiagramm")}
 
 
 # --- Routen ------------------------------------------------------------------------

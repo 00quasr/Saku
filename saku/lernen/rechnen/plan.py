@@ -18,9 +18,12 @@ from saku.lernen.rechnen.basis import ARTEN, GRUPPEN
 # Recht & Verträge (Angebot, Vertragsarten, Störungen des Kaufvertrags, Lizenzmodelle) gehört zum Kundenauftrag aus Lernfeld 2
 #   „Arbeitsplätze nach Kundenwunsch ausstatten“ und damit sicher zur AP1. Die AP2 setzt es voraus, fragt es aber nur selten eigens
 #   (Lizenzen am ehesten bei „Planen eines Softwareproduktes“): bewusst nicht im AP2-Umfang, frei üben geht immer.
+# UML (Klassen-, Zustands-, Use-Case- und Sequenzdiagramm) gehört zum Softwareentwurf der Anwendungsentwicklung (Lernfelder 10a bis
+#   12a, AP2 „Planen eines Softwareproduktes“); die AP1 verlangt Programmabläufe darstellen und lesen, das Aktivitätsdiagramm steht
+#   deshalb beim Schreibtischtest (Programmieren) und ist in der AP1 und AP2 Anwendungsentwicklung dabei.
 UMFANG = {
-    "AP1": [g for g in GRUPPEN if g != "Algorithmen"],
-    "AP2-1201": ["Programmieren", "Algorithmen", "Datenbanken", "Wirtschaft", "Projekt", "WiSo", "Daten & Medien", "IT-Sicherheit"],
+    "AP1": [g for g in GRUPPEN if g not in ("Algorithmen", "UML")],
+    "AP2-1201": ["Programmieren", "Algorithmen", "Datenbanken", "Wirtschaft", "Projekt", "WiSo", "Daten & Medien", "IT-Sicherheit", "UML"],
     "AP2-1202": ["Netzwerk", "Strom & Hardware", "Daten & Medien", "Wirtschaft", "WiSo", "IT-Sicherheit"],
 }
 
