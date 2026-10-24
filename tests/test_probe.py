@@ -4,6 +4,7 @@ import json
 import random
 
 import pytest
+from markupsafe import escape
 
 from saku import db
 from saku.lernen import hochrechnung, probepruefung, rechnen
@@ -65,7 +66,8 @@ def test_ablauf_alles_richtig_note_1_und_rechenuebung(client, con):
     daten = _musterloesungen(_zeile(con, pp_id))
     assert client.post(url + "/speichern", data=daten).get_data(as_text=True).startswith("Gespeichert")
     assert json.loads(_zeile(con, pp_id)["eingaben"]) == daten
-    assert all(f'value="{w}"' in client.get(url).get_data(as_text=True) for w in list(daten.values())[:3] if "\n" not in w)
+    seite = client.get(url).get_data(as_text=True)  # gespeichert steht im Feld: als value="…" oder im Textfeld (SQL, Pseudocode)
+    assert all(str(escape(w)) in seite for w in daten.values())
     assert client.post("/rechnen/probe/neu").headers["Location"] == url  # die laufende statt einer zweiten
 
     client.post(url + "/abgeben", data=daten)
