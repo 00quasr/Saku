@@ -3,7 +3,6 @@
 .michi-stand { margin-top: 6px; }
 .michi-stand [lang="ja"] { margin-right: 2px; }
 .michi-fuss { margin-top: 48px; }
-.michi-fuss a, .michi-station .hinweis a { text-decoration: underline; }
 
 /* Der Pfad: Stein, Nummer, Titel, Stand; darunter die Zahlen */
 .pfad-station {

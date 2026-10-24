@@ -2,7 +2,6 @@
 
 .shiken-motto { margin-top: 8px; }
 .shiken-hinweis { margin-bottom: 48px; }
-.shiken-hinweis a { text-decoration: underline; }
 .shiken-erklaerung { max-width: 68ch; margin-top: 8px; }
 
 .shiken-bereiche { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-top: 24px; }
