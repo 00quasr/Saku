@@ -46,6 +46,10 @@ def test_lernstand_uebersteht_neuaufbau(tmp_path, monkeypatch):
     con.execute("INSERT INTO teilaufgabe_thema (teilaufgabe_id, thema_id, gewicht, quelle) "
                 "SELECT ?, id, 1.0, 'manuell' FROM thema WHERE slug = 'er-modell'", (t3,))
     db.setze_einstellung(con, "farbschema", "hell")
+    con.executemany("INSERT INTO rechenuebung (art, seed, richtig, felder_richtig, felder_gesamt, dauer_s, zeitpunkt) "
+                    "VALUES (?, ?, ?, ?, 2, ?, ?)", [("subnetz", 7, 1, 2, 40, "2026-10-20 08:00:00"),
+                                                     ("datenmenge", 7, 0, 1, None, "2026-10-20 08:00:00")])
+    con.commit()
     vorher = _vergleichbar(con)
     datei = json.loads(json.dumps(lernstand.exportieren(con)))  # wie über die Datei
 
@@ -60,6 +64,7 @@ def test_lernstand_uebersteht_neuaufbau(tmp_path, monkeypatch):
     assert _vergleichbar(neu) == vorher
     assert zahlen["bewertungen"] == [len(datei["bewertungen"]) - 1, 1]  # die unbekannte Teilaufgabe übersprungen
     assert zahlen["karten"] == [len(datei["karten"]), 0] and zahlen["simulationen"] == [1, 0] and zahlen["stationstests"] == [1, 0]
+    assert zahlen["rechenuebungen"] == [2, 0] and len(datei["rechenuebungen"]) == 2
     karte = "SELECT status, serie, fsrs, faellig_am FROM karte WHERE teilaufgabe_id = ?"
     assert neu.execute(karte, (_id(neu, 2023, "Sommer", 1, "b"),)).fetchone()[:] == con.execute(karte, (t1,)).fetchone()[:]
 

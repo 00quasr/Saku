@@ -1,6 +1,7 @@
 """Lernstand exportieren und importieren, mit stabilen Schlüsseln statt IDs: übersteht einen Neuaufbau der Datenbank.
 Teilaufgabe = [Jahr, Saison, Teil, Bereich, Beruf, Aufgabe, Kennung] (eindeutig laut Schema), Begriff = Name,
-Thema = Slug, Station = Lernpfad und Slugs ihrer Themen (so erkennt auch die Pipeline eine Station wieder)."""
+Thema = Slug, Station = Lernpfad und Slugs ihrer Themen (so erkennt auch die Pipeline eine Station wieder),
+Rechenübung = Art, Seed und Zeitpunkt. Nicht dabei: Katalog (auch sql_sandbox), Vektoren, Sensei-Gespräche und KI-Protokoll."""
 
 import sqlite3
 from datetime import datetime, timezone
@@ -49,6 +50,8 @@ def exportieren(con: sqlite3.Connection) -> dict:
             for s in con.execute("SELECT * FROM simulation ORDER BY id").fetchall()],
         "stationstests": [stationen[z["station_id"]] | {k: z[k] for k in z.keys() if k not in ("id", "station_id")}
                           for z in con.execute("SELECT * FROM stationstest ORDER BY id").fetchall() if z["station_id"] in stationen],
+        "rechenuebungen": [dict(z) for z in con.execute(
+            "SELECT art, seed, richtig, felder_richtig, felder_gesamt, dauer_s, zeitpunkt FROM rechenuebung ORDER BY zeitpunkt, id")],
         # von Hand korrigierte Themen (Analyse); die der KI baut die Pipeline selbst wieder auf
         "zuordnungen": mit_schluessel("SELECT tt.teilaufgabe_id, th.slug AS thema FROM teilaufgabe_thema tt "
                                       "JOIN thema th ON th.id = tt.thema_id WHERE tt.quelle = 'manuell'"),
@@ -136,6 +139,13 @@ def importieren(con: sqlite3.Connection, daten: dict) -> dict[str, list[int]]:
                 "INSERT INTO stationstest (station_id, gestartet_am, beendet_am, punkte_erreicht, punkte_moeglich, bestanden) "
                 "SELECT ?1, ?2, ?3, ?4, ?5, ?6 WHERE NOT EXISTS (SELECT 1 FROM stationstest WHERE station_id = ?1 AND gestartet_am = ?2)",
                 s_id, z["gestartet_am"], z["beendet_am"], z["punkte_erreicht"], z["punkte_moeglich"], z["bestanden"]))
+
+        for z in daten.get("rechenuebungen", []):
+            zaehlen("rechenuebungen", einfuegen(
+                "INSERT INTO rechenuebung (art, seed, richtig, felder_richtig, felder_gesamt, dauer_s, zeitpunkt) "
+                "SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7 WHERE NOT EXISTS "
+                "(SELECT 1 FROM rechenuebung WHERE art = ?1 AND seed = ?2 AND zeitpunkt = ?7)",
+                z["art"], z["seed"], z["richtig"], z["felder_richtig"], z["felder_gesamt"], z["dauer_s"], z["zeitpunkt"]))
 
         for z in daten.get("zuordnungen", []):
             t_id, thema = teilaufgabe(z), con.execute("SELECT id FROM thema WHERE slug = ?", (z["thema"],)).fetchone()
