@@ -593,4 +593,4 @@ SELECT
 FROM ki_aufruf
 GROUP BY zweck, modell;
 
-PRAGMA user_version = 17;
+PRAGMA user_version = 10;

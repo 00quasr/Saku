@@ -66,7 +66,7 @@ def test_abgebrochene_migration_laesst_sich_wiederholen(tmp_path, monkeypatch):
         db.init(pfad)
     monkeypatch.undo()
     db.init(pfad)
-    assert _struktur(pfad)["version"] == 17
+    assert _struktur(pfad)["version"] == 10
 
 
 def test_init_befehl_sichert_vor_der_migration(tmp_path, monkeypatch):
@@ -78,4 +78,4 @@ def test_init_befehl_sichert_vor_der_migration(tmp_path, monkeypatch):
     monkeypatch.setattr("sys.argv", ["saku", "init"])
     __main__.main()
     sicherung = db.letzte_sicherung(config.db_pfad(tmp_path))
-    assert sicherung and _struktur(sicherung)["version"] == 4 and _struktur(config.db_pfad(tmp_path))["version"] == 17
+    assert sicherung and _struktur(sicherung)["version"] == 4 and _struktur(config.db_pfad(tmp_path))["version"] == 10
