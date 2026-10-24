@@ -2,8 +2,9 @@
 
 import re
 from pathlib import Path
+from urllib.parse import urlsplit
 
-from flask import Flask, current_app, g, render_template, request
+from flask import Flask, abort, current_app, g, render_template, request
 from markdown_it import MarkdownIt
 from markupsafe import Markup
 
@@ -90,6 +91,18 @@ def create_app(daten: Path | None = None) -> Flask:
         """[T123] in KI-Texten → Link auf die Teilaufgabe in Keiko."""
         from saku.sensei.suche import quellen_links
         return quellen_links(db(), html)
+
+    @app.before_request
+    def gleiche_herkunft():
+        """Schreibende Anfragen nur von Saku selbst."""
+        # CSRF: Saku lauscht auf localhost, eine fremde Webseite im Browser könnte sonst Bewertungen oder Einstellungen schicken
+        if request.method in ("GET", "HEAD", "OPTIONS"):
+            return
+        seite = request.headers.get("Sec-Fetch-Site")
+        herkunft = request.headers.get("Origin")
+        if (seite is not None and seite not in ("same-origin", "none")) or \
+                (herkunft is not None and urlsplit(herkunft).netloc.lower() != request.host.lower()):
+            abort(403)
 
     @app.errorhandler(OverflowError)
     def zahl_zu_gross(fehler):
