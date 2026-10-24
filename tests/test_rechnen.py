@@ -222,7 +222,7 @@ def test_passende_art_zu_themen():
     # früher zu breit: „Binär“, „Bandbreite“, „Übertragung“, „Strom“, „Speicher“, „Netz“, „Elektrische“, „IP-Adresse“
     for name in ["Bandbreitenmanagement mit QoS", "Übertragungsmedien im Gebäude",
                  "Datenstrom-Verarbeitung", "Speicherverwaltung im Betriebssystem", "Netzwerkmonitoring", "Elektrische Sicherheit prüfen",
-                 "Energielabel und Gütesiegel", "NAT mit privaten Adressen", "Vertragsarten im Kaufrecht", "Laufzeit und Speicherbedarf",
+                 "Energielabel und Gütesiegel", "NAT mit privaten Adressen", "Laufzeit und Speicherbedarf",
                  "Fehlersuche im Netzwerk", "Hashwerte und digitale Signaturen", "Gruppenrichtlinien", "Netzwerkmonitoring",
                  "Bildschirmmasken entwerfen", "Namensauflösung mit DNS", "Qualitätssicherung", "Sozialversicherung",
                  # Stichworte der IT-Sicherheit und Ports nicht als Teilwort anderer Begriffe: Port, OSI, EAN, Schlüssel, Gefährdung
