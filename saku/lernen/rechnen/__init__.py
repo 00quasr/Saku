@@ -1,6 +1,7 @@
 """Rechentrainer 算: unbegrenzt neue Rechenaufgaben im Stil der AP1, sofort und exakt geprüft, mit Rechenweg.
 Jede Art ist eine Funktion (rng) -> Aufgabe; derselbe Seed ergibt immer dieselbe Aufgabe. Keine KI, keine Prüfungstexte."""
 
+import ipaddress
 import random
 import re
 from datetime import date
@@ -36,6 +37,16 @@ def _datum(text: str) -> date | None:
         return date(jahr + 2000 if jahr < 100 else jahr, monat, tag)
     except ValueError:
         return None
+
+
+def _ipv6(text: str) -> int | None:
+    text = re.sub(r"\s", "", text).lower()
+    for kandidat in (text, "::" + text):
+        try:
+            return int(ipaddress.IPv6Address(kandidat))
+        except ValueError:
+            continue
+    return None
 
 
 def _verhaeltnis(text: str) -> tuple[float, float, int] | None:
@@ -83,6 +94,8 @@ def stimmt(feld: Feld, eingabe: str, toleranz: float = 0.0) -> bool:
     soll = str(feld.loesung)
     if feld.typ == "ip":
         return _ipv4(eingabe) is not None and _ipv4(eingabe) == _ipv4(soll)
+    if feld.typ == "ipv6":  # nach Wert, gekürzt oder nicht; vier Blöcke sind eine Interface-ID
+        return _ipv6(eingabe) is not None and _ipv6(eingabe) == _ipv6(soll)
     if feld.typ == "verhaeltnis":
         return _verhaeltnis_gleich(eingabe, soll)
     if feld.typ == "wochentage":

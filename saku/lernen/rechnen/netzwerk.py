@@ -28,6 +28,24 @@ FORMELN = {
 - Anzahl /64-Netze in einem Präfix /p = 2^(64 − p)
 
 *Beispiel:* `2001:0db8:0000:0000:0000:00ff:0000:0001` → `2001:db8::ff:0:1`; ein /48 enthält 2¹⁶ = 65.536 /64-Netze""",
+    "vlsm": """- VLSM: Subnetze unterschiedlicher Größe aus einem Netz, die größte zuerst, lückenlos ab dem Netzanfang
+- Blockgröße je Abteilung: kleinste Zweierpotenz ≥ Hosts + 2 (Netz-ID und Broadcast), Präfix = 32 − log₂ Blockgröße
+- Das nächste Subnetz beginnt direkt nach dem Broadcast des vorigen; so liegt jedes Netz auf einer Grenze seiner Größe
+- Broadcast = Netz-ID + Blockgröße − 1
+
+*Beispiel:* 192.168.10.0/24, Vertrieb 50 Hosts → 64er-Block /26: .0 bis .63; Lager 20 Hosts → 32er-Block /27: .64 bis .95""",
+    "routing": """- Ein Eintrag passt, wenn die ersten p Bit (Präfix) der Zieladresse mit der Netzadresse übereinstimmen
+- Passen mehrere, gewinnt der längste Präfix (Longest Prefix Match), egal in welcher Reihenfolge die Einträge stehen
+- 0.0.0.0/0 (Default-Route) passt immer und greift nur, wenn sonst nichts passt
+- Prüfen im angebrochenen Oktett: Zielwert auf ein Vielfaches der Blockgröße abrunden und mit der Netzadresse vergleichen
+
+*Beispiel:* Ziel 10.20.30.200, Einträge 10.20.0.0/16 und 10.20.30.128/25: 200 liegt im Block 128 bis 255 → /25 gewinnt""",
+    "eui64": """- Modifiziertes EUI-64: MAC-Adresse (48 Bit) in der Mitte teilen, FF:FE einfügen → 64 Bit Interface-ID
+- Im ersten Byte das 7. Bit von links (Universal/Local, Wert 2) umdrehen: 00 → 02, 02 → 00, 0C → 0E
+- Adresse = /64-Präfix + Interface-ID; Link-Local: fe80::/64 + Interface-ID
+- Zum Schluss kürzen: führende Nullen je Block weg, die längste Nullfolge einmal durch :: ersetzen
+
+*Beispiel:* MAC 00:1A:2B:3C:4D:5E → 02:1A:2B:FF:FE:3C:4D:5E → Interface-ID 21a:2bff:fe3c:4d5e, Link-Local fe80::21a:2bff:fe3c:4d5e"""
 }
 
 
@@ -70,7 +88,7 @@ def _maske_erklaert(p: int) -> str:
 
 
 @art("subnetz", "Subnetting", "Netzwerk", "IPv4: Netz-ID, Broadcast, Hosts, Maske ↔ Präfix, Netze teilen",
-     ("Subnet", "IPv4", "IP-Adressierung", "IP-Adresskonzept", "IP-Konfiguration", "Netzmaske", "CIDR"),
+     ("Subnet", "IPv4", "IP-Adressierung", "IP-Konfiguration", "Netzmaske", "CIDR"),
      formeln=FORMELN["subnetz"])
 def subnetz(rng):
     return rng.choice([_host_infos, _maske_praefix, _teilen, _mindest_hosts])(rng)
@@ -328,3 +346,145 @@ def _netze(rng):
     felder = [Feld("bits", "Bits für Subnetze", bits, "Bit", stellen=0), Feld("anzahl", "Anzahl /64-Netze", 2 ** bits, stellen=0)]
     weg = schritte(f"Subnetz-ID: 64 − {p} = **{bits} Bit**", f"Anzahl: 2{hoch(bits)} = **{de(2 ** bits)}** Netze")
     return Aufgabe(frage, felder, weg, titel="/64-Netze zählen")
+
+
+# --- VLSM -----------------------------------------------------------------------------
+
+ABTEILUNGS_NAMEN = ["Vertrieb", "Entwicklung", "Lager", "Verwaltung", "Support", "Marketing", "Produktion", "Gäste-WLAN", "Server"]
+
+
+@art("vlsm", "VLSM", "Netzwerk", "Ein Netz nach Hostbedarf aufteilen: größte zuerst, lückenlos, je Abteilung Netz-ID, Präfix, Broadcast",
+     ("VLSM", "IP-Adresskonzept", "Adressplan"), formeln=FORMELN["vlsm"])
+def vlsm(rng):
+    while True:
+        p0 = rng.choice([22, 23, 24])
+        anzahl = rng.randint(3, 5)
+        bits = rng.sample(range(3, 32 - p0), min(anzahl, 32 - p0 - 3))  # verschiedene Blockgrößen: „größte zuerst“ ist eindeutig
+        bloecke = sorted((2 ** b for b in bits), reverse=True)
+        if len(bloecke) >= 3 and sum(bloecke) <= 2 ** (32 - p0):
+            break
+    netz = _netz(rng, p0)
+    namen = rng.sample(ABTEILUNGS_NAMEN, len(bloecke))
+    # Hostbedarf: passt in den Block, aber nicht in den nächstkleineren
+    bedarf = {n: rng.randint(b // 2 - 1, b - 2) for n, b in zip(namen, bloecke)}
+    start, plan = netz, {}
+    for n, b in zip(namen, bloecke):
+        plan[n] = (start, 32 - b.bit_length() + 1, start + b - 1, b)
+        start += b
+    reihenfolge = rng.sample(namen, len(namen))  # in der Frage gemischt; die Sortierung gehört zur Aufgabe
+    frage = (f"Die {rng.choice(FIRMEN)} hat das Netz `{_ip(netz)}/{p0}` und teilt es mit VLSM auf die Abteilungen auf:\n\n"
+             + "\n".join(f"- {n}: {bedarf[n]} Hosts" for n in reihenfolge)
+             + "\n\nVergeben Sie die Subnetze nach Größe, das größte zuerst, lückenlos ab dem Netzanfang, jeweils so klein wie möglich. "
+             "Tragen Sie je Abteilung Netz-ID, Präfix und Broadcast-Adresse ein.")
+    zellen = [[Feld(f"{i}_netz", f"{n}: Netz-ID", _ip(plan[n][0]), typ="ip"), Feld(f"{i}_praefix", f"{n}: Präfix", plan[n][1], stellen=0),
+               Feld(f"{i}_bc", f"{n}: Broadcast", _ip(plan[n][2]), typ="ip")] for i, n in enumerate(reihenfolge)]
+    zeilen = [[n, bedarf[n], f"{bedarf[n]} + 2 → {b} = 2{hoch(b.bit_length() - 1)}", f"/{p}", _ip(s), _ip(e)]
+              for n, (s, p, e, b) in sorted(plan.items(), key=lambda x: -x[1][3])]
+    weg = (schritte("Blockgröße je Abteilung: kleinste Zweierpotenz ≥ Hosts + 2, Präfix = 32 − Hostbits",
+                    "Nach Blockgröße sortieren, die größte zuerst, und lückenlos ab der Netz-ID vergeben",
+                    "Broadcast = Netz-ID + Blockgröße − 1, das nächste Netz beginnt eine Adresse danach")
+           + "\n\n" + tabelle(["Abteilung", "Hosts", "Block", "Präfix", "Netz-ID", "Broadcast"], zeilen)
+           + (f"\n\nFrei bleibt ab {_ip(start)} bis {_ip(netz + 2 ** (32 - p0) - 1)}." if start < netz + 2 ** (32 - p0) else ""))
+    return Aufgabe(frage, [f for zeile in zellen for f in zeile], weg, titel=f"VLSM aus einem /{p0}",
+                   tabelle=[["Abteilung", "Netz-ID", "Präfix", "Broadcast"], *([n, *z] for n, z in zip(reihenfolge, zellen))])
+
+
+# --- Routing ----------------------------------------------------------------------------
+
+def _praefix_bits(x: int, p: int) -> str:
+    """Die ersten p Bit, in Oktetten mit Punkt getrennt."""
+    bits = f"{x:032b}"[:p]
+    return ".".join(bits[i:i + 8] for i in range(0, len(bits), 8)) or "–"
+
+
+@art("routing", "Routing-Tabelle", "Netzwerk", "Welcher Eintrag greift? Longest Prefix Match mit überlappenden Präfixen und Default-Route",
+     ("Routing", "Router", "Gateway"), formeln=FORMELN["routing"])
+def routing(rng):
+    while True:
+        p1 = rng.choice([8, 12, 16])
+        p2 = rng.choice([q for q in (16, 20, 22, 24) if q > p1])
+        p3 = rng.choice([q for q in (24, 25, 26, 27, 28) if q > p2])
+        n1 = _netz(rng, p1)
+        n2 = (n1 + rng.randrange(2 ** (32 - p1))) & _maske(p2)
+        n3 = (n2 + rng.randrange(2 ** (32 - p2))) & _maske(p3)
+        anders = _netz(rng, rng.choice([16, 24]))
+        if not (anders & _maske(p1)) == n1 and n3 != n2:
+            break
+    eintraege = [(n1, p1), (n2, p2), (n3, p3), (anders, 24 if anders & 0xFF == 0 else 16), (0, 0)]
+    eintraege[3] = (anders & _maske(eintraege[3][1]), eintraege[3][1])
+    hops = rng.sample(["R1", "R2", "R3", "R4", "R5", "R6"], len(eintraege))
+    tabelle_ = list(zip(eintraege, hops))
+    rng.shuffle(tabelle_)  # die Reihenfolge der Einträge spielt keine Rolle
+    def treffer(ziel):
+        return max(((n, p, h) for (n, p), h in tabelle_ if (ziel & _maske(p) if p else 0) == n), key=lambda t: t[1])
+    ziele = [n3 + rng.randrange(1, 2 ** (32 - p3) - 1),  # im längsten Präfix
+             next(z for z in iter(lambda: n2 + rng.randrange(2 ** (32 - p2)), None) if (z & _maske(p3)) != n3),  # mittlerer
+             next(z for z in iter(lambda: rng.choice([0x08080808, 0x01010101, 0xC6336401, 0xCB007105, 0x5DB8D822]) + rng.randrange(200), None)
+                  if treffer(z)[1] == 0)]  # nur die Default-Route
+    rng.shuffle(ziele)
+    def name(n, p):
+        return "0.0.0.0/0 (Default)" if p == 0 else f"{_ip(n)}/{p}"
+    nach_eintrag = rng.random() < 0.4  # statt des Next Hops: welcher Eintrag greift
+    frage = (f"Der Router der {rng.choice(FIRMEN)} hat diese Routing-Tabelle:\n\n"
+             + tabelle(["Ziel", "Next Hop"], [[name(n, p), h] for (n, p), h in tabelle_])
+             + ("\n\nWelcher Eintrag der Tabelle greift für diese Ziele?" if nach_eintrag else
+                "\n\nÜber welchen Next Hop leitet er Pakete an diese Ziele weiter?")
+             + "\n\n" + "\n".join(f"- `{_ip(z)}`" for z in ziele))
+    weg, felder = [], []
+    for i, z in enumerate(ziele):
+        n, p, h = treffer(z)
+        zeilen = [[f"{_ip(en)}/{ep}" if ep else "0.0.0.0/0", _praefix_bits(en, ep), _praefix_bits(z, ep),
+                   "✓" if (z & _maske(ep) if ep else 0) == en else "✕"] for (en, ep), _ in sorted(tabelle_, key=lambda t: -t[0][1])]
+        weg.append(f"**{_ip(z)}** = `{_bits(z)}`\n\n" + tabelle(["Eintrag", "Netz-Bits", "Ziel-Bits", "passt"], zeilen)
+                   + f"\n\nLängster passender Präfix: /{p} → **{h}**")
+        if nach_eintrag:
+            felder.append(Feld(f"ziel{i}", f"Eintrag für {_ip(z)}", name(n, p), typ="text",
+                               optionen=[name(en, ep) for (en, ep), _ in sorted(tabelle_, key=lambda t: -t[0][1])]))
+        else:
+            felder.append(Feld(f"ziel{i}", f"Next Hop für {_ip(z)}", h, typ="text", optionen=sorted(hops)))
+    return Aufgabe(frage, felder, "\n\n".join(weg), titel="Welcher Eintrag greift?" if nach_eintrag else "Next Hop bestimmen")
+
+
+# --- EUI-64 -----------------------------------------------------------------------------
+
+def eui64(mac: int) -> int:
+    """Modifiziertes EUI-64 (RFC 4291, Anhang A): FFFE in die Mitte, das U/L-Bit (7. Bit des ersten Bytes) umdrehen."""
+    return ((mac >> 24) << 40 | 0xFFFE << 24 | (mac & 0xFFFFFF)) ^ (0x02 << 56)
+
+
+def _mac_text(mac: int, trenner: str) -> str:
+    return trenner.join(f"{(mac >> (8 * i)) & 0xFF:02X}" for i in range(5, -1, -1))
+
+
+@art("eui64", "IPv6 mit EUI-64", "Netzwerk", "Interface-ID aus der MAC-Adresse, globale und Link-Local-Adresse",
+     ("EUI-64", "SLAAC", "Autokonfiguration", "Interface-ID"), formeln=FORMELN["eui64"])
+def eui_64(rng):
+    erstes = rng.choice([0x00, 0x00, 0x02, 0x08, 0x0C, 0x3C, 0xA4, 0xF0])  # Unicast (letztes Bit 0), mal mit gesetztem U/L-Bit
+    mac = erstes << 40 | rng.randrange(1 << 40)
+    iid = eui64(mac)
+    praefix = int(_ipv6(rng)) >> 64 << 64
+    netz = ipaddress.IPv6Network((praefix, 64))
+    global_ = ipaddress.IPv6Address(praefix | iid)
+    link = ipaddress.IPv6Address(0xFE80 << 112 | iid)
+    iid_text = ":".join(f"{(iid >> (16 * i)) & 0xFFFF:x}" for i in range(3, -1, -1))
+    mitte = _mac_text(mac >> 24, ":")[-8:] + ":FF:FE:" + _mac_text(mac & 0xFFFFFF, ":")[-8:]
+    if rng.random() < 0.35:  # rückwärts: aus der Adresse die MAC
+        frage = (f"Im Log eines Switches der {rng.choice(FIRMEN)} taucht die Link-Local-Adresse `{link.compressed}` auf. Sie wurde nach "
+                 "dem modifizierten EUI-64-Verfahren gebildet.\n\nWelche MAC-Adresse hat das Gerät? (Format AA:BB:CC:DD:EE:FF)")
+        weg = schritte(f"Interface-ID ausschreiben: {':'.join(f'{(iid >> (16 * i)) & 0xFFFF:04x}' for i in range(3, -1, -1))}",
+                       f"FF:FE in der Mitte entfernen: {_mac_text(iid >> 40 & 0xFFFFFF, ':')[-8:]} | {_mac_text(iid & 0xFFFFFF, ':')[-8:]}",
+                       f"Erstes Byte {erstes ^ 2:02X} = `{erstes ^ 2:08b}` → 7. Bit zurückdrehen → `{erstes:08b}` = {erstes:02X}",
+                       f"MAC: **{_mac_text(mac, ':')}**")
+        return Aufgabe(frage, [Feld("mac", "MAC-Adresse", _mac_text(mac, ":"), typ="pfad")], weg, titel="EUI-64 rückwärts: MAC")
+    frage = (f"Ein Client der {rng.choice(FIRMEN)} mit der MAC-Adresse **{_mac_text(mac, rng.choice([':', '-']))}** bildet seine "
+             f"IPv6-Adressen per SLAAC nach dem modifizierten EUI-64-Verfahren. Der Router kündigt das Präfix `{netz}` an.\n\n"
+             "Geben Sie die Interface-ID, die globale Adresse und die Link-Local-Adresse an (gekürzt).")
+    weg = schritte(f"MAC teilen und FF:FE einfügen: {mitte}",
+                   f"Erstes Byte {erstes:02X} = `{erstes:08b}` → 7. Bit umdrehen → `{erstes ^ 2:08b}` = {erstes ^ 2:02X}",
+                   f"Interface-ID: **{iid_text}**",
+                   f"Global: Präfix {':'.join(f'{(praefix >> (16 * (7 - i))) & 0xFFFF:x}' for i in range(4))} + Interface-ID, "
+                   f"gekürzt → **{global_.compressed}**",
+                   f"Link-Local: fe80:: + Interface-ID → **{link.compressed}**")
+    felder = [Feld("iid", "Interface-ID", iid_text, typ="ipv6"), Feld("global", "Globale Adresse", global_.compressed, typ="ipv6"),
+              Feld("link", "Link-Local-Adresse", link.compressed, typ="ipv6")]
+    return Aufgabe(frage, felder, weg, titel="EUI-64")

@@ -20,7 +20,7 @@ class Feld:
     pfad (nur Buchstaben und Ziffern zählen, z. B. kritischer Pfad); binaer, hex (der Wert zählt);
     liste (Zahlenfolge wie „3, 8, 1“: nur die Zahlen zählen); datum (TT.MM.JJJJ, auch „3.3.27“ oder „2027-03-03“);
     wochentage („Mo, Di, Mi“ oder „Montag und Dienstag“: die Tage in Reihenfolge zählen);
-    verhaeltnis („16:10“, „8:5“, „16/10“, „1,6:1“ sind gleich: verglichen als Bruch).
+    verhaeltnis („16:10“, „8:5“, „16/10“, „1,6:1“ sind gleich: verglichen als Bruch); ipv6 (nach Wert, auch Interface-ID).
     Lösung "" heißt: das Feld bleibt leer.
     optionen: Auswahl statt Eingabe."""
     name: str
