@@ -9,6 +9,7 @@ from flask import Blueprint, abort, current_app, redirect, render_template, requ
 from saku import config
 from saku.db import einstellung, letzte_sicherung, setze_einstellung, sichern
 from saku.web import db
+from saku.web.routen.bunseki import THEMEN_ZAHLEN
 from saku.web.routen.heute import NEU_IN_SAKU
 
 bp = Blueprint("kern", __name__)
@@ -54,11 +55,11 @@ def termin_info(con, schluessel: str) -> str:
 @bp.get("/einstellungen")
 def einstellungen():
     con = db()
-    zahlen = con.execute("""SELECT
+    zahlen = con.execute(f"""SELECT
         (SELECT COUNT(DISTINCT pruefung_id) FROM v_teilaufgabe) AS pruefungen,
         (SELECT COUNT(*) FROM v_teilaufgabe) AS teilaufgaben,
         (SELECT COUNT(*) FROM teilaufgabe WHERE loesung_text IS NOT NULL OR loesung_bilder <> '[]') AS mit_loesung,
-        (SELECT COUNT(*) FROM v_themen_statistik WHERE ebene = 2 AND teilaufgaben > 0) AS themen""").fetchone()
+        {THEMEN_ZAHLEN}""").fetchone()
     ki = con.execute("SELECT COALESCE(SUM(aufrufe), 0) AS aufrufe, COALESCE(SUM(aus_cache), 0) AS aus_cache, "
                      "COALESCE(SUM(tokens_ein), 0) AS tokens_ein, COALESCE(SUM(tokens_aus), 0) AS tokens_aus "
                      "FROM v_ki_nutzung").fetchone()

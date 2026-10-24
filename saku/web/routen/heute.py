@@ -8,7 +8,7 @@ from flask import Blueprint, abort, make_response, redirect, render_template, re
 from saku.db import einstellung, setze_einstellung
 from saku.lernen import fahrplan, karten, operatoren, pfad, rueckblick, simulation, tagesziel
 from saku.web import db
-from saku.web.routen.bunseki import dauerbrenner, termin_name
+from saku.web.routen.bunseki import THEMEN_ZAHLEN, dauerbrenner, termin_name
 from saku.web.routen.rechnen import heute_gerechnet, tagesziel as rechnen_ziel
 
 bp = Blueprint("heute", __name__)
@@ -164,10 +164,10 @@ def willkommen():
     con = db()
     if not con.execute("SELECT 1 FROM teilaufgabe LIMIT 1").fetchone():
         return redirect(url_for("heute.index"))
-    zahlen = con.execute("""SELECT
+    zahlen = con.execute(f"""SELECT
         (SELECT COUNT(DISTINCT termin_index) FROM v_teilaufgabe) AS termine,
         (SELECT COUNT(*) FROM v_teilaufgabe) AS teilaufgaben,
-        (SELECT COUNT(*) FROM v_themen_statistik WHERE ebene = 2 AND teilaufgaben > 0) AS themen,
+        {THEMEN_ZAHLEN},
         (SELECT COUNT(*) FROM v_station) AS stationen""").fetchone()
     # Dauerbrenner nach Punkten: so mischen sich die Prüfungsbereiche, statt dass WiSo mit 100 % vorn liegt
     themen = sorted(dauerbrenner(con), key=lambda t: -t["punkte"])[:5]

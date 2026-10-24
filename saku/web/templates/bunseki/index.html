@@ -38,7 +38,7 @@
         <div class="flaeche"><span class="etikett">Prüfungen</span><span class="kennzahl zahl">{{ inventar|length }}</span><span class="klein gedaempft">aus {{ heatmap.termine|length }} Terminen</span></div>
         <div class="flaeche"><span class="etikett">Teilaufgaben</span><span class="kennzahl zahl">{{ teilaufgaben }}</span><span class="klein gedaempft">alle als Text aufbereitet</span></div>
         <div class="flaeche"><span class="etikett">Mit Lösungshinweis</span><span class="kennzahl zahl">{{ (100 * mit_loesung / teilaufgaben)|round|int if teilaufgaben else 0 }} %</span><span class="klein gedaempft">{{ mit_loesung }} von {{ teilaufgaben }}</span></div>
-        <div class="flaeche"><span class="etikett">Themen</span><span class="kennzahl zahl">{{ themen_gesamt }}</span><span class="klein gedaempft">{{ nie_geprueft|length }} weitere nie geprüft</span></div>
+        <div class="flaeche"><span class="etikett">Themen</span><span class="kennzahl zahl">{{ themen_zahlen.themen }}</span><span class="klein gedaempft">mit {{ themen_zahlen.unterthemen }} Unterthemen, {{ nie_geprueft|length }} nie geprüft</span></div>
       </div>
       <section class="flaeche bunseki-top">
         <header class="zeile zwischen"><p class="etikett">Die meisten Punkte über alle Termine</p><span class="klein gedaempft">Balken: in wie vielen Terminen das Thema drankam</span></header>
