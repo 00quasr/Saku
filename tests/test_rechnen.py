@@ -1290,6 +1290,21 @@ def test_sql_daten_lassen_typische_fehler_auffallen():
         assert min(treffer) >= 1 and max(treffer) >= 2
 
 
+def test_pruefen_fuehrt_sql_und_pseudocode_nur_einmal_aus(client, monkeypatch):
+    from saku.lernen import sql
+    from saku.lernen.rechnen import pseudocode
+    aufrufe = []
+    for modul, name in ((sql, "pruefen"), (pseudocode, "vergleich")):
+        echt = getattr(modul, name)
+        monkeypatch.setattr(modul, name, lambda *x, echt=echt: aufrufe.append(1) or echt(*x))
+    for art in ("join", "algorithmus"):
+        seed, a = next(_alle(art))
+        aufrufe.clear()
+        html = client.post(f"/rechnen/{art}/pruefen", data={"seed": seed, f"feld-{a.felder[0].name}": a.felder[0].loesung},
+                           headers={"HX-Request": "true"}).get_data(as_text=True)
+        assert "Richtig." in html and len(aufrufe) == 1, art  # nicht noch einmal für rechnen.pruefen
+
+
 def test_create_table_prueft_schluessel_nicht_die_datentypen():
     from saku.lernen import sql
     seed, a = next((seed, a) for seed, a in _alle("aendern") if a.titel == "CREATE TABLE" and "FOREIGN KEY" in a.felder[0].loesung

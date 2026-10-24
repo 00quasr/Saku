@@ -227,7 +227,9 @@ def pruefen(art):
             # lässt sich nicht lesen: wie bei SQL keine Bewertung, der Code bleibt zum Korrigieren stehen
             return render_template("rechnen/_karte.html", **_kontext(art, seed, gemischt, eingaben)
                                    | {"start": start or int(time.time()), "code_fehler": vergleich["fehler"]})
-    werte = rechnen.pruefen(aufgabe, eingaben)
+    # SQL und Pseudocode haben ein Feld und sind schon verglichen: nicht noch einmal ausführen
+    werte = ({aufgabe.felder[0].name: vergleich["ergebnis"] == 3} if vergleich and "ergebnis" in vergleich
+             else rechnen.pruefen(aufgabe, eingaben))
     dauer = min(max(int(time.time()) - start, 0), 3600) if start else None
     con = db()
     con.execute("INSERT INTO rechenuebung (art, seed, richtig, felder_richtig, felder_gesamt, dauer_s) VALUES (?, ?, ?, ?, ?, ?)",
