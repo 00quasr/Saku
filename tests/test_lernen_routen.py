@@ -298,6 +298,8 @@ def test_verlauf_nach_tagen_mit_filter(client, con):
 
 
 def test_shiken_wertet_anklickbare_aufgaben_aus(client, con):
+    con.execute("DELETE FROM sql_sandbox")  # nur Anklickbares; SQL mit Sandbox prüft test_automatisch
+    con.commit()
     url = client.post("/shiken/neu", data={"bereich": "Entwicklung und Umsetzung von Algorithmen"}).headers["Location"]
     ids = [z[0] for z in con.execute("SELECT teilaufgabe_id FROM simulation_teilaufgabe ORDER BY position")]
     auswahl, zahl, leer = ids[:3]

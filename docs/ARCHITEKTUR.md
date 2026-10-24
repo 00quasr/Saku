@@ -242,7 +242,8 @@ Wichtige Regeln:
 | `/fahrplan` | GET | Fahrplan bis zur Prüfung, `?tage=30` | Seite |
 | `/michi` | GET | Lernpfad | Seite |
 | `/michi/<station>` | GET | Station mit Einführung und Übungen | Seite |
-| `/michi/<station>/test` | GET, POST | Mini-Test | Seite, Fragment |
+| `/michi/<station>/test` | GET, POST | Mini-Test; ungeprüfte anklickbare und SQL wertet Saku beim Auswerten selbst aus | Seite, Fragment |
+| `/michi/<station>/test/<id>/pruefen` | POST | anklickbare Antwort oder SQL (mit Sandbox) prüfen, Punkte vorbelegen | Fragment |
 | `/keiko` | GET | Fokusmodus; Filter `?thema=`, `?muster=`, `?modus=fehler\|markiert\|neu` | Seite |
 | `/keiko/grundwissen` | GET | Begriffs-Karten (FSRS, eigener Fahrschul-Status) | Seite |
 | `/keiko/grundwissen/<id>/bewerten` | POST | 1, 2 oder 3, nächste Begriffs-Karte | Fragment |

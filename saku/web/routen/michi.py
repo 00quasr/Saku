@@ -5,7 +5,7 @@ import math
 from flask import Blueprint, abort, redirect, render_template, request, url_for
 
 from saku.db import einstellung
-from saku.lernen import karten, pfad
+from saku.lernen import antwort, karten, pfad
 from saku.web import db, seite_oder_fragment
 
 bp = Blueprint("michi", __name__, url_prefix="/michi")
@@ -54,8 +54,11 @@ def test(station_id):
         return render_template("michi/test.html", station=s, stationen=stationen,
                                aufgaben=karten.lade(con, pfad.testaufgaben(con, station_id)))
 
-    punkte = {}
-    for t_id in request.form.getlist("teilaufgabe", type=int):
+    ids = request.form.getlist("teilaufgabe", type=int)
+    # nicht geprüft, also ohne Punkte: anklickbare und SQL mit Sandbox wertet Saku selbst aus
+    punkte = {t["id"]: v["punkte"] for t in karten.lade(con, [i for i in ids if not request.form.get(f"punkte-{i}")])
+              if (v := antwort.vorschlag(con, t, *_eigene(t)))}
+    for t_id in (i for i in ids if i not in punkte):
         try:
             punkte[t_id] = zahl = float((request.form.get(f"punkte-{t_id}") or "0").replace(",", "."))
             if not math.isfinite(zahl):
@@ -67,3 +70,20 @@ def test(station_id):
     naechste = next((n for n in stationen if n["position"] > s["position"]), None)
     return seite_oder_fragment("michi/test.html", "michi/_ergebnis.html", station=s, stationen=stationen,
                                ergebnis=ergebnis, naechste=naechste)
+
+
+def _eigene(t: dict) -> tuple[dict | None, str | None]:
+    """Antwort einer Teilaufgabe im Mini-Test: anklickbar (antwort-<id>-…, wie in der Simulation) oder SQL (antwort-<id>)."""
+    eingabe = antwort.eingabe(request.form, f"antwort-{t['id']}-") if antwort.pruefbar(t["antwort"]) else None
+    return eingabe, request.form.get(f"antwort-{t['id']}")
+
+
+@bp.post("/<int:station_id>/test/<int:t_id>/pruefen")
+def test_pruefen(station_id, t_id):
+    """Eine Teilaufgabe im Mini-Test prüfen: Ergebnis, Lösung und vorbelegte Punkte, die änderbar bleiben."""
+    con = db()
+    station, _ = _station_oder_404(con, station_id)
+    t = next(iter(karten.lade(con, [t_id])), None) or abort(404)
+    eingabe, eigene = _eigene(t)
+    v = antwort.vorschlag(con, t, eingabe, eigene) or abort(400)
+    return render_template("michi/_testaufgabe.html", t=t, v=v, eingabe=eingabe, eigene=eigene, station=station)

@@ -46,6 +46,7 @@
 .shiken-punkte .input { width: 6rem; }
 .shiken-auto { display: inline-flex; align-items: center; gap: 6px; }
 .shiken-auto .icon { width: 14px; height: 14px; color: var(--matcha); }
+.shiken-auto--fehler .icon { color: var(--beni); }
 
 /* Hochrechnung der Abschlussprüfung */
 .hochrechnung { display: grid; gap: 16px; padding: 22px 24px; border-radius: 14px; margin-bottom: 8px; }

@@ -25,7 +25,7 @@
   </section>
   {% else %}
   <p class="shiken-erklaerung">Abgegeben. Vergleiche jede Antwort mit dem Lösungshinweis und vergib dir die Punkte selbst. Sensei kann einen Vorschlag machen, entscheiden tust du.
-    {% if teilaufgaben|selectattr('auto')|list %}Anklickbare Teilaufgaben hat Saku schon automatisch bewertet; du kannst die Punkte noch ändern.{% endif %}</p>
+    {% if teilaufgaben|selectattr('auto')|list %}Anklickbare Teilaufgaben und SQL mit Beispieldaten hat Saku schon automatisch bewertet; du kannst die Punkte noch ändern.{% endif %}</p>
   {% endif %}
 
   <form method="post" action="{{ url_for('shiken.auswertung', sim_id=sim.id) }}">
@@ -39,7 +39,7 @@
       <div class="shiken-vergleich">
         <div>
           <p class="etikett">Deine Antwort</p>
-          {% if t.auto %}{{ k.antwortfeld(t, t.eingabe, t.auto.werte, praefix='auswertung-' ~ t.id ~ '-') }}
+          {% if t.auto and t.auto.werte is not none %}{{ k.antwortfeld(t, t.eingabe, t.auto.werte, praefix='auswertung-' ~ t.id ~ '-') }}
           {% elif t.eigene %}<p class="shiken-antwort">{{ t.eigene }}</p>{% else %}<p class="gedaempft">Keine Antwort</p>{% endif %}
         </div>
         <div>
@@ -59,7 +59,7 @@
                {% if t.auto %}value="{{ '%g' % t.auto.punkte }}" aria-describedby="auto-{{ t.id }}"{% endif %}>
         <span class="gedaempft">von {{ k.punkte(t.punkte or 0) }}</span>
         {% if t.auto %}
-        <span class="klein gedaempft shiken-auto" id="auto-{{ t.id }}">{{ m.icon('circle-check') }} automatisch bewertet</span>
+        {{ k.auto_hinweis(t.auto, 'auto-' ~ t.id) }}
         {% else %}
         {% with teilaufgabe=t, antwort=t.eigene, feld_id='punkte-' ~ t.id %}{% include "sensei/_punkte_vorschlag.html" ignore missing %}{% endwith %}
         {% endif %}

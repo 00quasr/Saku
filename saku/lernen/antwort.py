@@ -1,7 +1,10 @@
-"""Anklickbare Aufgaben: automatisch prüfen, was sich prüfen lässt (Auswahl, Reihenfolge, Zuordnung, Zahl).
+"""Anklickbare Aufgaben: automatisch prüfen, was sich prüfen lässt (Auswahl, Reihenfolge, Zuordnung, Zahl; mit Sandbox auch SQL).
 antwort ist das JSON aus dem Schritt aufbereiten: {art, optionen, ziele, richtig, einheit, vorlage}."""
 
 import re
+import sqlite3
+
+from saku.lernen import sql
 
 AUTOMATISCH = ("einfach", "mehrfach", "reihenfolge", "zuordnung", "zahl")
 
@@ -87,6 +90,23 @@ def zusammenfassung(eingabe: dict) -> str:
 def punkte(ergebnis: int, moeglich: float) -> float:
     """Punkte für ein automatisches Ergebnis, auf halbe Punkte gerundet: alles, die Hälfte oder nichts."""
     return round(moeglich * {3: 1, 2: 0.5, 1: 0}[ergebnis] * 2) / 2
+
+
+def vorschlag(con: sqlite3.Connection, t: dict, eingabe: dict | None, eigene: str | None) -> dict | None:
+    """Automatische Bewertung als Vorschlag für die Punkte (Simulation, Mini-Test): {punkte, werte, hinweise, fehler}.
+    Anklickbar: eingabe aus eingabe(). SQL mit Sandbox: eigene Anweisung gegen die Musterlösung; läuft sie nicht,
+    0 Punkte mit der Meldung. None, wenn Saku nicht selbst prüfen kann; dann bleibt die Selbstbewertung."""
+    moeglich = t["punkte"] or 0
+    if eingabe is not None and pruefbar(t["antwort"]):
+        ergebnis, werte = auswerten(t["antwort"], eingabe)
+        return {"punkte": punkte(ergebnis, moeglich), "werte": werte, "hinweise": [], "fehler": False}
+    if not (t["loesung_sql"] and (sandbox := sql.laden(con, t["aufgabe_id"]))):
+        return None
+    try:
+        v = sql.pruefen(*sandbox, t["loesung_sql"], eigene or "")
+    except sql.SqlFehler as fehler:
+        return {"punkte": 0, "werte": None, "hinweise": [str(fehler)], "fehler": True}
+    return {"punkte": punkte(v["ergebnis"], moeglich), "werte": None, "hinweise": v["hinweise"], "fehler": False}
 
 
 def als_text(antwort: dict | None) -> str:
