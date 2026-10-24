@@ -91,7 +91,7 @@ def index():
     kandidaten = simulation.schnelltest_kandidaten(con)
     gewaehlt = min(simulation.SCHNELLTEST_ANZAHL, len(kandidaten))
     schnelltest = {"bereich": simulation.SCHNELLTEST, "anzahl": gewaehlt, "termine": len({k["termin_index"] for k in kandidaten}),
-                   "minuten": round(gewaehlt * sum(k["punkte"] for k in kandidaten) / (len(kandidaten) or 1)
+                   "minuten": round(gewaehlt * sum(k["punkte"] for k in kandidaten) / len(kandidaten)  # im Schnitt der Punkte
                                     * simulation.minuten_je_punkt(con, simulation.WISO))} if kandidaten else None
     return render_template("shiken/index.html", bereiche=bereiche, verlauf=verlauf, laufend=laufend, schnelltest=schnelltest,
                            noten=simulation.NOTEN, hochrechnung=hochrechnung.stand(con))

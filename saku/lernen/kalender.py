@@ -1,7 +1,7 @@
 """Fahrplan als Kalenderdatei (iCalendar, RFC 5545), nur mit der Standardbibliothek: ganztägige Termine aus
 fahrplan.meilensteine und auf Wunsch ein täglicher Lern-Termin mit Erinnerung bis zur Prüfung."""
 
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, time, timedelta, timezone
 
 PRODID = "-//Saku//Fahrplan//DE"
 
@@ -44,7 +44,7 @@ def datei(termine: list[dict], lernen: dict | None = None, jetzt: datetime | Non
     return "".join(falten(z) + "\r\n" for z in zeilen)
 
 
-def lern_termin(heute: date, uhrzeit, minuten: int, tage_bis_pruefung: int | None) -> dict | None:
+def lern_termin(heute: date, uhrzeit: time, minuten: int, tage_bis_pruefung: int | None) -> dict | None:
     """Täglicher Lern-Termin ab heute bis zum Tag vor der Prüfung; ohne künftigen Termin keiner."""
     if not tage_bis_pruefung or tage_bis_pruefung < 1:
         return None
