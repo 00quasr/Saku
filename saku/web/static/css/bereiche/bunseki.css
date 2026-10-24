@@ -5,10 +5,6 @@
 .bunseki-tabs [role="tab"] { gap: 6px; white-space: nowrap; }
 .bunseki-reiter > * + * { margin-top: 16px; }
 
-.bunseki-versteckt {
-  position: absolute; width: 1px; height: 1px; overflow: hidden;
-  clip-path: inset(50%); white-space: nowrap;
-}
 .bunseki-block { display: block; }
 .bunseki-umbruch, .bunseki-auszug { white-space: normal !important; }
 .bunseki-auszug { min-width: 240px; max-width: 360px; }

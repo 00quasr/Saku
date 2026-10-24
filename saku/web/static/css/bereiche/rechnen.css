@@ -24,11 +24,6 @@
 .rechnen-ziel .linie-fortschritt { width: 80px; }
 .rechnen-ziel .linie-fortschritt > span { background: var(--shu); }
 
-/* Die letzten zehn Versuche: gefüllt richtig, hohl falsch (nicht nur Farbe) */
-.verlauf { display: inline-flex; gap: 3px; }
-.verlauf-punkt { width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid var(--beni); }
-.verlauf-punkt--richtig { background: var(--matcha); border-color: var(--matcha); }
-
 /* Aufgabe */
 .seite.rechnen:has(.rechnen-karte) { padding-top: 24px; }
 .rechnen-kopf { display: grid; gap: 2px; }
@@ -120,11 +115,6 @@
 .sprint-liste { display: grid; gap: 4px; max-width: 28rem; }
 .sprint-liste li { display: flex; justify-content: space-between; gap: 16px; }
 .sprint-liste a { text-decoration-color: var(--linie); }
-
-/* Dezenter Hinweis auf der Üben-Karte und in der Themen-Notiz */
-.rechnen-link { color: var(--sumi-mittel); }
-.rechnen-link a { color: var(--shu); text-decoration: none; }
-.rechnen-link a:hover { text-decoration: underline; }
 
 @media (max-width: 720px) {
   .rechnen-felder { grid-template-columns: minmax(0, 1fr); gap: 4px; }
