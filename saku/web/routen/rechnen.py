@@ -189,7 +189,7 @@ def sprint_lauf():
 
 def _probe_oder_404(con, pp_id: int):
     zeile = con.execute("SELECT * FROM probepruefung WHERE id = ?", (pp_id,)).fetchone()
-    if zeile is None or any(art not in rechnen.ARTEN for art, *_ in json.loads(zeile["aufgaben"])):
+    if zeile is None or not (aufgaben := json.loads(zeile["aufgaben"])) or any(art not in rechnen.ARTEN for art, *_ in aufgaben):
         abort(404)  # eine Art, die es nicht mehr gibt, ergäbe eine andere Prüfung
     return zeile
 

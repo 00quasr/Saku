@@ -134,10 +134,11 @@ def test_zeit_um_und_routen_robust(client, con):
     assert "Nicht abgegeben" in client.get("/rechnen/probe").get_data(as_text=True)
     assert client.post("/rechnen/probe/neu").headers["Location"] != f"/rechnen/probe/{abgelaufen}"  # keine laufende mehr
 
-    kaputt = _probe(con, [["gibtsnicht", 1, 100]])
-    for url in ("/rechnen/probe/999", "/rechnen/probe/abc", "/rechnen/probe/-1", f"/rechnen/probe/{kaputt}"):
+    kaputt, leer = _probe(con, [["gibtsnicht", 1, 100]]), _probe(con, [])
+    for url in ("/rechnen/probe/999", "/rechnen/probe/abc", "/rechnen/probe/-1", f"/rechnen/probe/{kaputt}", f"/rechnen/probe/{leer}"):
         assert client.get(url).status_code == 404, url
-    for url in ("/rechnen/probe/999/speichern", "/rechnen/probe/999/abgeben", f"/rechnen/probe/{kaputt}/abgeben"):
+    for url in ("/rechnen/probe/999/speichern", "/rechnen/probe/999/abgeben", f"/rechnen/probe/{kaputt}/abgeben",
+                f"/rechnen/probe/{leer}/abgeben"):
         assert client.post(url).status_code == 404, url
     assert client.get("/rechnen/probe/" + "9" * 30).status_code == 400  # größer als SQLite speichert
     assert client.get("/rechnen/probe").status_code == 200
