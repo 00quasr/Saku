@@ -40,7 +40,7 @@
   {% if a.testfaelle and art.formeln %}
   <details class="kontext rechnen-formeln">
     <summary>Merkblatt: Pseudocode und Struktogramm</summary>
-    <div class="prosa formel-text">{{ art.formeln|markdown }}</div>
+    <div class="prosa formel-text">{{ art.formeln|markdown(formeln=True) }}</div>
   </details>
   {% endif %}
   {% else %}
@@ -83,13 +83,13 @@
     </div>
     {% endif %}
     <p class="etikett">Rechenweg</p>
-    <div class="prosa aufgabe-inhalt rechnen-weg">{{ a.rechenweg|markdown }}</div>
+    <div class="prosa aufgabe-inhalt rechnen-weg">{{ a.rechenweg|markdown(formeln=True) }}</div>
     {{ a.weg_struktogramm }}
     {% if in_pruefungen %}{% with p = in_pruefungen %}{% include "rechnen/_in_pruefungen.html" %}{% endwith %}{% endif %}
     {% if art.formeln %}
     <details class="kontext rechnen-formeln">
       <summary>Formeln: {{ art.titel }}</summary>
-      <div class="prosa formel-text">{{ art.formeln|markdown }}</div>
+      <div class="prosa formel-text">{{ art.formeln|markdown(formeln=True) }}</div>
       <p class="klein"><a href="{{ url_for('rechnen.formeln') }}#{{ art.slug }}">Ganze Formelsammlung</a></p>
     </details>
     {% endif %}

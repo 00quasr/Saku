@@ -426,6 +426,25 @@ def test_formelsammlung(client):
     assert "Formeln: RAID" in karte and 'href="/rechnen/formeln#raid"' in karte  # dieselbe Quelle wie die Sammlung
 
 
+# Getippte Ersatzformeln: 2^(…), Hoch- und Tiefzahlen, log₂, √, ⌊ ⌋, 3 · 4 und a : b gehören als LaTeX in $…$;
+# ER-Kardinalitäten (1 : n, n : m) bleiben Text
+ERSATZ = re.compile(r"\^|[⁰¹²³⁴⁵⁶⁷⁸⁹⁻ᵇ₀₁₂₃₄₅₆₇₈₉√⌊⌈]|\blog\b|\d · \d| : (?![1nm]\b)")
+FORMEL_ODER_CODE = re.compile(r"\$\$.+?\$\$|\$[^$\n]+\$|`[^`]*`", re.S)
+
+
+def test_formeln_als_latex(client):
+    for a in rechnen.ARTEN.values():
+        assert a.formeln.replace("$$", "").count("$") % 2 == 0, a.slug
+        rest = ERSATZ.search(FORMEL_ODER_CODE.sub("F", a.formeln))
+        assert not rest, (a.slug, rest and rest.string[max(0, rest.start() - 30):rest.end() + 10])
+        for seed in range(8):  # Rechenwege: Potenzen, Wurzeln und Logarithmen nur gesetzt
+            weg = rechnen.erzeugen(a.slug, seed).rechenweg
+            assert weg.replace("$$", "").count("$") % 2 == 0 and not re.search(r"[⁰¹²³⁴⁵⁶⁷⁸⁹ᵇ√^]|log₂", FORMEL_ODER_CODE.sub("F", weg)), (a.slug, seed)
+    html = client.get("/rechnen/formeln").get_data(as_text=True)
+    assert html.count('<span class="formel">') > 200 and r'<span class="formel">\text{Hosts je Netz} = 2^{32 - p} - 2</span>' in html
+    assert "<em>" not in html.split('id="subnetz"')[1].split("</article>")[0].replace("<em>Typische Fehler:</em>", "").replace("<em>Beispiel:</em>", "")
+
+
 # --- Algorithmen und Verfügbarkeit (Runde 3) -------------------------------------
 
 def _array(text: str) -> list[int]:

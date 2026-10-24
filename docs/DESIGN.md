@@ -172,6 +172,8 @@ Makro: `{{ m.kopf('heute', '今日', 'Heute', 'Titel') }}` in `templates/_makros
 | Bildausschnitt | Aufgabe aus dem PDF, passt sich dem Farbschema an |
 | Sensei-Sprechblase | 2 px Linie links in Indigo (`--ai`), Etikett 先生 |
 | Tastenhinweis | `<kbd>` in Klein, dezent umrandet |
+| Formel | LaTeX in `$…$` (abgesetzt `$$…$$`) in Merkblättern und Rechenwegen, im Browser mit KaTeX gesetzt; Wörter darin in Inter, Zahlen deutsch (`3{,}47`, Einheiten in `\text{}`) |
+| Sprungmarken | Abschnitte links, mitlaufend, der sichtbare markiert; schmal eine Reihe Chips oben (Einstellungen, Formelsammlung) |
 
 **Bildausschnitte im Farbschema:** PDF-Ausschnitte haben einen weißen Hintergrund. Im hellen Schema verschmilzt er per `mix-blend-mode: multiply` mit dem Papier. Im dunklen Schema wird invertiert, sodass die Aufgabe hell auf Tusche erscheint. Ein Klick zeigt bei Bedarf das Original.
 

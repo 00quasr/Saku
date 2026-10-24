@@ -388,7 +388,7 @@ FORMELN = """**Pseudocode, wie Saku ihn liest**
 - `FÜR i ← 1 BIS n` … `ENDE FÜR`: zählt einschließlich n; liegt `BIS` unter dem Start, läuft sie gar nicht
 - `AUSGABE a, b` gibt Werte aus; Kommentare mit `//`
 - Auch verstanden: Schlüsselwörter klein, `FUER`, `ENDEWENN`, `ENDE_WENN`, nur `ENDE`, `==`, `FÜR i VON 1 BIS n`, `TUE` am Ende von SOLANGE und FÜR, `DANN` in eigener Zeile, `AUSGABE(a, b)`, `;` am Zeilenende
-- Grenzen: 20.000 Schritte (sonst Endlosschleife?), Zahlen bis 10¹², 200 Wörter je Zeile (ein Array also bis etwa 100 Werte), 5.000 Zeichen
+- Grenzen: 20.000 Schritte (sonst Endlosschleife?), Zahlen bis $10^{12}$, 200 Wörter je Zeile (ein Array also bis etwa 100 Werte), 5.000 Zeichen
 
 **Struktogramm (Nassi-Shneiderman)**
 
@@ -569,8 +569,8 @@ def _primzahl(rng):
             "eingaben": {"n": "ganze Zahl ab 1"}, "ergebnis": "`AUSGABE WAHR` oder `AUSGABE FALSCH`", "ziel": "",
             "programm": [setze("prim", (">=", "n", 2)), setze("i", 2), schleife, ("ausgabe", ["prim"])],
             "faelle": [{"n": n}, {"n": 1}, {"n": 2}, {"n": rng.choice([49, 121, 169])}, {"n": rng.choice([97, 101, 113, 127])}],
-            "erklaerung": "1 ist keine Primzahl, 2 schon. Probiert werden die Teiler ab 2; es reicht bis √n (i · i ≤ n), bis n − 1 "
-                          "geht auch. Bei i · i < n fiele 49 = 7 · 7 durch. Sobald ein Teiler gefunden ist, endet die Schleife."}
+            "erklaerung": r"1 ist keine Primzahl, 2 schon. Probiert werden die Teiler ab 2; es reicht bis $\sqrt{n}$ ($i \cdot i \leq n$), "
+                          r"bis $n - 1$ geht auch. Bei $i \cdot i < n$ fiele $49 = 7 \cdot 7$ durch. Sobald ein Teiler gefunden ist, endet die Schleife."}
 
 
 def _quersumme(rng):

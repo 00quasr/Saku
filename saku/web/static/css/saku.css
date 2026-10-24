@@ -269,6 +269,29 @@ a:not(.btn) { color: inherit; text-underline-offset: 3px; }
 .rechnen-link { color: var(--sumi-mittel); }
 .rechnen-link a { color: var(--shu); text-decoration: none; }
 .rechnen-link a:hover { text-decoration: underline; }
+/* Sprungmarken (Einstellungen, Formelsammlung): links mitlaufend, markiert den Abschnitt oben im Fenster (saku.sprungmarken);
+   schmal eine Reihe Chips, die oben klebt */
+.mit-sprungmarken { display: grid; grid-template-columns: 11rem minmax(0, 1fr); gap: 48px; align-items: start; }
+.mit-sprungmarken [id] { scroll-margin-top: calc(var(--leiste) + 24px); }
+.sprungmarken { position: sticky; top: calc(var(--leiste) + 24px); display: grid; gap: 2px; }
+.sprungmarken a {
+  padding: 5px 10px; border-radius: 6px; font-size: 0.875rem; color: var(--sumi-mittel); text-decoration: none;
+  transition: color var(--kurz) ease-out, background var(--kurz) ease-out;
+}
+.sprungmarken a:hover { color: var(--sumi); background: var(--flaeche); }
+.sprungmarken a[aria-current] { color: var(--sumi); background: var(--flaeche); font-weight: 500; box-shadow: inset 2px 0 0 var(--shu); }
+.sprungmarken-suche { margin-bottom: 10px; }
+@media (max-width: 900px) {
+  .mit-sprungmarken { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  .mit-sprungmarken [id] { scroll-margin-top: calc(var(--leiste) + 72px); }
+  .sprungmarken {
+    top: var(--leiste); z-index: 20; display: flex; align-items: center; gap: 6px; overflow-x: auto; scrollbar-width: none;
+    margin: 0 calc(-1 * var(--rand)); padding: 10px var(--rand); background: var(--washi); border-bottom: 1px solid var(--linie);
+  }
+  .sprungmarken a { flex: none; padding: 4px 12px; border: 1px solid var(--linie); border-radius: 999px; white-space: nowrap; }
+  .sprungmarken a[aria-current] { box-shadow: none; border-color: var(--sumi-mittel); }
+  .sprungmarken-suche { flex: none; width: 10rem; margin: 0; }
+}
 /* Makro m.verlauf. Die letzten zehn Versuche: gefüllt richtig, hohl falsch (nicht nur Farbe) */
 .verlauf { display: inline-flex; gap: 3px; }
 .verlauf-punkt { width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid var(--beni); }

@@ -136,21 +136,29 @@
 .rechnen-formeln { margin-top: 4px; }
 .rechnen-start .btn .icon { width: 16px; height: 16px; }
 
-/* Formelsammlung: am Bildschirm Karten je Art, gedruckt zweispaltig auf weißem Papier */
+/* Formeln (LaTeX, von saku.js mit KaTeX gesetzt): kleiner als KaTeX' 1,21 em, Wörter darin in Inter so groß wie der Text daneben */
+.formel .katex { font-size: 1.1em; }
+.formel--block { display: block; overflow-x: auto; overflow-y: hidden; }
+.formel .katex .text, .formel-zeichen { font-family: var(--schrift); font-size: 0.91em; }
+
+/* Formelsammlung: am Bildschirm Karten je Art in Spalten ohne Lücken, gedruckt zweispaltig auf weißem Papier */
 .nur-drucken { display: none; }
+.formelsammlung .mit-sprungmarken { margin-top: 24px; }
 .formel-gruppe { margin-top: 36px; }
+.formel-gruppe:first-child { margin-top: 0; }
 .formel-gruppe > .etikett { margin-bottom: 12px; }
-.formel-arten { display: grid; grid-template-columns: repeat(auto-fill, minmax(26rem, 1fr)); gap: 16px; align-items: start; }
-.formel-art { padding: 16px 20px; background: var(--washi-hell); border: 1px solid var(--linie); border-radius: 10px; scroll-margin-top: 16px; }
+.formel-arten { columns: 24rem; column-gap: 16px; }
+.formel-art { break-inside: avoid; margin-bottom: 16px; padding: 16px 20px; background: var(--washi-hell); border: 1px solid var(--linie); border-radius: 10px; }
 .formel-art:target { border-color: var(--shu); }
-.formel-art:has(table) { grid-column: 1 / -1; }  /* breite Tabellen (Ports, OSI) passen nicht in eine halbe Spalte */
+.formel-art:has(th:nth-child(5)) { column-span: all; }  /* breite Tabellen (Ports, OSI) über alle Spalten */
 .formel-titel { font-family: var(--schrift-titel); font-weight: 600; font-size: 1.125rem; margin-bottom: 8px; }
 .formel-titel a { text-decoration: none; }
 .formel-titel a:hover { text-decoration: underline; text-decoration-color: var(--linie); }
 .formel-text { font-size: 0.9375rem; max-width: none; }
 .formel-text ul { padding-left: 1.1em; }
 .formel-text li + li { margin-top: 2px; }
-.formel-text table { font-size: 0.875rem; }
+.formel-text code { overflow-wrap: anywhere; }  /* ausgeschriebene IPv6-Adressen */
+.formel-text table { display: block; max-width: 100%; overflow-x: auto; font-size: 0.875rem; }  /* schmal scrollt die Tabelle */
 
 @media print {
   html:has(.formelsammlung) {
@@ -160,13 +168,19 @@
   html:has(.formelsammlung) :is(.seitenleiste, .kopf, .nicht-drucken, .toast, .sprung) { display: none !important; }
   html:has(.formelsammlung) .app { display: block; }
   .formelsammlung { padding: 0; max-width: none; columns: 2; column-gap: 18px; }
+  .formelsammlung .mit-sprungmarken { display: block; }
   .formelsammlung .nur-drucken { display: block; column-span: all; font-size: 14pt; line-height: 1.3; margin-bottom: 6px; }
   .formel-gruppe { margin-top: 10px; }
   .formel-gruppe > .etikett { margin-bottom: 4px; break-after: avoid; }
-  .formel-arten { display: block; }
-  .formel-art { break-inside: avoid; padding: 6px 8px; margin-bottom: 8px; border-radius: 4px; }
-  .formel-titel { font-size: 11pt; margin-bottom: 2px; }
+  .formel-arten { columns: auto; }
+  /* Karten dürfen zwischen Spalten umbrechen, sonst lässt Chrome halbe Spalten leer; Titel, Punkte und Zeilen bleiben ganz */
+  .formel-art { break-inside: auto; padding: 6px 8px; margin-bottom: 8px; border-radius: 4px; }
+  .formel-art:has(th:nth-child(5)) { column-span: none; }
+  .formel-titel { font-size: 11pt; margin-bottom: 2px; break-after: avoid; }
   .formel-text { font-size: 9pt; line-height: 1.35; }
+  .formel-text :is(li, p, tr) { break-inside: avoid; }
+  .formel-text table { display: table; width: 100%; font-size: 8pt; hyphens: auto; }  /* Silbentrennung hält breite Tabellen in der Spalte */
+  .formel-text :is(th, td) { padding: 2px 4px; }
 }
 
 /* Rechen-Sprint: Restzeit klebt oben, Aufgaben untereinander, am Ende Punkte und Note */

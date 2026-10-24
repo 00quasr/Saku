@@ -2,44 +2,44 @@
 
 import math
 
-from saku.lernen.rechnen.basis import FIRMEN, Aufgabe, Feld, art, de, euro, schritte
+from saku.lernen.rechnen.basis import FIRMEN, Aufgabe, Feld, art, de, euro, schritte, tex
 
 # Formeln und Merksätze je Art: Formelsammlung und Karte zeigen sie nach dem Rechenweg
 FORMELN = {
-    "energie": """- Leistung P = U · I (W = V · A), Strom I = P : U
-- Arbeit W = P · t; kWh = Watt · Stunden : 1.000
-- Kosten = kWh · Preis je kWh; Jahr: Leistung · Stunden je Tag · Tage
-- Amortisationszeit = Anschaffung (oder Mehrpreis) : Einsparung pro Jahr
-- USV: Wirkleistung P = Scheinleistung S (VA) · Leistungsfaktor cos φ
-- Überbrückungszeit = Akkuenergie (V · Ah = Wh) · Wirkungsgrad : Last in W (· 60 für Minuten)
+    "energie": r"""- Leistung $P = U \cdot I$ ($\text{W} = \text{V} \cdot \text{A}$), Strom $I = \dfrac{P}{U}$
+- Arbeit $W = P \cdot t$; $\text{kWh} = \dfrac{\text{Watt} \cdot \text{Stunden}}{1.000}$
+- $\text{Kosten} = \text{kWh} \cdot \text{Preis je kWh}$; Jahr: $\text{Leistung} \cdot \text{Stunden je Tag} \cdot \text{Tage}$
+- $\text{Amortisationszeit} = \dfrac{\text{Anschaffung (oder Mehrpreis)}}{\text{Einsparung pro Jahr}}$
+- USV: Wirkleistung $P = S \cdot \cos\varphi$ (Scheinleistung $S$ in VA, Leistungsfaktor $\cos\varphi$)
+- $\text{Überbrückungszeit} = \dfrac{\text{Akkuenergie} \cdot \text{Wirkungsgrad}}{\text{Last}}$ in Stunden ($\cdot\, 60$ für Minuten), Akkuenergie in Wh $= \text{V} \cdot \text{Ah}$, Last in W
 - *Typische Fehler:* Wh nicht in kWh umgerechnet, 365 Tage statt der Arbeitstage, VA als Watt genommen, durch den Wirkungsgrad geteilt statt mit ihm multipliziert, Einsparung durch Anschaffung geteilt
 
-*Beispiel:* 10 PCs à 80 W, 8 h an 220 Tagen: 10 · 80 · 8 · 220 = 1.408 kWh; bei 0,32 €/kWh 450,56 €""",
-    "raid": """| RAID | Nutzkapazität (n Platten, je c) | verkraftbare Ausfälle |
+*Beispiel:* 10 PCs à 80 W, 8 h an 220 Tagen: $\dfrac{10 \cdot 80 \cdot 8 \cdot 220}{1.000} = 1.408\,\text{kWh}$; bei 0,32 €/kWh 450,56 €""",
+    "raid": r"""| RAID | Nutzkapazität ($n$ Platten, je $c$) | verkraftbare Ausfälle |
 | --- | --- | --- |
-| 0 | n · c | 0 |
-| 1 | c | n − 1 |
-| 5 | (n − 1) · c | 1 |
-| 6 | (n − 2) · c | 2 |
-| 10 | n : 2 · c | 1 sicher (bis n : 2, wenn nie beide eines Paares) |
+| 0 | $n \cdot c$ | 0 |
+| 1 | $c$ | $n - 1$ |
+| 5 | $(n - 1) \cdot c$ | 1 |
+| 6 | $(n - 2) \cdot c$ | 2 |
+| 10 | $\frac{n}{2} \cdot c$ | 1 sicher (bis $\frac{n}{2}$, wenn nie beide eines Paares) |
 
 - Verschieden große Platten: jede zählt nur so viel wie die kleinste
-- Effizienz = Nutzkapazität : Gesamtkapazität
+- $\text{Effizienz} = \dfrac{\text{Nutzkapazität}}{\text{Gesamtkapazität}}$
 - *Typische Fehler:* Parität oder Spiegel als Nutzkapazität gezählt, RAID 5 und 6 verwechselt, bei RAID 10 den günstigsten statt den ungünstigsten Fall angegeben, verschieden große Platten voll gezählt
 
-*Beispiel:* RAID 5 aus 4 × 8 TB: 3 · 8 = 24 TB nutzbar, Effizienz 75 %, 1 Ausfall""",
-    "verfuegbarkeit": """- Verfügbarkeit V = Betriebszeit : Gesamtzeit; Ausfallzeit = (1 − V) · Gesamtzeit
-- Hier: Jahr = 365 Tage = 8.760 h, Monat = 30 Tage = 720 h = 43.200 min
-- Seriell (alle Komponenten nötig): V = V₁ · V₂ · …
-- Parallel (redundant, eine reicht): V = 1 − (1 − V₁) · (1 − V₂) · …
-- Aus MTBF (mittlere Zeit zwischen Ausfällen) und MTTR (mittlere Reparaturzeit): V = MTBF : (MTBF + MTTR)
-- *Typische Fehler:* Betriebszeit statt Ausfallzeit angegeben, mit Prozent statt Dezimalzahl gerechnet (0,1 % = 0,001), Stunden statt Minuten, redundante Server in Reihe gerechnet
+*Beispiel:* RAID 5 aus 4 × 8 TB: $3 \cdot 8\,\text{TB} = 24\,\text{TB}$ nutzbar, Effizienz 75 %, 1 Ausfall""",
+    "verfuegbarkeit": r"""- Verfügbarkeit $V = \dfrac{\text{Betriebszeit}}{\text{Gesamtzeit}}$; $\text{Ausfallzeit} = (1 - V) \cdot \text{Gesamtzeit}$
+- Hier: $1\,\text{Jahr} = 365\,\text{Tage} = 8.760\,\text{h}$, $1\,\text{Monat} = 30\,\text{Tage} = 720\,\text{h} = 43.200\,\text{min}$
+- Seriell (alle Komponenten nötig): $V = V_1 \cdot V_2 \cdot \ldots$
+- Parallel (redundant, eine reicht): $V = 1 - (1 - V_1) \cdot (1 - V_2) \cdot \ldots$
+- Aus MTBF (mittlere Zeit zwischen Ausfällen) und MTTR (mittlere Reparaturzeit): $V = \dfrac{\text{MTBF}}{\text{MTBF} + \text{MTTR}}$
+- *Typische Fehler:* Betriebszeit statt Ausfallzeit angegeben, mit Prozent statt Dezimalzahl gerechnet ($0{,}1\,\% = 0{,}001$), Stunden statt Minuten, redundante Server in Reihe gerechnet
 
-*Beispiel:* 99,9 % im Jahr: 0,001 · 8.760 h = 8,76 h Ausfall; zwei Server mit je 99 % redundant: 1 − 0,01 · 0,01 = 99,99 %""",
-    "backup": """- Vollsicherung: alle Daten; inkrementell: was sich seit der **letzten Sicherung** geändert hat; differenziell: was sich seit der **letzten Vollsicherung** geändert hat
-- Ändern sich täglich andere Dateien mit d GB: inkrementell jeden Tag d, differenziell am k-ten Tag nach der Vollsicherung k · d
+*Beispiel:* 99,9 % im Jahr: $0{,}001 \cdot 8.760\,\text{h} = 8{,}76\,\text{h}$ Ausfall; zwei Server mit je 99 % redundant: $1 - 0{,}01 \cdot 0{,}01 = 99{,}99\,\%$""",
+    "backup": r"""- Vollsicherung: alle Daten; inkrementell: was sich seit der **letzten Sicherung** geändert hat; differenziell: was sich seit der **letzten Vollsicherung** geändert hat
+- Ändern sich täglich andere Dateien mit $d$ GB: inkrementell jeden Tag $d$, differenziell am $k$-ten Tag nach der Vollsicherung $k \cdot d$
 - Wiederherstellen: inkrementell braucht die Vollsicherung und **alle** inkrementellen danach, differenziell die Vollsicherung und nur die **letzte** differenzielle
-- Großvater-Vater-Sohn: Medien = Söhne (Tagessicherungen, die eine Woche lang überschrieben werden) + Väter (Wochensicherungen) + Großväter (Monatssicherungen), jeweils so viele, wie aufbewahrt werden
+- Großvater-Vater-Sohn: $\text{Medien} = \text{Söhne} + \text{Väter} + \text{Großväter}$, jeweils so viele, wie aufbewahrt werden; Söhne sind die Tagessicherungen (eine Woche lang überschrieben), Väter die Wochen-, Großväter die Monatssicherungen
 - *Typische Fehler:* inkrementell und differenziell verwechselt, die Vollsicherung beim Zählen oder Einspielen vergessen
 
 *Beispiel:* 500 GB, täglich 20 GB neu, Vollsicherung Montag: Donnerstag inkrementell 20 GB, differenziell 60 GB""",
@@ -360,8 +360,7 @@ def _system(rng):
              f"- Router: {_prozent(router, 2)}\n- Firewall: {_prozent(firewall, 2)}\n- je Server: {_prozent(server, 2)}\n"
              f"- Storage: {_prozent(storage, 2)}\n\nBerechnen Sie die Verfügbarkeit des Server-Verbunds und des gesamten Dienstes "
              "(in Prozent, drei Nachkommastellen).")
-    weg = schritte(f"Server-Verbund parallel: 1 − (1 − {de(server, 4)}){'²' if anzahl == 2 else '³'} = 1 − {de(1 - server, 4)}"
-                   f"{'²' if anzahl == 2 else '³'} = **{_prozent(cluster)}**",
+    weg = schritte(f"Server-Verbund parallel: $1 - (1 - {tex(server, 4)})^{anzahl} = 1 - {tex(1 - server, 4)}^{anzahl}$ = **{_prozent(cluster)}**",
                    f"Gesamt in Reihe: {de(router, 4)} · {de(firewall, 4)} · {de(cluster, 6)} · {de(storage, 4)} = **{_prozent(gesamt)}**",
                    "In Reihe sinkt die Verfügbarkeit mit jedem Glied, Redundanz hebt sie an.")
     reihe = "Du hast die Server in Reihe gerechnet; redundant gilt 1 − (1 − V)ⁿ."

@@ -2,33 +2,34 @@
 
 import math
 
-from saku.lernen.rechnen.basis import ANDERS, BIT_BYTE, BYTE, FAKTOR, FIRMEN, Aufgabe, Feld, art, de, hoch, praefix_fehler, schritte, tabelle
+from saku.lernen.rechnen.basis import (ANDERS, BIT_BYTE, BYTE, FAKTOR, FAKTOR_TEX, FIRMEN, Aufgabe, Feld, art, de, hoch, praefix_fehler,
+                                       schritte, tabelle, tex)
 
 # Formeln und Merksätze je Art: Formelsammlung und Karte zeigen sie nach dem Rechenweg
 FORMELN = {
-    "datenmenge": """- Bild: Breite · Höhe · Farbtiefe (Bit) : 8 = Byte
-- Farbtiefe aus Farbanzahl: 2ᵇ Farben → b Bit (256 → 8, 65.536 → 16, 16,7 Mio. → 24)
-- Scan: Breite in Zoll · dpi und Höhe in Zoll · dpi ergeben die Pixel
-- Audio: Abtastrate · Bit je Abtastwert · Kanäle · Sekunden : 8 = Byte
-- Video: Bild in Byte · Bilder je Sekunde · Sekunden
-- Anzahl Dateien auf einem Datenträger: Kapazität : Dateigröße, abrunden
+    "datenmenge": r"""- Bild: $\text{Byte} = \dfrac{\text{Breite} \cdot \text{Höhe} \cdot \text{Farbtiefe in Bit}}{8}$
+- Farbtiefe aus Farbanzahl: $2^b$ Farben → $b$ Bit (256 → 8, 65.536 → 16, 16,7 Mio. → 24)
+- Scan: $\text{Breite in Zoll} \cdot \text{dpi}$ und $\text{Höhe in Zoll} \cdot \text{dpi}$ ergeben die Pixel
+- Audio: $\text{Bit} = \text{Abtastrate} \cdot \text{Bit je Abtastwert} \cdot \text{Kanäle} \cdot \text{Sekunden}$, $\text{Byte} = \dfrac{\text{Bit}}{8}$
+- Video: $\text{Byte} = \text{Bild in Byte} \cdot \text{Bilder je Sekunde} \cdot \text{Sekunden}$
+- Anzahl Dateien auf einem Datenträger: $\dfrac{\text{Kapazität}}{\text{Dateigröße}}$, abrunden
 - *Typische Fehler:* Bit nicht durch 8 geteilt, die Farbanzahl statt der Farbtiefe eingesetzt, dpi nur einmal genommen, Stereo als ein Kanal gerechnet, 1.000 und 1.024 verwechselt
 
-*Beispiel:* 1.920 × 1.080 Pixel, 24 Bit: 1.920 · 1.080 · 24 : 8 = 6.220.800 Byte ≈ 5,93 MiB""",
-    "speicher": """- Dezimalpräfixe (Hersteller): 1 kB = 10³, 1 MB = 10⁶, 1 GB = 10⁹, 1 TB = 10¹² Byte
-- Binärpräfixe (Betriebssystem): 1 KiB = 1.024, 1 MiB = 1.024², 1 GiB = 1.024³, 1 TiB = 1.024⁴ Byte
-- Umrechnen immer über Byte: Wert · Faktor der alten Einheit : Faktor der neuen Einheit
-- Scheinbarer Verlust GB → GiB: 1 − 10⁹ : 1.024³ ≈ 6,87 %, TB → TiB ≈ 9,05 %
-- *Typische Fehler:* nur einmal durch 1,024 geteilt (TB → TiB braucht 10¹² : 1.024⁴), in die falsche Richtung umgerechnet, den angezeigten statt des scheinbar fehlenden Anteils angegeben
+*Beispiel:* 1.920 × 1.080 Pixel, 24 Bit: $\dfrac{1.920 \cdot 1.080 \cdot 24}{8} = 6.220.800\,\text{Byte} \approx 5{,}93\,\text{MiB}$""",
+    "speicher": r"""- Dezimalpräfixe (Hersteller): $1\,\text{kB} = 10^3$, $1\,\text{MB} = 10^6$, $1\,\text{GB} = 10^9$, $1\,\text{TB} = 10^{12}\,\text{Byte}$
+- Binärpräfixe (Betriebssystem): $1\,\text{KiB} = 1.024$, $1\,\text{MiB} = 1.024^2$, $1\,\text{GiB} = 1.024^3$, $1\,\text{TiB} = 1.024^4\,\text{Byte}$
+- Umrechnen immer über Byte: $\text{neuer Wert} = \dfrac{\text{Wert} \cdot \text{Faktor der alten Einheit}}{\text{Faktor der neuen Einheit}}$
+- Scheinbarer Verlust GB → GiB: $1 - \dfrac{10^9}{1.024^3} \approx 6{,}87\,\%$, TB → TiB $\approx 9{,}05\,\%$
+- *Typische Fehler:* nur einmal durch 1,024 geteilt (TB → TiB braucht $10^{12} : 1.024^4$), in die falsche Richtung umgerechnet, den angezeigten statt des scheinbar fehlenden Anteils angegeben
 
-*Beispiel:* 2 TB = 2 · 10¹² Byte : 1.024⁴ ≈ 1,82 TiB""",
-    "zahlensystem": """- Stellenwerte binär: 128, 64, 32, 16, 8, 4, 2, 1; hexadezimal: 16³ = 4.096, 16² = 256, 16, 1
+*Beispiel:* $2\,\text{TB} = 2 \cdot 10^{12}\,\text{Byte} = \dfrac{2 \cdot 10^{12}}{1.024^4}\,\text{TiB} \approx 1{,}82\,\text{TiB}$""",
+    "zahlensystem": r"""- Stellenwerte binär: 128, 64, 32, 16, 8, 4, 2, 1; hexadezimal: $16^3 = 4.096$, $16^2 = 256$, 16, 1
 - Dezimal → binär: Stellenwerte von links füllen, solange der Rest reicht (oder fortlaufend durch 2 teilen, Reste von unten lesen)
 - Binär ↔ hexadezimal: je 4 Bit sind eine Hex-Ziffer (A = 10 … F = 15)
 - Zweierkomplement (8 Bit): Betrag binär, alle Bits invertieren, + 1; höchstes Bit 1 heißt negativ; Bereich −128 bis 127
 - *Typische Fehler:* Reste von oben nach unten gelesen, Hex-Ziffern ab 10 als Zahl geschrieben (13 statt D), eine Hex-Ziffer nicht auf 4 Bit aufgefüllt, beim Zweierkomplement die + 1 vergessen
 
-*Beispiel:* 45 = 32 + 8 + 4 + 1 = `0010 1101` = 2D; −45 = `1101 0010` + 1 = `1101 0011`""",
+*Beispiel:* $45 = 32 + 8 + 4 + 1$ = `0010 1101` = 2D; −45 = `1101 0010` + 1 = `1101 0011`""",
 }
 
 
@@ -44,7 +45,7 @@ def _ziel(rng, byte: float) -> str:
 
 
 def _byte_weg(byte: float, einheit: str) -> str:
-    return f"In {einheit}: {de(byte, 0)} Byte : {FAKTOR[einheit]} = **{de(byte / BYTE[einheit])} {einheit}**"
+    return rf"In {einheit}: ${tex(byte, 0)}\,\text{{Byte}} : {FAKTOR_TEX[einheit]}$ = **{de(byte / BYTE[einheit])} {einheit}**"
 
 
 def _in_einheit(byte: float, einheit: str, falsch: list) -> Feld:
@@ -76,7 +77,7 @@ def _bild(rng):
     frage = (f"Die Marketingabteilung der {rng.choice(FIRMEN)} speichert eine Grafik mit **{de(breite)} × {de(hoehe)} Pixeln** "
              f"{tiefe} unkomprimiert.\n\nBerechnen Sie die Datenmenge in Byte und in {einheit} (zwei Nachkommastellen). "
              f"{_praefix_hinweis(einheit)}")
-    weg = [f"Farbtiefe: {de(2 ** bit)} Farben = 2{hoch(bit)} → {bit} Bit je Pixel"] if farben else []
+    weg = [f"Farbtiefe: {de(2 ** bit)} Farben = $2{hoch(bit)}$ → {bit} Bit je Pixel"] if farben else []
     weg += [f"Pixel: {de(breite)} · {de(hoehe)} = {de(breite * hoehe)}",
             f"Bit: {de(breite * hoehe)} · {bit} Bit = {de(breite * hoehe * bit)} Bit",
             f"Byte: : 8 = **{de(byte, 0)} Byte**", _byte_weg(byte, einheit)]
@@ -207,8 +208,8 @@ def _anzeige(rng):
              f"und zeigt die Kapazität in {ziel} an.\n\nWelche Kapazität zeigt das Betriebssystem an, und wie viel Prozent scheinen "
              "gegenüber der Herstellerangabe zu „fehlen“? (zwei Nachkommastellen)")
     weg = schritte(
-        f"Hersteller rechnet dezimal: {de(wert)} {einheit} = {de(wert)} · {FAKTOR[einheit]} Byte = {de(wert * BYTE[einheit])} Byte",
-        f"Betriebssystem rechnet binär: : {FAKTOR[ziel]} = : {de(BYTE[ziel])} → **{de(angezeigt)} {ziel}**",
+        rf"Hersteller rechnet dezimal: {de(wert)} {einheit} = ${tex(wert)} \cdot {FAKTOR_TEX[einheit]}$ Byte = {de(wert * BYTE[einheit])} Byte",
+        f"Betriebssystem rechnet binär: geteilt durch ${FAKTOR_TEX[ziel]} = {tex(BYTE[ziel])}$ → **{de(angezeigt)} {ziel}**",
         f"Anteil: {de(angezeigt, 4)} : {de(wert)} = {de(angezeigt / wert * 100)} % → es „fehlen“ **{de(verlust)} %**. "
         "Es fehlt nichts, nur die Einheit ist eine andere.",
     )
@@ -245,7 +246,7 @@ def _umrechnen(rng):
             (byte / BYTE[ANDERS[nach]], f"Du hast {von} und {nach} mit demselben Faktor gerechnet; Dezimalpräfixe rechnen mit 1.000, "
                                         "Binärpräfixe mit 1.024."),
             (wert * BYTE[nach] / BYTE[von], "Du hast in die falsche Richtung umgerechnet; erst in Byte, dann durch die neue Einheit."))))
-        weg.append(f"{de(wert)} {von} = {de(wert)} · {FAKTOR[von]} Byte = {de(byte, 0)} Byte; : {FAKTOR[nach]} "
+        weg.append(rf"{de(wert)} {von} = ${tex(wert)} \cdot {FAKTOR_TEX[von]}$ Byte = {de(byte, 0)} Byte; geteilt durch ${FAKTOR_TEX[nach]}$ "
                    f"= **{de(byte / BYTE[nach])} {nach}**")
     return Aufgabe(frage, felder, schritte(*weg), toleranz=0.005, titel="Einheiten umrechnen")
 
@@ -259,7 +260,7 @@ def _dateien_auf_stick(rng):
              f"USB-Stick mit **{stick} GB** weitergeben.\n\nRechnen Sie die Kapazität des Sticks in {einheit} um (zwei "
              "Nachkommastellen) und ermitteln Sie, wie viele Dokumente höchstens darauf passen.")
     weg = schritte(
-        f"Kapazität: {stick} GB = {stick} · 10⁹ Byte; : {FAKTOR[einheit]} = **{de(kapazitaet)} {einheit}**",
+        rf"Kapazität: {stick} GB = ${stick} \cdot 10^9$ Byte; geteilt durch ${FAKTOR_TEX[einheit]}$ = **{de(kapazitaet)} {einheit}**",
         f"Anzahl: {de(kapazitaet)} : {de(groesse)} = {de(kapazitaet / groesse)} → abrunden: **{de(anzahl)} Dokumente**",
     )
     falsch = [(stick * 2 ** 30 / BYTE[einheit], "Du hast den Stick binär gerechnet; GB ist ein Dezimalpräfix (10⁹ Byte)."),
@@ -343,8 +344,8 @@ def _hex_dez(rng):
     frage = (f"In einem Speicherabbild findet die IT der {rng.choice(FIRMEN)} den 16-Bit-Wert **{ziffern}h**.\n\n"
              "Geben Sie den Wert dezimal und als 16-Bit-Binärzahl an.")
     weg = schritte(
-        "Dezimal: " + " + ".join(f"{int(z, 16)} · 16{hoch(3 - i)}" for i, z in enumerate(ziffern))
-        + " = " + " + ".join(de(t) for t in teile) + f" = **{de(n)}**",
+        "Dezimal: $" + " + ".join(rf"{int(z, 16)} \cdot 16{hoch(3 - i)}" for i, z in enumerate(ziffern))
+        + " = " + " + ".join(tex(t) for t in teile) + f"$ = **{de(n)}**",
         "Binär: jede Hex-Ziffer wird zu 4 Bit: " + ", ".join(f"{z} = `{int(z, 16):04b}`" for z in ziffern)
         + f" → **{_gruppiert(bits)}**",
     )

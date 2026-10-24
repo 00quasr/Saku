@@ -2,25 +2,25 @@
 
 import math
 
-from saku.lernen.rechnen.basis import BIT_BYTE, FIRMEN, Aufgabe, Feld, art, de, schritte
+from saku.lernen.rechnen.basis import BIT_BYTE, FIRMEN, Aufgabe, Feld, art, de, schritte, tex
 
 FORMELN = {
-    "monitor": """- Pixel auf der Diagonale: √(Breite² + Höhe²) nach Pythagoras
-- Pixeldichte PPI = Pixel auf der Diagonale : Diagonale in Zoll
-- Seitenverhältnis: Breite und Höhe durch ihren größten gemeinsamen Teiler (1920 × 1080 → 16 : 9)
-- Bildschirmbreite = Diagonale · a : √(a² + b²), Höhe = Diagonale · b : √(a² + b²) bei a : b; 1 Zoll = 2,54 cm
-- Druck: Pixel = Länge in Zoll · dpi = Länge in cm : 2,54 · dpi
+    "monitor": r"""- Pixel auf der Diagonale: $\sqrt{\text{Breite}^2 + \text{Höhe}^2}$ nach Pythagoras
+- Pixeldichte $\text{PPI} = \dfrac{\text{Pixel auf der Diagonale}}{\text{Diagonale in Zoll}}$
+- Seitenverhältnis: Breite und Höhe durch ihren größten gemeinsamen Teiler (1920 × 1080 → $16 : 9$)
+- $\text{Bildschirmbreite} = \dfrac{\text{Diagonale} \cdot a}{\sqrt{a^2 + b^2}}$, $\text{Höhe} = \dfrac{\text{Diagonale} \cdot b}{\sqrt{a^2 + b^2}}$ bei $a : b$; $1\,\text{Zoll} = 2{,}54\,\text{cm}$
+- Druck: $\text{Pixel} = \text{Länge in Zoll} \cdot \text{dpi} = \dfrac{\text{Länge in cm}}{2{,}54} \cdot \text{dpi}$
 - *Typische Fehler:* Breite + Höhe statt Pythagoras, Zoll und cm nicht oder falsch herum umgerechnet, die gerundete Handelsbezeichnung (16:9) statt des exakten Verhältnisses
 
-*Beispiel:* 1920 × 1080 auf 24 Zoll: √(1920² + 1080²) ≈ 2.202,9 Pixel : 24 ≈ 91,8 PPI""",
-    "bandbreite": """- Arbeitsspeicher: Bandbreite = effektive Transferrate (MT/s) · Busbreite (64 Bit) : 8, je Kanal; mehrere Kanäle multiplizieren
-- DDR (Double Data Rate): zwei Transfers je Takt, also effektiv = 2 · realer Takt (DDR4-3200 läuft mit 1.600 MHz)
-- PCIe je Lane und Richtung: Transferrate (GT/s) · Leitungscode : 8; bis 2.0 8b/10b, ab 3.0 128b/130b
-  (1.0: 0,25 · 2.0: 0,5 · 3.0: 0,985 · 4.0: 1,969 · 5.0: 3,938 GB/s); x4 = vier Lanes
-- SATA III: 6 Gbit/s · 8/10 : 8 = 600 MB/s; Übertragungszeit = Datenmenge : Datenrate
+*Beispiel:* 1920 × 1080 auf 24 Zoll: $\dfrac{\sqrt{1920^2 + 1080^2}}{24} \approx \dfrac{2.202{,}9}{24} \approx 91{,}8\,\text{PPI}$""",
+    "bandbreite": r"""- Arbeitsspeicher: $\text{Bandbreite} = \dfrac{\text{Transferrate} \cdot \text{Busbreite}}{8}$ je Kanal, mit der effektiven Transferrate in MT/s und 64 Bit Busbreite; mehrere Kanäle multiplizieren
+- DDR (Double Data Rate): zwei Transfers je Takt, also $\text{effektiv} = 2 \cdot \text{realer Takt}$ (DDR4-3200 läuft mit 1.600 MHz)
+- PCIe je Lane und Richtung: $\dfrac{\text{Transferrate} \cdot \text{Leitungscode}}{8}$, Transferrate in GT/s; bis 2.0 8b/10b, ab 3.0 128b/130b
+  (1.0: 0,25; 2.0: 0,5; 3.0: 0,985; 4.0: 1,969; 5.0: 3,938 GB/s); x4 = vier Lanes
+- SATA III: $\dfrac{6\,\text{Gbit/s} \cdot \frac{8}{10}}{8} = 600\,\text{MB/s}$; $\text{Übertragungszeit} = \dfrac{\text{Datenmenge}}{\text{Datenrate}}$
 - *Typische Fehler:* den realen DDR-Takt nicht verdoppelt (oder DDR4-3200 noch einmal), Bit nicht durch 8 geteilt, Kanäle oder Lanes vergessen, die Leitungscodierung vergessen
 
-*Beispiel:* DDR4-3200 im Dual-Channel: 3.200 MT/s · 64 Bit : 8 = 25.600 MB/s je Kanal, zusammen 51,2 GB/s""",
+*Beispiel:* DDR4-3200 im Dual-Channel: $\dfrac{3.200\,\text{MT/s} \cdot 64\,\text{Bit}}{8} = 25.600\,\text{MB/s}$ je Kanal, zusammen 51,2 GB/s""",
 }
 
 
@@ -39,7 +39,7 @@ def _ppi(rng):
     diagonale = math.hypot(b, h)
     frage = (f"Die {rng.choice(FIRMEN)} vergleicht Monitore. Einer hat **{de(b)} × {de(h)} Pixel** auf **{de(d)} Zoll** Diagonale.\n\n"
              "Wie viele Pixel liegen auf der Diagonale, und wie hoch ist die Pixeldichte in PPI? (eine Nachkommastelle)")
-    weg = schritte(f"Pixel auf der Diagonale: √({de(b)}² + {de(h)}²) = √{de(b * b + h * h)} = **{de(diagonale, 1)}**",
+    weg = schritte(rf"Pixel auf der Diagonale: $\sqrt{{{tex(b)}^2 + {tex(h)}^2}} = \sqrt{{{tex(b * b + h * h)}}}$ = **{de(diagonale, 1)}**",
                    f"PPI = {de(diagonale, 1)} : {de(d)} Zoll = **{de(diagonale / d, 1)} PPI**")
     pythagoras = "Die Diagonale kommt aus Pythagoras: √(Breite² + Höhe²)."
     felder = [Feld("diagonale", "Pixel auf der Diagonale", diagonale, stellen=1, typisch=((b + h, pythagoras),)),
@@ -71,7 +71,7 @@ def _masse(rng):
     breite, hoehe = d * a / wurzel * 2.54, d * b / wurzel * 2.54
     frage = (f"Für den Arbeitsplatz der {rng.choice(FIRMEN)} soll ein Monitor mit **{de(d)} Zoll** Diagonale im Format **{a}:{b}** auf "
              "einen Monitorarm. Wie breit und wie hoch ist das sichtbare Bild in cm? (eine Nachkommastelle, 1 Zoll = 2,54 cm)")
-    weg = schritte(f"Diagonale im Verhältnis: √({a}² + {b}²) = {de(wurzel, 3)}",
+    weg = schritte(rf"Diagonale im Verhältnis: $\sqrt{{{a}^2 + {b}^2}} = {tex(wurzel, 3)}$",
                    f"Breite: {de(d)} · {a} : {de(wurzel, 3)} = {de(d * a / wurzel, 2)} Zoll · 2,54 = **{de(breite, 1)} cm**",
                    f"Höhe: {de(d)} · {b} : {de(wurzel, 3)} = {de(d * b / wurzel, 2)} Zoll · 2,54 = **{de(hoehe, 1)} cm**")
     zoll = "Das sind Zoll; mal 2,54 ergibt cm."

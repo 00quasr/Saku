@@ -5,24 +5,24 @@ from saku.lernen.rechnen.basis import FIRMEN, Aufgabe, Feld, art, schritte, tabe
 
 # Formeln und Merksätze je Art: Formelsammlung und Karte zeigen sie nach dem Rechenweg
 FORMELN = {
-    "sortieren": """- Bubblesort: benachbarte Werte vergleichen und tauschen, wenn links > rechts; nach Durchlauf k stehen die k größten Werte hinten
-- Selectionsort: im unsortierten Rest das Minimum suchen und mit der ersten Stelle des Rests tauschen; nach Durchlauf k sind die ersten k Stellen fertig
-- Insertionsort: den nächsten Wert in den sortierten Anfang einfügen, Größere rücken nach rechts; nach Durchlauf k sind die ersten k + 1 Werte sortiert
-- Vertauschungen Bubblesort = Anzahl der Paare, die falsch herum stehen; ein Array mit n Werten braucht höchstens n − 1 Durchläufe
+    "sortieren": r"""- Bubblesort: benachbarte Werte vergleichen und tauschen, wenn links > rechts; nach Durchlauf $k$ stehen die $k$ größten Werte hinten
+- Selectionsort: im unsortierten Rest das Minimum suchen und mit der ersten Stelle des Rests tauschen; nach Durchlauf $k$ sind die ersten $k$ Stellen fertig
+- Insertionsort: den nächsten Wert in den sortierten Anfang einfügen, Größere rücken nach rechts; nach Durchlauf $k$ sind die ersten $k + 1$ Werte sortiert
+- Vertauschungen Bubblesort = Anzahl der Paare, die falsch herum stehen; ein Array mit $n$ Werten braucht höchstens $n - 1$ Durchläufe
 
 *Beispiel:* Bubblesort [5, 1, 4, 2], Durchlauf 1: [1, 4, 2, 5] mit 3 Vertauschungen""",
-    "binaersuche": """- Voraussetzung: das Array ist sortiert
-- links ← 0, rechts ← n − 1; solange links ≤ rechts: mitte ← (links + rechts) DIV 2
-- Wert gefunden → fertig; Wert an der Mitte zu klein → links ← mitte + 1; zu groß → rechts ← mitte − 1
-- Höchstens ⌊log₂ n⌋ + 1 Vergleiche (bei 15 Werten 4)
+    "binaersuche": r"""- Voraussetzung: das Array ist sortiert
+- $\text{links} \leftarrow 0$, $\text{rechts} \leftarrow n - 1$; solange $\text{links} \leq \text{rechts}$: $\text{mitte} \leftarrow (\text{links} + \text{rechts}) \mathbin{\text{DIV}} 2$
+- Wert gefunden → fertig; Wert an der Mitte zu klein → $\text{links} \leftarrow \text{mitte} + 1$; zu groß → $\text{rechts} \leftarrow \text{mitte} - 1$
+- Höchstens $\lfloor \log_2 n \rfloor + 1$ Vergleiche (bei 15 Werten 4)
 
 *Beispiel:* [3, 8, 12, 17, 21, 30, 42], gesucht 30: mitte 3 (17, zu klein), mitte 5 (30, gefunden) → 2 Vergleiche""",
-    "hashing": """- Hashfunktion h(k) = k MOD m, m = Größe der Tabelle (Indizes 0 bis m − 1)
-- Kollision (Platz belegt): lineares Sondieren, den nächsten Index probieren: (i + 1) MOD m, nach dem letzten Index geht es bei 0 weiter
-- Suchen läuft genauso: ab h(k) weiter, bis der Schlüssel oder ein leerer Platz kommt
-- Belegungsfaktor = Anzahl Schlüssel : m
+    "hashing": r"""- Hashfunktion $h(k) = k \bmod m$, $m$ = Größe der Tabelle (Indizes 0 bis $m - 1$)
+- Kollision (Platz belegt): lineares Sondieren, den nächsten Index probieren: $(i + 1) \bmod m$, nach dem letzten Index geht es bei 0 weiter
+- Suchen läuft genauso: ab $h(k)$ weiter, bis der Schlüssel oder ein leerer Platz kommt
+- $\text{Belegungsfaktor} = \dfrac{\text{Anzahl Schlüssel}}{m}$
 
-*Beispiel:* m = 7, Schlüssel 15, 22: 15 MOD 7 = 1 → Index 1; 22 MOD 7 = 1 belegt → Index 2""",
+*Beispiel:* $m = 7$, Schlüssel 15, 22: $15 \bmod 7 = 1$ → Index 1; $22 \bmod 7 = 1$ belegt → Index 2""",
     "baum": """- Binärer Suchbaum: links stehen kleinere, rechts größere Schlüssel; Einfügen von der Wurzel aus nach links oder rechts bis zu einem freien Platz
 - Preorder: Wurzel, links, rechts · Inorder: links, Wurzel, rechts (ergibt die sortierte Folge) · Postorder: links, rechts, Wurzel
 - Höhe hier als Anzahl der Ebenen: nur die Wurzel hat Höhe 1

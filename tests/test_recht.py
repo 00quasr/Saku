@@ -87,8 +87,9 @@ def test_gegenproben_von_hand():
     assert recht.verzugszinsen(5000, Decimal("-0.88") + 5, 61) == Decimal("34.43")
     # Verzug nach § 286 Abs. 3: Zugang 01.03.2027, die 30 Tage enden am 31.03.2027, Verzug ab 01.04.2027 (Beispiel im Merkblatt)
     assert date(2027, 3, 1) + timedelta(days=30) == date(2027, 3, 31)
+    merkblatt = " ".join(rechnen.ARTEN[a].formeln for a in ARTEN).replace("{,}", ",").replace(r"\,\text{€}", " €")  # LaTeX wie gesetzt
     for beispiel in ("16,88 €", "800 €", "25.01.2029", "18.01.2030", "6.400 €", "5.400 €", "31. März"):
-        assert beispiel in " ".join(rechnen.ARTEN[a].formeln for a in ARTEN), beispiel
+        assert beispiel in merkblatt, beispiel
 
 
 def test_werktag_meidet_alle_feiertage():

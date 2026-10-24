@@ -35,6 +35,19 @@ def test_markdown_ohne_html():
     assert "x<br>y<br>z" in zelle and "&lt;" not in zelle
 
 
+def test_formeln_vor_markdown_geschuetzt():
+    """$…$ und $$…$$ kommen unverändert als LaTeX in <span class="formel"> zurück, * und | darin liest Markdown nicht;
+    ohne formeln=True bleibt $ Text (Sensei schreibt Preise)."""
+    from saku.web import markdown_zu_html
+    assert "<em>" in markdown_zu_html("$a*b$ und $c*d$")
+    html = markdown_zu_html(r"*kursiv* $a*b$ und $c*d$, $$\frac{x_1}{y_2}$$ | $|x| < 2$ $<b>$", formeln=True)
+    assert '<span class="formel">a*b</span> und <span class="formel">c*d</span>' in html and "<em>kursiv</em>" in html
+    assert r'<span class="formel formel--block">\frac{x_1}{y_2}</span>' in html
+    assert '<span class="formel">|x| &lt; 2</span>' in html and "&lt;b&gt;" in html and "<b>" not in html
+    tabelle = markdown_zu_html("| a | b |\n|---|---|\n| $|x|$ | 2 |", formeln=True)
+    assert '<td><span class="formel">|x|</span></td>' in tabelle  # der Strich in der Formel teilt keine Zelle
+
+
 def test_einstellungen_speichern(client, con):
     antwort = client.post("/einstellungen/pruefungstermin", data={"pruefungstermin": "2099-04-28"})
     assert antwort.headers["HX-Trigger"] == "gespeichert" and "Tage" in antwort.text

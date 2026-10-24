@@ -13,6 +13,7 @@ ABTEILUNGEN = ["Buchhaltung", "Vertrieb", "Entwicklung", "Lager", "Personal", "M
 # Byte je Einheit: Dezimalpräfixe (SI) und Binärpräfixe (IEC)
 BYTE = {"kB": 10 ** 3, "MB": 10 ** 6, "GB": 10 ** 9, "TB": 10 ** 12, "KiB": 2 ** 10, "MiB": 2 ** 20, "GiB": 2 ** 30, "TiB": 2 ** 40}
 FAKTOR = {"kB": "10³", "MB": "10⁶", "GB": "10⁹", "TB": "10¹²", "KiB": "1.024", "MiB": "1.024²", "GiB": "1.024³", "TiB": "1.024⁴"}
+FAKTOR_TEX = {"kB": "10^3", "MB": "10^6", "GB": "10^9", "TB": "10^{12}", "KiB": "1.024", "MiB": "1.024^2", "GiB": "1.024^3", "TiB": "1.024^4"}
 # dieselbe Stufe im anderen System (MB ↔ MiB) und Hinweise zu typischen Fehlern mit Einheiten, siehe Feld.typisch
 ANDERS = {"kB": "KiB", "MB": "MiB", "GB": "GiB", "TB": "TiB"}
 ANDERS |= {b: d for d, b in ANDERS.items()}
@@ -124,8 +125,13 @@ def euro(x) -> str:
 
 
 def hoch(n: int) -> str:
-    """Exponent hochgestellt: 2 + hoch(5) → 2⁵."""
-    return str(n).translate(str.maketrans("0123456789-", "⁰¹²³⁴⁵⁶⁷⁸⁹⁻"))
+    """Exponent in einer Formel ($…$ im Rechenweg): 2 + hoch(12) → 2^{12}."""
+    return f"^{{{n}}}"
+
+
+def tex(x: float, stellen: int = 2) -> str:
+    """Zahl in einer Formel wie de(); das Komma in Klammern, sonst setzt KaTeX dahinter einen Abstand: 3,47 → 3{,}47."""
+    return de(x, stellen).replace(",", "{,}")
 
 
 def tabelle(kopf: list[str], zeilen: list[list]) -> str:

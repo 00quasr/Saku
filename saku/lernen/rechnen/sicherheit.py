@@ -5,30 +5,30 @@ import math
 from datetime import datetime, timedelta
 from fractions import Fraction
 
-from saku.lernen.rechnen.basis import ABTEILUNGEN, FIRMEN, Aufgabe, Feld, art, de, euro, hoch, schritte, tabelle
+from saku.lernen.rechnen.basis import ABTEILUNGEN, FIRMEN, Aufgabe, Feld, art, de, euro, hoch, schritte, tabelle, tex
 from saku.lernen.rechnen.wiso import WOCHENTAGE, kurz, lang
 
 # Formeln und Merksätze je Art: Formelsammlung und Karte zeigen sie nach dem Rechenweg
 FORMELN = {
-    "passwort": """- Zeichenvorrat N: Kleinbuchstaben 26, Großbuchstaben 26 (ohne Umlaute und ß), Ziffern 10, Sonderzeichen so viele, wie erlaubt sind
-- Kombinationen bei genau L Zeichen: N^L; jedes Zeichen mehr multipliziert sie mit N
+    "passwort": r"""- Zeichenvorrat $N$: Kleinbuchstaben 26, Großbuchstaben 26 (ohne Umlaute und ß), Ziffern 10, Sonderzeichen so viele, wie erlaubt sind
+- Kombinationen bei genau $L$ Zeichen: $N^L$; jedes Zeichen mehr multipliziert sie mit $N$
 - Brute Force: im schlimmsten Fall alle Kombinationen, im Mittel die Hälfte (Konvention: das Passwort liegt zufällig irgendwo in der Reihe)
-- Dauer = Kombinationen : Versuche pro Sekunde; hier 1 Jahr = 365 Tage = 31.536.000 s
-- Entropie = L · log₂ N Bit (log₂ N = ln N : ln 2), gilt nur für zufällig gewählte Zeichen; echte Wörter fallen viel schneller (Wörterbuchangriff)
-- Mindestlänge für E Bit: E : log₂ N, immer aufrunden; ein Bit mehr verdoppelt die Kombinationen, Länge schlägt Zeichenvielfalt
-- *Typische Fehler:* Länge hoch Zeichenvorrat statt umgekehrt, Mittel und schlimmsten Fall verwechselt, log₁₀ statt log₂, die Mindestlänge abgerundet
+- $\text{Dauer} = \dfrac{\text{Kombinationen}}{\text{Versuche pro Sekunde}}$; hier $1\,\text{Jahr} = 365\,\text{Tage} = 31.536.000\,\text{s}$
+- $\text{Entropie} = L \cdot \log_2 N\,\text{Bit}$ mit $\log_2 N = \dfrac{\ln N}{\ln 2}$, gilt nur für zufällig gewählte Zeichen; echte Wörter fallen viel schneller (Wörterbuchangriff)
+- Mindestlänge für $E$ Bit: $\dfrac{E}{\log_2 N}$, immer aufrunden; ein Bit mehr verdoppelt die Kombinationen, Länge schlägt Zeichenvielfalt
+- *Typische Fehler:* Länge hoch Zeichenvorrat statt umgekehrt, Mittel und schlimmsten Fall verwechselt, $\log_{10}$ statt $\log_2$, die Mindestlänge abgerundet
 
-*Beispiel:* 8 Zeichen aus a–z, A–Z, 0–9: N = 62, 62⁸ ≈ 2,18 · 10¹⁴; bei 10⁹ Versuchen pro Sekunde höchstens 218.340 s ≈ 60,65 Stunden, im Mittel 30,33 Stunden; Entropie 8 · 5,95 = 47,63 Bit""",
-    "schluessel": """- Symmetrisch: jedes Paar teilt einen geheimen Schlüssel → n · (n − 1) : 2 Schlüssel
-- Asymmetrisch: jeder Teilnehmer hat ein Schlüsselpaar → n Paare = 2n Schlüssel (n öffentliche, n private)
-- k neue Teilnehmer: symmetrisch kommen k · n + k · (k − 1) : 2 Schlüssel hinzu (jeder Neue mit allen Bisherigen, die Neuen untereinander), asymmetrisch 2k
+*Beispiel:* 8 Zeichen aus a–z, A–Z, 0–9: $N = 62$, $62^8 \approx 2{,}18 \cdot 10^{14}$; bei $10^9$ Versuchen pro Sekunde höchstens $218.340\,\text{s} \approx 60{,}65$ Stunden, im Mittel 30,33 Stunden; Entropie $8 \cdot 5{,}95 = 47{,}63\,\text{Bit}$""",
+    "schluessel": r"""- Symmetrisch: jedes Paar teilt einen geheimen Schlüssel → $\dfrac{n \cdot (n - 1)}{2}$ Schlüssel
+- Asymmetrisch: jeder Teilnehmer hat ein Schlüsselpaar → $n$ Paare $= 2n$ Schlüssel ($n$ öffentliche, $n$ private)
+- $k$ neue Teilnehmer: symmetrisch kommen $k \cdot n + \dfrac{k \cdot (k - 1)}{2}$ Schlüssel hinzu (jeder Neue mit allen Bisherigen, die Neuen untereinander), asymmetrisch $2k$
 - Verschlüsseln mit dem **öffentlichen Schlüssel des Empfängers**, entschlüsseln mit seinem **privaten**
 - Signieren (den Hashwert der Nachricht) mit dem **privaten Schlüssel des Absenders**, prüfen mit seinem **öffentlichen**
 - Hybrid: den Text symmetrisch mit einem zufälligen Sitzungsschlüssel (schnell), den Sitzungsschlüssel asymmetrisch mit dem öffentlichen Schlüssel des Empfängers
-- *Typische Fehler:* n² oder n · (n − 1) ohne : 2, asymmetrisch nur die n Schlüsselpaare statt 2n Schlüssel gezählt
+- *Typische Fehler:* $n^2$ oder $n \cdot (n - 1)$, ohne durch 2 zu teilen, asymmetrisch nur die $n$ Schlüsselpaare statt $2n$ Schlüssel gezählt
 
-*Beispiel:* 10 Teilnehmer: symmetrisch 10 · 9 : 2 = 45 Schlüssel, asymmetrisch 2 · 10 = 20 Schlüssel""",
-    "schutzbedarf": """- Grundwerte: **Vertraulichkeit** (nur Befugte erhalten Kenntnis), **Integrität** (Daten sind korrekt und unverändert), **Verfügbarkeit** (nutzbar, wenn sie gebraucht werden)
+*Beispiel:* 10 Teilnehmer: symmetrisch $\dfrac{10 \cdot 9}{2} = 45$ Schlüssel, asymmetrisch $2 \cdot 10 = 20$ Schlüssel""",
+    "schutzbedarf": r"""- Grundwerte: **Vertraulichkeit** (nur Befugte erhalten Kenntnis), **Integrität** (Daten sind korrekt und unverändert), **Verfügbarkeit** (nutzbar, wenn sie gebraucht werden)
 - Schutzbedarfskategorien (BSI-Standard 200-2): normal (Schaden begrenzt und überschaubar), hoch (beträchtlich), sehr hoch (existenziell bedrohlich, katastrophal)
 - Vererbung: Geschäftsprozesse und Anwendungen → IT-Systeme → Räume und Gebäude, je Grundwert getrennt
 - Maximumprinzip: ein IT-System übernimmt je Grundwert den höchsten Schutzbedarf der Anwendungen, die darauf laufen; ein Raum den höchsten der Systeme darin
@@ -36,28 +36,28 @@ FORMELN = {
 - Verteilungseffekt: Anwendung redundant auf mehreren Systemen oder nur unwichtige Teile auf diesem → Schutzbedarf kann **niedriger** sein (meist Verfügbarkeit); beide Effekte begründet man im Einzelfall
 
 *Beispiel:* Server mit Lohnbuchhaltung (hoch, hoch, normal) und Intranet-Wiki (normal, normal, normal) → hoch, hoch, normal""",
-    "risiko": """- Risiko (erwarteter Schaden pro Jahr) = Eintrittshäufigkeit pro Jahr · Schaden je Fall
-- Häufigkeit: „einmal in n Jahren“ = 1 : n, „p % Wahrscheinlichkeit im Jahr“ = p : 100, „k-mal im Jahr“ = k
+    "risiko": r"""- $\text{Risiko} = \text{Eintrittshäufigkeit pro Jahr} \cdot \text{Schaden je Fall}$, der erwartete Schaden pro Jahr
+- Häufigkeit: „einmal in $n$ Jahren“ $= \frac{1}{n}$, „$p\,\%$ Wahrscheinlichkeit im Jahr“ $= \frac{p}{100}$, „$k$-mal im Jahr“ $= k$
 - Rangfolge: nach dem Risiko sortieren, das größte zuerst behandeln
-- Maßnahme lohnt sich, wenn der vermiedene Schaden pro Jahr (Risiko vorher − Risiko nachher) größer ist als ihre Kosten pro Jahr; einmalige Kosten auf die Nutzungsdauer verteilen
-- Risikomatrix: Risikowert = Stufe der Eintrittswahrscheinlichkeit · Stufe der Schadenshöhe; die Grenzen der Risikoklassen legt jede Firma selbst fest (sie stehen in der Aufgabe)
+- Maßnahme lohnt sich, wenn der vermiedene Schaden pro Jahr ($\text{Risiko vorher} - \text{Risiko nachher}$) größer ist als ihre Kosten pro Jahr; einmalige Kosten auf die Nutzungsdauer verteilen
+- Risikomatrix: $\text{Risikowert} = \text{Wahrscheinlichkeitsstufe} \cdot \text{Schadensstufe}$ (Stufe der Eintrittswahrscheinlichkeit mal Stufe der Schadenshöhe); die Grenzen der Risikoklassen legt jede Firma selbst fest (sie stehen in der Aufgabe)
 
-*Beispiel:* Ausfall einmal in 4 Jahren mit 20.000 € Schaden: 0,25 · 20.000 € = 5.000 € pro Jahr; eine Maßnahme für 3.000 € im Jahr, die das auf 2.500 € halbiert, spart nur 2.500 € → lohnt sich nicht""",
-    "pruefziffer": """- Gerade Parität: das Paritätsbit macht die Anzahl der Einsen (mit Paritätsbit) gerade; ungerade Parität: ungerade
+*Beispiel:* Ausfall einmal in 4 Jahren mit 20.000 € Schaden: $0{,}25 \cdot 20.000\,\text{€} = 5.000\,\text{€}$ pro Jahr; eine Maßnahme für 3.000 € im Jahr, die das auf 2.500 € halbiert, spart nur 2.500 € → lohnt sich nicht""",
+    "pruefziffer": r"""- Gerade Parität: das Paritätsbit macht die Anzahl der Einsen (mit Paritätsbit) gerade; ungerade Parität: ungerade
 - Die Paritätsprüfung erkennt jede ungerade Anzahl gekippter Bits; zwei gekippte Bits bleiben unbemerkt, korrigieren kann sie nichts
 - EAN-13 und ISBN-13 (eine EAN mit 978 oder 979 vorn): die ersten 12 Ziffern von links abwechselnd mit 1 und 3 gewichten und addieren
-- Prüfziffer = (10 − Summe mod 10) mod 10, also die Ergänzung bis zum nächsten Zehner (bei glatter Summe 0)
+- $\text{Prüfziffer} = (10 - \text{Summe} \bmod 10) \bmod 10$, also die Ergänzung bis zum nächsten Zehner (bei glatter Summe 0)
 - Kontrolle: alle 13 Ziffern gewichtet (die 13. mit 1) ergeben ein Vielfaches von 10; eine einzelne falsche Ziffer fällt immer auf
-- XOR bitweise: gleiche Bits → 0, verschiedene → 1; Klartext ⊕ Schlüssel = Geheimtext, Geheimtext ⊕ Schlüssel = Klartext
+- XOR bitweise: gleiche Bits → 0, verschiedene → 1; $\text{Klartext} \oplus \text{Schlüssel} = \text{Geheimtext}$, $\text{Geheimtext} \oplus \text{Schlüssel} = \text{Klartext}$
 
-*Beispiel:* EAN 401234567890?: 4 + 0 + 1 + 6 + 3 + 12 + 5 + 18 + 7 + 24 + 9 + 0 = 89 → 90 − 89 = 1 → 4012345678901""",
-    "dsgvo": """- Art. 83 Abs. 4 DSGVO, Pflichten von Verantwortlichen und Auftragsverarbeitern (Art. 8, 11, 25 bis 39, 42, 43, z. B. Art. 28 Auftragsverarbeitung, Art. 30 Verzeichnis, Art. 32 Sicherheit, Art. 33 Meldung, Art. 37 Datenschutzbeauftragter): bis 10 Mio. € oder 2 % des weltweiten Jahresumsatzes
+*Beispiel:* EAN 401234567890?: $4 + 0 + 1 + 6 + 3 + 12 + 5 + 18 + 7 + 24 + 9 + 0 = 89$ → $90 - 89 = 1$ → 4012345678901""",
+    "dsgvo": r"""- Art. 83 Abs. 4 DSGVO, Pflichten von Verantwortlichen und Auftragsverarbeitern (Art. 8, 11, 25 bis 39, 42, 43, z. B. Art. 28 Auftragsverarbeitung, Art. 30 Verzeichnis, Art. 32 Sicherheit, Art. 33 Meldung, Art. 37 Datenschutzbeauftragter): bis 10 Mio. € oder 2 % des weltweiten Jahresumsatzes
 - Art. 83 Abs. 5, Grundsätze und Rechtmäßigkeit (Art. 5, 6, 7, 9), Rechte der Betroffenen (Art. 12 bis 22), Übermittlung in Drittländer (Art. 44 bis 49): bis 20 Mio. € oder 4 %
 - Umsatz: der gesamte weltweite Jahresumsatz des vorangegangenen Geschäftsjahrs; bei Unternehmen gilt der **höhere** der beiden Beträge als Obergrenze, die Geldbuße selbst legt die Behörde im Einzelfall fest
 - Art. 33: eine Verletzung des Schutzes personenbezogener Daten der Aufsichtsbehörde unverzüglich und möglichst binnen **72 Stunden** melden, **nachdem sie bekannt wurde** (nicht ab dem Vorfall); entfällt nur, wenn voraussichtlich kein Risiko für die Betroffenen besteht
-- Gerechnet wird hier wie üblich: Zeitpunkt der Kenntnis + 72 Stunden = gleiche Uhrzeit drei Tage später; Wochenenden und Feiertage zählen mit
+- Gerechnet wird hier wie üblich: $\text{Zeitpunkt der Kenntnis} + 72\,\text{Stunden}$, also die gleiche Uhrzeit drei Tage später; Wochenenden und Feiertage zählen mit
 
-*Beispiel:* Umsatz 750 Mio. €, Verstoß gegen Art. 33: 2 % = 15 Mio. € > 10 Mio. € → bis 15 Mio. €; Kenntnis Freitag 14:20 Uhr → Meldung bis Montag 14:20 Uhr""",
+*Beispiel:* Umsatz 750 Mio. €, Verstoß gegen Art. 33: $2\,\% \cdot 750\,\text{Mio. €} = 15\,\text{Mio. €} > 10\,\text{Mio. €}$ → bis 15 Mio. €; Kenntnis Freitag 14:20 Uhr → Meldung bis Montag 14:20 Uhr""",
 }
 
 
@@ -66,9 +66,9 @@ def _aufzaehlung(teile: list[str]) -> str:
 
 
 def _zehner(x: float) -> str:
-    """2,18 · 10¹⁴"""
+    """Für eine Formel: 2{,}18 \\cdot 10^{14}"""
     mantisse, exponent = f"{x:.2e}".split("e")
-    return f"{de(float(mantisse))} · 10{hoch(int(exponent))}"
+    return rf"{tex(float(mantisse))} \cdot 10{hoch(int(exponent))}"
 
 
 # --- Passwortstärke ---------------------------------------------------------------------
@@ -135,8 +135,8 @@ def _brute_force(rng):
               Feld("mittel", "Dauer im Mittel", dauer / 2, einheit,
                    typisch=((dauer, "Das ist der schlimmste Fall; im Mittel ist das Passwort nach der Hälfte gefunden."),))]
     weg = [_vorrat_weg(anzahl),
-           f"Kombinationen bei {laenge} Zeichen: {n}{hoch(laenge)} = **{de(kombinationen, 0)}** ≈ {_zehner(kombinationen)}",
-           f"Schlimmster Fall, alle Kombinationen: {de(kombinationen, 0)} : 10{hoch(exponent)} pro Sekunde = {de(sekunden)} s",
+           f"Kombinationen bei {laenge} Zeichen: ${n}{hoch(laenge)}$ = **{de(kombinationen, 0)}** ≈ ${_zehner(kombinationen)}$",
+           f"Schlimmster Fall, alle Kombinationen: ${tex(kombinationen, 0)} : 10{hoch(exponent)}$ pro Sekunde = {de(sekunden)} s",
            f"In {in_einheit}: {de(sekunden)} s : {faktor_text} = **{de(dauer)} {einheit}**",
            f"Im Mittel (Konvention: gefunden nach der Hälfte aller Kombinationen): {de(dauer)} : 2 = **{de(dauer / 2)} {einheit}**"]
     return Aufgabe(frage, felder, schritte(*weg), toleranz=0.005, titel="Brute-Force-Dauer")
@@ -162,7 +162,7 @@ def _entropie(rng):
               Feld("mindest", "Mindestlänge", mindest, "Zeichen", stellen=0,
                    typisch=((mindest - 1, "Du hast abgerundet; mit einem Zeichen weniger reicht die Entropie nicht."),))]
     weg = schritte(_vorrat_weg(anzahl),
-                   f"Entropie je Zeichen: log₂ {n} = ln {n} : ln 2 = **{de(je)} Bit**",
+                   rf"Entropie je Zeichen: $\log_2 {n} = \dfrac{{\ln {n}}}{{\ln 2}}$ = **{de(je)} Bit**",
                    f"Bisher: {laenge} · {de(je, 4)} = **{de(laenge * je)} Bit**, weniger als {ziel} Bit",
                    f"Mindestlänge: {ziel} : {de(je, 4)} = {de(ziel / je)} → aufrunden → **{mindest} Zeichen** "
                    f"({mindest} · {de(je, 4)} = {de(mindest * je)} Bit, mit {mindest - 1} Zeichen nur {de((mindest - 1) * je)} Bit)")
@@ -185,11 +185,12 @@ def _regeln(rng):
               Feld("b", "Entropie Regel B", eb, "Bit", typisch=((lb * math.log10(sum(anz_b)), LOG10),)),
               Feld("staerker", "Stärkere Regel", staerker, typ="text", optionen=["Regel A", "Regel B"])]
     faktor = 2 ** mehr
-    weg = schritte(f"Regel A: N = {_summe(anz_a)} → {la} · log₂ {sum(anz_a)} = {la} · "
-                   f"{de(math.log2(sum(anz_a)), 4)} = **{de(ea)} Bit**",
-                   f"Regel B: N = {_summe(anz_b)} → {lb} · log₂ {sum(anz_b)} = {lb} · "
-                   f"{de(math.log2(sum(anz_b)), 4)} = **{de(eb)} Bit**",
-                   f"**{staerker}** hat {de(mehr)} Bit mehr, also 2^{de(mehr)} ≈ {_zehner(faktor) if faktor >= 10 ** 6 else de(faktor, 0 if faktor >= 100 else 1)}-mal "
+    weg = schritte(rf"Regel A: $N = {_summe(anz_a)}$ → ${la} \cdot \log_2 {sum(anz_a)} = {la} \cdot "
+                   f"{tex(math.log2(sum(anz_a)), 4)}$ = **{de(ea)} Bit**",
+                   rf"Regel B: $N = {_summe(anz_b)}$ → ${lb} \cdot \log_2 {sum(anz_b)} = {lb} \cdot "
+                   f"{tex(math.log2(sum(anz_b)), 4)}$ = **{de(eb)} Bit**",
+                   rf"**{staerker}** hat {de(mehr)} Bit mehr, also $2^{{{tex(mehr)}}} \approx "
+                   f"{_zehner(faktor) if faktor >= 10 ** 6 else tex(faktor, 0 if faktor >= 100 else 1)}$-mal "
                    "so viele Kombinationen" + (": die Länge schlägt die Zeichenvielfalt" if staerker == "Regel B" else ""))
     return Aufgabe(frage, felder, weg, toleranz=0.005, titel="Passwortregeln vergleichen")
 
