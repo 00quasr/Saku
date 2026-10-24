@@ -67,3 +67,15 @@ def test_abgebrochene_migration_laesst_sich_wiederholen(tmp_path, monkeypatch):
     monkeypatch.undo()
     db.init(pfad)
     assert _struktur(pfad)["version"] == 9
+
+
+def test_init_befehl_sichert_vor_der_migration(tmp_path, monkeypatch):
+    """Wer nach einem Update `python -m saku init` aufruft (so steht es im README), migriert; vorher muss es eine Sicherung geben
+    wie bei start, analyse und lernstand import."""
+    from saku import __main__, config
+    monkeypatch.setattr(config, "DATEN", tmp_path)
+    _v4_mit_lernstand(config.db_pfad(tmp_path))
+    monkeypatch.setattr("sys.argv", ["saku", "init"])
+    __main__.main()
+    sicherung = db.letzte_sicherung(config.db_pfad(tmp_path))
+    assert sicherung and _struktur(sicherung)["version"] == 4 and _struktur(config.db_pfad(tmp_path))["version"] == 9

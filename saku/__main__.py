@@ -33,6 +33,7 @@ def main() -> None:
     args = parser.parse_args()
 
     if args.befehl == "init":
+        db.taeglich_sichern()  # nach einem Update migriert init; ohne Datenbank gibt es nichts zu sichern
         neu = db.init()
         print(f"Datenbank {'angelegt' if neu else 'vorhanden'}: {config.db_pfad()}")
 
