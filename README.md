@@ -37,24 +37,24 @@ Alle Bilder zeigen die erfundenen Demo-Daten, keine echten Prüfungsaufgaben.
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/bilder/ueben.png" alt="Üben: Multiple-Choice-Aufgabe, richtig beantwortet, mit Lösungshinweis"><br><b>稽 Üben.</b> Aufgabe als Text, Antwort per Zifferntaste, ↵ prüft sofort. Bei freien Antworten schlägt Sensei Punkte nach dem IHK-Schlüssel vor.</td>
-    <td width="50%"><img src="docs/bilder/themen.png" alt="Themen: Wissensgraph mit geöffneter Wissensseite zu Normalisierung"><br><b>庭 Themen.</b> Wissensgraph aus Themen, Lernfeldern und Fachbegriffen. Jede Notiz hat eine Wissensseite mit Verweisen auf echte Aufgaben.</td>
+    <td width="50%"><img src="docs/bilder/ueben.png" alt="Üben: freie Antwort mit Stichpunkt-Abgleich gegen die Musterlösung"><br><b>稽 Üben.</b> Aufgabe als Text; anklickbare Antworten prüft ↵ sofort. Bei freien Antworten zeigt der Stichpunkt-Abgleich, welche Punkte der Musterlösung drin sind, Sensei schlägt Punkte nach dem IHK-Schlüssel vor.</td>
+    <td width="50%"><img src="docs/bilder/themen.png" alt="Themen: Wissensgraph aus Prüfungsbereichen, Themen und Begriffen, Farbe nach Lernstand"><br><b>庭 Themen.</b> Wissensgraph aus Themen, Lernfeldern und Fachbegriffen. Jede Notiz hat eine Wissensseite mit Verweisen auf echte Aufgaben.</td>
   </tr>
   <tr>
     <td><img src="docs/bilder/pruefung.png" alt="Prüfung: Hochrechnung der Abschlussnote nach Ausbildungsverordnung"><br><b>試 Prüfung.</b> Simulation im Heft-Layout und Hochrechnung der Gesamtnote samt Bestehensregeln der AO 2020.</td>
     <td><img src="docs/bilder/analyse.png" alt="Analyse: Kennzahlen und die Themen mit den meisten Punkten"><br><b>析 Analyse.</b> Was wie oft drankam, Heatmap, Dauerbrenner, Themen, die lange nicht dran waren, und der Katalog als Checkliste.</td>
   </tr>
   <tr>
-    <td><img src="docs/bilder/suche.png" alt="Befehlspalette mit Befehl, Thema und Teilaufgaben"><br><b>⌘K.</b> Befehle (Simulation, Termin, AP1/AP2, AE/SI, Farbschema) und Suche nach Wort und Bedeutung.</td>
+    <td><img src="docs/bilder/suche.png" alt="Befehlspalette: Rechnen-Befehle, ein Thema und eine Teilaufgabe zur Suche „netz“"><br><b>⌘K.</b> Befehle (Simulation, Termin, AP1/AP2, AE/SI, Farbschema) und Suche nach Wort und Bedeutung.</td>
     <td><img src="docs/bilder/grundwissen.png" alt="Grundwissen: Begriffs-Karte mit aufgedeckter Definition"><br><b>Grundwissen.</b> Fachbegriffe als Lernkarten mit eigener Wiederholungsplanung.</td>
   </tr>
   <tr>
-    <td><img src="docs/bilder/rechnen.png" alt="Rechnen: geprüfte Rechenaufgabe mit Rechenweg"><br><b>算 Rechnen.</b> Unbegrenzt neue Rechenaufgaben, ↵ prüft sofort, danach steht der Rechenweg da.</td>
+    <td><img src="docs/bilder/rechnen.png" alt="Rechnen: Subnetting-Aufgabe geprüft, 2 von 3 richtig, mit Rechenweg"><br><b>算 Rechnen.</b> Unbegrenzt neue Rechenaufgaben, ↵ prüft sofort, danach steht der Rechenweg da.</td>
     <td><img src="docs/bilder/fahrplan.png" alt="Fahrplan: Säulen der nächsten Wiederholungen, Tempo und Abdeckung"><br><b>Fahrplan.</b> Was auf dich zukommt, ob dein Tempo bis zur Prüfung reicht und wo die Punkte liegen.</td>
   </tr>
   <tr>
     <td><img src="docs/bilder/verlauf.png" alt="Verlauf: Wochenrückblick und Bewertungen nach Tagen"><br><b>Verlauf.</b> Jede Bewertung nach Tagen, oben der Rückblick auf die Woche.</td>
-    <td><img src="docs/bilder/sql.png" alt="Üben: SQL-Anweisung in der Sandbox ausgeführt und mit der Musterlösung verglichen"><br><b>SQL in Üben.</b> Anweisungen auf erfundenen Beispieldaten ausführen und mit der Musterlösung vergleichen.</td>
+    <td><img src="docs/bilder/sql.png" alt="Üben: SQL-Anweisung geprüft, eine Zeile fehlt, erwartetes und eigenes Ergebnis nebeneinander"><br><b>SQL in Üben.</b> Anweisungen auf erfundenen Beispieldaten ausführen und mit der Musterlösung vergleichen.</td>
   </tr>
 </table>
 
