@@ -24,16 +24,18 @@
   <div class="rechnen-felder" role="group" aria-label="Deine Ergebnisse">
     {% for f in a.felder %}
     {% set ok = fertig and werte[f.name] %}
+    {# gleiche Beschriftung, andere Einheit (Dauer in s und in min): vorgelesen wird beides #}
+    {% set name = f.label ~ (' in ' ~ f.einheit if f.einheit else '') %}
     <div class="rechnen-feld rechnen-feld--{{ f.typ }}{{ (' rechnen-feld--richtig' if ok else ' rechnen-feld--falsch') if fertig }}">
       <label for="feld-{{ f.name }}">{{ f.label }}</label>
       <span class="rechnen-eingabe">
         {% if f.optionen %}
-        <select class="select" id="feld-{{ f.name }}" name="feld-{{ f.name }}" {{ 'disabled' if fertig }} {{ 'autofocus' if loop.first and not fertig }}>
+        <select class="select" id="feld-{{ f.name }}" name="feld-{{ f.name }}" aria-label="{{ name }}" {{ 'disabled' if fertig }} {{ 'autofocus' if loop.first and not fertig }}>
           <option value="">–</option>
           {% for o in f.optionen %}<option {{ 'selected' if eingaben.get(f.name) == o }}>{{ o }}</option>{% endfor %}
         </select>
         {% else %}
-        <input class="input" id="feld-{{ f.name }}" name="feld-{{ f.name }}" value="{{ eingaben.get(f.name, '') }}"
+        <input class="input" id="feld-{{ f.name }}" name="feld-{{ f.name }}" aria-label="{{ name }}" value="{{ eingaben.get(f.name, '') }}"
                inputmode="{{ 'decimal' if f.typ == 'zahl' else 'text' }}" autocomplete="off" autocapitalize="off" spellcheck="false"
                {{ 'disabled' if fertig }} {{ 'autofocus' if loop.first and not fertig }} onkeydown="if (event.key === 'Escape') this.blur()">
         {% endif %}
