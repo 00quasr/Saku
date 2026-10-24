@@ -9,6 +9,7 @@ from flask import Blueprint, abort, current_app, redirect, render_template, requ
 from saku import config
 from saku.db import einstellung, letzte_sicherung, setze_einstellung, sichern
 from saku.web import db
+from saku.web.routen.heute import NEU_IN_SAKU
 
 bp = Blueprint("kern", __name__)
 
@@ -35,6 +36,7 @@ FELDER = {
     "puffer_tage": lambda w: w.isdigit() and int(w) <= 60,
     "stationstest_schwelle": lambda w: 0.5 <= float(w) <= 1,
     "farbschema": lambda w: w in FARBSCHEMAS,
+    "neu_gesehen": lambda w: w == NEU_IN_SAKU,  # „Neu in Saku“ auf Heute weggeklickt
 }
 
 

@@ -13,6 +13,9 @@ from saku.web.routen.rechnen import heute_gerechnet
 
 bp = Blueprint("heute", __name__)
 
+# „Neu in Saku“ auf Heute: eine neue Marke, sobald es wieder Neues vorzustellen gibt
+NEU_IN_SAKU = "2026-10"
+
 
 def begruessung(stunde: int) -> tuple[str, str]:
     """Japanischer Gruß nach Uhrzeit, immer mit deutscher Übersetzung."""
@@ -94,6 +97,9 @@ def index():
         grundwissen=karten.begriffe(con, []),
         laufend=simulation.laufende(con),
         gerechnet=heute_gerechnet(con),
+        # nur für alle, die schon gelernt haben; wer gerade die Einführung gemacht hat, kennt alles
+        neu=NEU_IN_SAKU if einstellung(con, "neu_gesehen") != NEU_IN_SAKU
+        and con.execute("SELECT 1 FROM bewertung LIMIT 1").fetchone() else None,
         rueckblick=rueckblick.woche(con),
     )
 
@@ -198,6 +204,7 @@ def willkommen_umfang():
 def willkommen_fertig():
     con = db()
     setze_einstellung(con, "einfuehrung", "gesehen")
+    setze_einstellung(con, "neu_gesehen", NEU_IN_SAKU)
     station = next((s for s in pfad.stationen(con) if s["aktuell"]), None)
     if request.form.get("ziel") == "station" and station:
         return redirect(url_for("michi.station", station_id=station["id"]))
