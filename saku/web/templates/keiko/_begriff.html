@@ -50,7 +50,7 @@
               hx-target="#karte" hx-swap="outerHTML">{{ m.taste(wert) }} {{ text }}</button>
       {% endfor %}
     </div>
-    <p class="klein"><a href="{{ url_for('niwa.index', begriff=karte.id) }}" class="gedaempft">Fundstellen im Themengarten</a></p>
+    <p class="klein"><a href="{{ url_for('niwa.index', begriff=karte.id) }}" class="gedaempft">Fundstellen unter Themen</a></p>
   </section>
 </form>
 {% else %}
