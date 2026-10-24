@@ -240,9 +240,10 @@ def zustandsdiagramm(a: dict) -> Markup:
     return bild.svg("uml-zustand", f"Zustandsdiagramm {a['name']}. Startzustand „{start}“.{zaehler} Übergänge: {uebergaenge}")
 
 
-def nachspielen(a: dict, folge: list[str], zustand: str | None = None) -> list[tuple]:
-    """Ereignis für Ereignis: (Ereignis, Zustand vorher, schaltender Übergang oder None, Zustand danach, Zähler danach)."""
-    zustand, zaehler, raus = zustand or next(iter(a["zustaende"])), 0, []
+def nachspielen(a: dict, folge: list[str]) -> list[tuple]:
+    """Ab dem Startzustand Ereignis für Ereignis: (Ereignis, Zustand vorher, schaltender Übergang oder None, Zustand danach,
+    Zähler danach)."""
+    zustand, zaehler, raus = next(iter(a["zustaende"])), 0, []
     for e in folge:
         u = next((u for u in a["uebergaenge"] if u[0] == zustand and u[1] == e and (not u[2] or OPS[u[2][0]](zaehler, u[2][1]))), None)
         vorher = zustand
@@ -458,7 +459,7 @@ def _klassenkasten(bild: Bild, x: float, y: float, name: str, k: tuple, b: float
     faecher = [(kopf, "kopf")] + ([] if art_ == "interface" else [([f"{s} {a}" for s, a in attribute], "")]) + \
         [([f"+ {m}" for m, _ in methoden], "methoden")]
     for zeilen, fach in faecher:
-        h = max(len(zeilen), 0) * ZEILE + 8 if zeilen else 10
+        h = len(zeilen) * ZEILE + 8 if zeilen else 10
         bild.kasten(x, y, b, h)
         for i, zeile in enumerate(zeilen):
             if fach == "kopf":
@@ -819,7 +820,8 @@ def usecase(rng):
                        f"{kind} darf „{nur_eltern}“ nutzen (**Ja**, geerbt); {eltern} darf „{nur_kind}“ nicht (**Nein**): "
                        "geerbt wird nur vom allgemeinen zum speziellen Akteur")
         return Aufgabe(frage, felder, weg, titel="Akteure und Generalisierung", struktogramm=bild)
-    fragen = [("inc", f"Läuft „{inc[1]}“ bei jedem „{inc[0]}“ mit?", "Ja"), ("ext", f"Läuft „{ext[0]}“ bei jedem „{ext[1]}“ mit?", "Nein")]
+    fragen = [("inc", f"Läuft „{inc[1]}“ bei jedem Ablauf von „{inc[0]}“ mit?", "Ja"),
+              ("ext", f"Läuft „{ext[0]}“ bei jedem Ablauf von „{ext[1]}“ mit?", "Nein")]
     rng.shuffle(fragen)
     alle = sorted([f for f, _ in s["faelle"]] + list(_rechte_spalte(s)))
     frage = einleitung + "\n\n".join(f"{b}) {f[1]}" for b, f in zip("ab", fragen)) + \

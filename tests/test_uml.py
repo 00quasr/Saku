@@ -382,7 +382,7 @@ def test_usecase_selbst_ausgewertet():
                 assert f.loesung == ("Ja" if fall in _darf(akteure, nutzt, wer) else "Nein"), (seed, f.label)
         else:
             for f in a.felder[:2]:
-                teil, basis = re.fullmatch(r"Läuft „(.+)“ bei jedem „(.+)“ mit\?", f.label).groups()
+                teil, basis = re.fullmatch(r"Läuft „(.+)“ bei jedem Ablauf von „(.+)“ mit\?", f.label).groups()
                 assert f.loesung == ("Ja" if (basis, "include", teil) in pfeile else "Nein") and \
                     ((basis, "include", teil) in pfeile or (teil, "extend", basis) in pfeile), seed
             erweiterung = re.search(r"Welchen Anwendungsfall erweitert „(.+?)“", a.frage)[1]
