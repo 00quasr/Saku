@@ -228,3 +228,97 @@ def test_zustandsdiagramm_alle_automaten():
     n = int(re.search(r"nach (\d) falschen", konto["text"])[1])
     spur = uml.nachspielen(konto, ["passwortFalsch"] * n + ["passwortRichtig"])
     assert [s[3] for s in spur] == ["Abgemeldet"] * (n - 1) + ["Gesperrt", "Gesperrt"] and spur[-1][2] is None
+
+
+# --- Klassendiagramm ---------------------------------------------------------------------------
+
+def _klassenmodell(svg: ET.Element) -> tuple[dict, dict, list]:
+    """Klassen (Art, Attribute, Methoden), Oberklasse je Unterklasse und Verbindungen (Art, a, Multiplizität a, b, Multiplizität b)
+    aus der Textfassung."""
+    klassen_teil, bez_teil = svg.get("aria-label", "").split(" Beziehungen: ")
+    klassen = {name: (art, [] if attr == "keine" else attr.split("; "), meth.split("; ")) for art, name, attr, meth in
+               re.findall(r"(Klasse|Abstrakte Klasse|Interface) (\w+)\. Attribute: (.*?)\. Methoden: (.*?)\.", klassen_teil)}
+    oben, verbindungen = {}, []
+    ende = r"(\w+) \(([\d.*]+)(?:, Rolle \w+)?\)"
+    for teil in bez_teil.removesuffix(".").split("; "):
+        if m := re.fullmatch(r"(\w+) (?:erbt von|realisiert) (\w+)", teil):
+            oben[m[1]] = m[2]
+        elif m := re.fullmatch(rf"Assoziation zwischen {ende} und {ende}", teil):
+            verbindungen.append(("Assoziation", *m.groups()))
+        else:
+            m = re.fullmatch(rf"(Aggregation|Komposition): Ganzes {ende}, Teil {ende}", teil)
+            verbindungen.append(m.groups())
+    return klassen, oben, verbindungen
+
+
+def _grenzen(m: str) -> tuple[int, int | None]:
+    """Multiplizität, unabhängig gelesen: 1, 0..1, 0..*, 1..*, 0..5."""
+    teile = m.split("..")
+    return int(teile[0]), (None if teile[-1] == "*" else int(teile[-1]))
+
+
+def _alle_attribute(klassen: dict, oben: dict, k: str) -> list[str]:
+    return klassen[k][1] + (_alle_attribute(klassen, oben, oben[k]) if k in oben else [])
+
+
+def _alle_methoden(klassen: dict, oben: dict, k: str) -> set[str]:
+    eigene = {re.sub(r"^\+ (\w+)\(.*", r"\1", m) for m in klassen[k][2]}
+    return eigene | (_alle_methoden(klassen, oben, oben[k]) if k in oben else set())
+
+
+def test_klassendiagramm_selbst_ausgewertet():
+    titel = set()
+    for seed, a in _alle("klassen"):
+        svg = svg_pruefen(a.struktogramm)
+        klassen, oben, verbindungen = _klassenmodell(svg)
+        texte = set(_texte(svg))
+        assert 3 <= len(klassen) <= 5 and set(klassen) <= texte, seed
+        assert all(x in texte for _, attr, meth in klassen.values() for x in attr + [m.removesuffix(" (abstrakt)") for m in meth])
+        l, felder = a.loesung, {f.name: f for f in a.felder}
+        titel.add(a.titel)
+        if a.titel == "Multiplizitäten":
+            x, y = re.search(r"zwischen \*\*(\w+)\*\* und \*\*(\w+)\*\*", a.frage).groups()
+            _, k1, m1, k2, m2 = next(v for v in verbindungen if {v[1], v[3]} == {x, y})
+            am = {k1: _grenzen(m1), k2: _grenzen(m2)}  # die Multiplizität am Ende der gezählten Klasse
+            erwartet = {"ab_min": am[y][0], "ab_max": am[y][1], "ba_min": am[x][0], "ba_max": am[x][1]}
+            assert {k: (None if v == "beliebig viele" else v) for k, v in l.items()} == erwartet, seed
+            if am[x] != am[y]:  # das nahe Ende abgelesen: falsch
+                nah = {"ab_min": am[x][0], "ab_max": am[x][1], "ba_min": am[y][0], "ba_max": am[y][1]}
+                eingaben = {k: "beliebig viele" if v is None else str(v) for k, v in nah.items()}
+                assert not all(rechnen.pruefen(a, eingaben).values()), seed
+        elif a.titel == "Beziehungen":
+            for f in a.felder:
+                x, y = f.label.split(" – ")
+                if oben.get(x) == y:
+                    soll = "Realisierung" if klassen[y][0] == "Interface" else "Generalisierung"
+                else:
+                    soll = next(v[0] for v in verbindungen if {v[1], v[3]} == {x, y})
+                assert f.loesung.startswith(soll), (seed, f.label)
+        elif a.titel == "Vererbung":
+            u = re.search(r"Objekt der Klasse \*\*(\w+)\*\*", a.frage)[1]
+            assert l["attribute"] == len(_alle_attribute(klassen, oben, u)) and l["methoden"] == len(_alle_methoden(klassen, oben, u)), seed
+            assert [k for k, v in klassen.items() if v[0] != "Klasse"] == [l["abstrakt"]]
+            assert not rechnen.pruefen(a, {"attribute": str(len(klassen[u][1]))})["attribute"] or not klassen[oben[u]][1]
+        elif a.titel == "Sichtbarkeit":
+            u = re.search(r"der Klasse \*\*(\w+)\*\*", a.frage)[1]
+            sichtbar = [x.split()[1].rstrip(":") for x in klassen[oben[u]][1] if x[0] in "+#"]  # anderes Paket: ~ zählt nicht
+            assert sichtbar == [l["zugriff"]], seed
+            name = felder["sicht"].label.removeprefix("Sichtbarkeit von ")
+            zeichen = next(x[0] for x in klassen[oben[u]][1] if x.split()[1] == f"{name}:")
+            assert l["sicht"] == {"+": "public", "-": "private", "#": "protected", "~": "package"}[zeichen]
+        else:
+            g, t = re.search(r"Zwischen \*\*(\w+)\*\* und \*\*(\w+)\*\*", a.frage).groups()
+            art, ganzes, mg, teil, _ = next(v for v in verbindungen if (v[1], v[3]) == (g, t))
+            unten, hoch = _grenzen(mg)
+            assert l == {"loeschen": "werden mitgelöscht" if art == "Komposition" else "bleiben bestehen",
+                         "mehrere": "Ja" if hoch is None or hoch > 1 else "Nein", "ohne": "Ja" if unten == 0 else "Nein"}, seed
+    assert titel == {"Multiplizitäten", "Beziehungen", "Vererbung", "Sichtbarkeit", "Ganzes und Teil"}
+
+
+def test_klassendiagramm_alle_modelle_und_beliebig_viele():
+    from saku.lernen.rechnen import uml
+    for seed in range(300):
+        svg_pruefen(uml.klassendiagramm(uml._modell(random.Random(seed))))
+    feld = uml._vielheit_feld("x", "höchstens", None)
+    assert all(rechnen.stimmt(feld, t) for t in ["beliebig viele", "*", "n", "unbegrenzt", "Beliebig"]) and not rechnen.stimmt(feld, "1")
+    assert [uml._vielheit(m) for m in ("1", "0..1", "*", "0..*", "1..*", "0..5")] == [(1, 1), (0, 1), (0, None), (0, None), (1, None), (0, 5)]
