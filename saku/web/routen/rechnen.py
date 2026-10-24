@@ -42,6 +42,22 @@ def tagesziel(con) -> int:
     return int(einstellung(con, "rechnen_ziel", "5") or 5)
 
 
+def in_pruefungen(con) -> dict[str, dict]:
+    """Je Rechenart die Teilaufgaben im Umfang, deren Themen zu ihr passen (rechnen.passende, umgekehrt): wie viele, zuletzt
+    in welchem Termin und die Themen für „üben“. Eine Abfrage für alle Arten; Arten ohne solche Teilaufgaben fehlen."""
+    je_thema, namen = {}, {}
+    for t_id, name, teilaufgabe, index, termin in con.execute(
+            "SELECT z.thema_id, th.name, v.teilaufgabe_id, v.termin_index, v.termin FROM v_zuordnung z "
+            "JOIN thema th ON th.id = z.thema_id JOIN v_teilaufgabe v ON v.teilaufgabe_id = z.teilaufgabe_id"):
+        je_thema.setdefault(t_id, []).append((index, termin, teilaufgabe))
+        namen[t_id] = name
+    raus = {}
+    for art, themen in rechnen.themen_je_art(namen.items()).items():
+        teile = [x for t in themen for x in je_thema[t]]
+        raus[art] = {"themen": themen, "anzahl": len({x[2] for x in teile}), "zuletzt": max(teile)[1]}
+    return raus
+
+
 def _gruppen() -> list[tuple[str, list]]:
     """(Gruppe, Arten) in der Reihenfolge der Übersicht, leere Gruppen fallen weg."""
     gruppen = [(g, [a for a in rechnen.ARTEN.values() if a.gruppe == g]) for g in rechnen.GRUPPEN]
@@ -59,14 +75,16 @@ def _kontext(art: str, seed: int, gemischt: bool, eingaben: dict | None = None, 
     naechste = url_for("rechnen.gemischt") if gemischt else url_for("rechnen.aufgabe", art=art, seed=random.randrange(SEEDS))
     return {"art": rechnen.ARTEN[art], "aufgabe": rechnen.erzeugen(art, seed), "seed": seed, "gemischt": gemischt,
             "start": int(time.time()), "eingaben": eingaben or {}, "werte": werte, "aufgegeben": aufgegeben,
-            "naechste": naechste, "stand": stand(db())[art]}
+            "naechste": naechste, "stand": stand(db())[art],
+            "in_pruefungen": in_pruefungen(db()).get(art) if werte is not None else None}  # erst nach dem Prüfen zu sehen
 
 
 @bp.get("/")
 def index():
     con = db()
     return render_template("rechnen/index.html", gruppen=_gruppen(), stand=stand(con), heute=heute_gerechnet(con),
-                           ziel=tagesziel(con), faellige_arten=faellige(con))  # „faellig“ ist schon die Zahl in der Seitenleiste
+                           ziel=tagesziel(con), faellige_arten=faellige(con),  # „faellig“ ist schon die Zahl in der Seitenleiste
+                           in_pruefungen=in_pruefungen(con))
 
 
 @bp.get("/formeln")

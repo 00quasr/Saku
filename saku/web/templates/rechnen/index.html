@@ -34,6 +34,7 @@
             {% else %}<span class="gedaempft">Noch nicht gerechnet</span>{% endif %}
           </span>
         </a>
+        {% if a.slug in in_pruefungen %}{% with p = in_pruefungen[a.slug], art = a %}{% include "rechnen/_in_pruefungen.html" %}{% endwith %}{% endif %}
       </li>
       {% endfor %}
     </ul>

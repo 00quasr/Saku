@@ -4,13 +4,15 @@
 .rechnen-gruppe { margin-top: 40px; }
 .rechnen-gruppe > .etikett { margin-bottom: 12px; }
 .rechnen-arten { display: grid; grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr)); gap: 12px; }
-.rechnen-arten > li { display: grid; }
-.rechnen-art {
-  display: grid; align-content: start; gap: 6px; padding: 16px 18px; text-decoration: none;
+/* Die Karte ist das li: darin der Link zur Art und darunter die Zeile „In deinen Prüfungen“ mit eigenem Link */
+.rechnen-arten > li {
+  display: grid; grid-template-rows: 1fr auto;  /* der Link füllt die Karte, die Prüfungszeile steht unten */
   background: var(--washi-hell); border: 1px solid var(--linie); border-radius: 10px;
   transition: border-color var(--kurz) ease-out;
 }
-.rechnen-art:hover { border-color: var(--sumi-mittel); }
+.rechnen-arten > li:has(> .rechnen-art:hover) { border-color: var(--sumi-mittel); }
+.rechnen-art { display: grid; align-content: start; gap: 6px; padding: 16px 18px; border-radius: 10px; text-decoration: none; }
+.rechnen-arten .rechnen-pruefungen { margin-top: -4px; padding: 0 18px 14px; }
 .rechnen-art-titel { font-family: var(--schrift-titel); font-weight: 600; font-size: 1.125rem; line-height: 1.5rem; }
 .rechnen-art-stand { display: flex; align-items: center; gap: 10px; margin-top: 6px; }
 
