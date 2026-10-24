@@ -188,6 +188,7 @@ def test_passende_art_zu_themen():
         "vergleich": ["Leasing oder Kauf", "Kostenarten im IT-Betrieb", "Amortisation einer Investition"],
         "nutzwert": ["Nutzwertanalyse bei der Lieferantenwahl", "Entscheidungsmatrix"],
         "netzplan": ["Netzplantechnik", "Gantt-Diagramm erstellen", "Projektplanung und Termine"],
+        "schreibtisch": ["Schreibtischtest mit Wertetabelle", "Kontrollstrukturen in Pseudocode", "Programmcode lesen und verstehen"],
     }
     for slug, namen in passt.items():
         for name in namen:
@@ -196,7 +197,8 @@ def test_passende_art_zu_themen():
     # früher zu breit: „Binär“, „Bandbreite“, „Übertragung“, „Strom“, „Speicher“, „Netz“, „Elektrische“, „IP-Adresse“
     for name in ["Binärbäume und Graphen", "Binäre Suche", "Bandbreitenmanagement mit QoS", "Übertragungsmedien im Gebäude",
                  "Datenstrom-Verarbeitung", "Speicherverwaltung im Betriebssystem", "Netzwerkmonitoring", "Elektrische Sicherheit prüfen",
-                 "Energielabel und Gütesiegel", "NAT mit privaten Adressen", "Vertragsarten im Kaufrecht", "Laufzeit und Speicherbedarf", None]:
+                 "Energielabel und Gütesiegel", "NAT mit privaten Adressen", "Vertragsarten im Kaufrecht", "Laufzeit und Speicherbedarf",
+                 "Fehlersuche im Netzwerk", None]:
         assert rechnen.passend([name]) is None, name
     # mehrere Themen: das erste passende (Keiko sortiert nach Gewicht)
     assert rechnen.passend(["Scrum", "Netzplantechnik", "RAID-Level"]).slug == "netzplan"
@@ -278,10 +280,88 @@ def test_einbindung_suche_ueben_themen(client, con):
     assert 'Ähnliches rechnen, mit immer neuen Zahlen: <a href="/rechnen/netzplan">Netzplan →</a>' in netzplan
     # nur der Themenname zählt: „Wirtschaftlichkeit“ (Stichworte Amortisation, Nutzwertanalyse) führt zu Kauf/Leasing/Miete
     assert 'href="/rechnen/vergleich"' in client.get(f"/keiko/?teilaufgabe={teilaufgabe('Nutzwertanalyse')}").get_data(as_text=True)
-    assert "Ähnliches rechnen" not in client.get(f"/keiko/?teilaufgabe={teilaufgabe('Bubblesort')}").get_data(as_text=True)
+    assert "Ähnliches rechnen" not in client.get(f"/keiko/?teilaufgabe={teilaufgabe('Whitebox')}").get_data(as_text=True)
 
     thema = con.execute("SELECT id FROM thema WHERE name = 'Netzplan'").fetchone()[0]
     notiz = client.get(f"/niwa/thema/{thema}", headers=HTMX).get_data(as_text=True)
     assert 'href="/rechnen/netzplan">Netzplan →</a>' in notiz
     andere = con.execute("SELECT id FROM thema WHERE name = 'Rekursion'").fetchone()[0]
     assert "Ähnliches rechnen" not in client.get(f"/niwa/thema/{andere}", headers=HTMX).get_data(as_text=True)
+
+
+# --- Schreibtischtest ----------------------------------------------------------------
+
+def _pseudocode_ausfuehren(code: str) -> tuple[list[int], dict]:
+    """Der angezeigte Pseudocode, Zeile für Zeile nach Python übersetzt (nur im Test, nur eigener Text)."""
+    zeilen = []
+    for zeile in code.splitlines():
+        text = re.sub(r"^\s*\d+  ", "", zeile)
+        einzug, befehl = re.match(r"(\s*)(.*)", text).groups()
+        befehl = (befehl.replace(" DIV ", " // ").replace(" MOD ", " % ").replace("≠", "!=").replace("≤", "<=")
+                  .replace("≥", ">=").replace(" = ", " == ").replace("länge(", "len(").replace(" ← ", " = "))
+        if befehl.startswith("ENDE"):
+            continue
+        for muster, ersatz in [(r"WENN (.*) DANN", r"if \1:"), (r"SONST", "else:"), (r"SOLANGE (.*)", r"while \1:"),
+                               (r"FÜR (\w+) = (.*) BIS (.*)", r"for \1 in range(\2, (\3) + 1):"), (r"AUSGABE (.*)", r"aus(\1)")]:
+            befehl = re.sub(f"^{muster}$", ersatz, befehl)
+        zeilen.append(einzug + befehl)
+    ausgabe = []
+    variablen = {"aus": lambda *werte: [ausgabe.extend(w if isinstance(w, list) else [w]) for w in werte]}
+    exec("\n".join(zeilen), variablen)
+    return ausgabe, variablen
+
+
+def _folge(text: str) -> list[int]:
+    return [int(x) for x in re.findall(r"-?\d+", text)]
+
+
+def test_schreibtisch_wie_python_und_wie_beschrieben():
+    import math
+    zwecke = [
+        (r"Quersumme von (\d+)", lambda n: [sum(map(int, n))]),
+        (r"Binärdarstellung von (\d+)", lambda n: [int(b) for b in reversed(f"{int(n):b}")]),
+        (r"Teiler von (\d+) und (\d+)", lambda a, b: [math.gcd(int(a), int(b))]),
+        (r"Fakultät (\d+)!", lambda n: [math.factorial(int(n))]),
+        (r"Potenz (\d+) hoch (\d+)", lambda b, n: [int(b) ** int(n)]),
+        (r"von (\d+) bis (\d+) addieren, die durch (\d+)", lambda a, b, k: [sum(i for i in range(int(a), int(b) + 1) if i % int(k) == 0),
+                                                                          sum(1 for i in range(int(a), int(b) + 1) if i % int(k))]),
+    ]
+    for seed, a in _alle("schreibtisch"):
+        code = re.search(r"```\n(.*?)```", a.frage, re.S)[1]
+        ausgabe, variablen = _pseudocode_ausfuehren(code)
+        if a.titel == "Fehlersuche":
+            nummer = a.loesung["zeile"]
+            fehlerhaft = re.search(r"`([^`]+)`, richtig wäre", a.rechenweg)[1]
+            assert re.search(rf"^\s*{nummer}  \s*(.*)$", code, re.M)[1] == fehlerhaft
+            assert ausgabe == _folge(re.search(r"gibt das Programm \*\*(.*?)\*\* aus", a.rechenweg)[1])
+            continue
+        assert ausgabe == _folge(re.search(r"Ausgabe: \*\*(.*?)\*\*", a.rechenweg)[1]), seed
+        for name, wert in a.loesung.items():
+            if a.titel == "Endwerte bestimmen":
+                assert _folge(str(wert)) == _folge(str(variablen[name])), (seed, name)
+        if a.titel == "Ausgabe bestimmen":
+            assert _folge(str(a.loesung["ausgabe"])) == ausgabe
+        zweck = a.frage.split("\n")[0].split("Es soll ")[1]
+        for muster, erwartet in zwecke:
+            if m := re.search(muster, zweck):
+                assert ausgabe == erwartet(*m.groups()), (seed, zweck)
+        if "umkehren" in zweck:
+            assert ausgabe == _folge(re.search(r"zahlen ← \[(.*?)\]", code)[1])[::-1]
+
+
+def test_wertetabelle_als_eingabetabelle(client):
+    seed, a = next((s, a) for s, a in _alle("schreibtisch", "Wertetabelle"))
+    assert a.tabellen_felder == {f.name for f in a.felder} and len(a.tabelle) == len(a.tabelle[1:]) + 1
+    html = client.get(f"/rechnen/schreibtisch?seed={seed}").get_data(as_text=True)
+    assert html.count('<input name="feld-d') == len(a.felder) and 'class="rechnen-felder"' not in html
+    daten = {"seed": seed, **{f"feld-{f.name}": f.anzeige for f in a.felder}, f"feld-{a.felder[0].name}": "999"}
+    html = client.post("/rechnen/schreibtisch/pruefen", data=daten, headers=HTMX).get_data(as_text=True)
+    assert f"{len(a.felder) - 1} von {len(a.felder)} richtig." in html and html.count("rechnen-zelle--falsch") == 1
+
+
+def test_listen_und_leere_zellen():
+    liste = Feld("a", "Array", "3, 8, 1", typ="liste")
+    assert all(rechnen.stimmt(liste, t) for t in ["3, 8, 1", "3 8 1", "[3; 8; 1]", "3-8-1", "03,8,1"])
+    assert not rechnen.stimmt(liste, "3, 1, 8") and not rechnen.stimmt(liste, "3, 8")
+    leer = Feld("z", "Zelle", "", typ="text")
+    assert rechnen.stimmt(leer, "") and not rechnen.stimmt(leer, "5") and not rechnen.stimmt(Feld("z", "Zahl", 5, stellen=0), "")
