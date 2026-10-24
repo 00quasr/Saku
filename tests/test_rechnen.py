@@ -195,3 +195,48 @@ def test_gemischt_bevorzugt_schwaches():
 
 def test_deutsche_zahlen_anzeigen():
     assert (de(1024), de(1.81899), de(0.5), de(16382), de(-14)) == ("1.024", "1,82", "0,5", "16.382", "-14")
+
+
+# --- Routen (Demo-Datenbank) -----------------------------------------------------
+
+HTMX = {"HX-Request": "true"}
+
+
+def test_uebersicht_und_seitenleiste(client):
+    html = client.get("/rechnen/").get_data(as_text=True)
+    assert all(a.titel in html for a in rechnen.ARTEN.values()) and all(g.replace("&", "&amp;") in html for g in rechnen.GRUPPEN)
+    assert 'href="/rechnen/gemischt" data-taste="Enter"' in html and "Noch nicht gerechnet" in html
+    assert 'href="/rechnen/"' in client.get("/").get_data(as_text=True)  # Seitenleiste
+    assert client.get("/rechnen/gibtsnicht").status_code == 404
+
+
+def test_aufgabe_hat_feste_adresse(client):
+    weiter = client.get("/rechnen/subnetz")
+    assert weiter.status_code == 302 and re.search(r"/rechnen/subnetz\?seed=\d+$", weiter.headers["Location"])
+    eins, zwei = (client.get("/rechnen/netzplan?seed=42").get_data(as_text=True) for _ in range(2))
+    frage = re.compile(r'rechnen-frage">(.*?)</div>', re.S)
+    assert frage.search(eins)[1] == frage.search(zwei)[1] and 'name="seed" value="42"' in eins and "autofocus" in eins
+    teil = client.get("/rechnen/netzplan?seed=42", headers=HTMX)
+    assert teil.headers["HX-Push-Url"] == "/rechnen/netzplan?seed=42" and "<html" not in teil.get_data(as_text=True)
+    assert re.search(r"/rechnen/\w+\?seed=\d+&gemischt=1$", client.get("/rechnen/gemischt").headers["Location"])
+    assert 'hx-get="/rechnen/gemischt"' in client.post("/rechnen/raid/pruefen", data={"seed": 1, "gemischt": "1", "aufgeben": "1"},
+                                                      headers=HTMX).get_data(as_text=True)
+
+
+def test_pruefen_speichert_den_versuch(client, con):
+    a = rechnen.erzeugen("subnetz", 7)
+    n, erstes = len(a.felder), a.felder[0]
+    richtig = {f"feld-{f.name}": f.anzeige for f in a.felder}
+
+    def pruefen(**daten):
+        return client.post("/rechnen/subnetz/pruefen", data={"seed": 7} | daten, headers=HTMX).get_data(as_text=True)
+    html = pruefen(**richtig)
+    assert "Richtig." in html and "Rechenweg" in html and 'data-taste="Enter"' in html and "Nächste Aufgabe" in html
+    html = pruefen(**richtig | {f"feld-{erstes.name}": "falsch"})
+    assert f"{n - 1} von {n} richtig." in html and f"<strong class=\"zahl\">{erstes.anzeige}</strong>" in html
+    assert "Zählt als nicht gelöst" in pruefen(aufgeben="1")
+    assert "Noch nichts eingetragen" in pruefen(**{f"feld-{erstes.name}": "  "})  # ↵ auf leerer Karte zählt nicht
+    zeilen = [tuple(z) for z in con.execute("SELECT art, seed, richtig, felder_richtig, felder_gesamt FROM rechenuebung ORDER BY id")]
+    assert zeilen == [("subnetz", 7, 1, n, n), ("subnetz", 7, 0, n - 1, n), ("subnetz", 7, 0, 0, n)]
+    assert "1 von 3 zuletzt · 3 gerechnet" in client.get("/rechnen/").get_data(as_text=True)
+    assert client.post("/rechnen/subnetz/pruefen", data={}).status_code == 400

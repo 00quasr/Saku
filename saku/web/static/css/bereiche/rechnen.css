@@ -1,0 +1,58 @@
+/* rechnen – Rechentrainer: Arten im Überblick, Aufgabe mit Eingabefeldern, Rechenweg */
+
+.rechnen-start { gap: 16px; margin-bottom: 8px; }
+.rechnen-gruppe { margin-top: 40px; }
+.rechnen-gruppe > .etikett { margin-bottom: 12px; }
+.rechnen-arten { display: grid; grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr)); gap: 12px; }
+.rechnen-arten > li { display: grid; }
+.rechnen-art {
+  display: grid; align-content: start; gap: 6px; padding: 16px 18px; text-decoration: none;
+  background: var(--washi-hell); border: 1px solid var(--linie); border-radius: 10px;
+  transition: border-color var(--kurz) ease-out;
+}
+.rechnen-art:hover { border-color: var(--sumi-mittel); }
+.rechnen-art-titel { font-family: var(--schrift-titel); font-weight: 600; font-size: 1.125rem; line-height: 1.5rem; }
+.rechnen-art-stand { display: flex; align-items: center; gap: 10px; margin-top: 6px; }
+
+/* Die letzten zehn Versuche: gefüllt richtig, hohl falsch (nicht nur Farbe) */
+.verlauf { display: inline-flex; gap: 3px; }
+.verlauf-punkt { width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid var(--beni); }
+.verlauf-punkt--richtig { background: var(--matcha); border-color: var(--matcha); }
+
+/* Aufgabe */
+.seite.rechnen:has(.rechnen-karte) { padding-top: 24px; }
+.rechnen-kopf { display: grid; gap: 2px; }
+.rechnen-werkzeuge { gap: 12px; }
+
+/* Felder: Beschriftung | Eingabe mit Einheit | Ergebnis */
+.rechnen-felder { display: grid; grid-template-columns: minmax(10rem, max-content) max-content minmax(0, 1fr); gap: 10px 16px; align-items: center; }
+.rechnen-feld { display: contents; }
+.rechnen-feld > label { font-weight: 500; }
+.rechnen-eingabe { display: flex; align-items: center; gap: 8px; }
+.rechnen-eingabe .input { width: 15rem; font-family: var(--schrift-code); font-size: 0.9375rem; font-variant-numeric: tabular-nums; }
+.rechnen-feld--text .input { width: 24rem; }  /* ausgeschriebene IPv6-Adressen: 39 Zeichen */
+.rechnen-eingabe .select { min-width: 12rem; }
+.rechnen-eingabe :disabled { opacity: 1; cursor: default; }
+.rechnen-feld--richtig :is(.input, .select) { border-color: var(--matcha); background: color-mix(in oklab, var(--matcha) 8%, var(--washi-hell)); }
+.rechnen-feld--falsch :is(.input, .select) { border-color: var(--beni); background: color-mix(in oklab, var(--beni) 8%, var(--washi-hell)); }
+.rechnen-marke { font-weight: 600; }
+.rechnen-feld--richtig .rechnen-marke { color: var(--matcha); }
+.rechnen-feld--falsch .rechnen-marke > [aria-label] { color: var(--beni); }
+.rechnen-marke strong { font-family: var(--schrift-code); font-weight: 600; }
+
+.rechnen-aktionen, .rechnen-weiter { gap: 10px; }
+.rechnen-aktionen .btn, .rechnen-weiter .btn { gap: 10px; }
+.rechnen-ergebnis { display: grid; gap: 14px; padding-top: 24px; border-top: 1px solid var(--linie); }
+.rechnen-weg ol { padding-left: 1.5em; }
+.rechnen-weg ol > li + li { margin-top: 4px; }
+
+/* Dezenter Hinweis auf der Üben-Karte und in der Themen-Notiz */
+.rechnen-link { color: var(--sumi-mittel); }
+.rechnen-link a { color: var(--shu); text-decoration: none; }
+.rechnen-link a:hover { text-decoration: underline; }
+
+@media (max-width: 720px) {
+  .rechnen-felder { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+  .rechnen-marke:empty { display: none; }
+  .rechnen-eingabe .input, .rechnen-feld--text .input { width: 100%; }
+}

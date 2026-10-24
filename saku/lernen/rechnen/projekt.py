@@ -70,7 +70,7 @@ def netzplan(rng):
                   Feld("pfad", "Kritischer Pfad", pfad, typ="pfad")]
         auftrag = f"die Projektdauer, den Gesamtpuffer von Vorgang {x['id']} und den kritischen Pfad (z. B. „A-B-D“)"
     elif variante == "zeiten":
-        felder = [Feld(k, f"{k.upper()} {x['id']}", x[k], "Tag", stellen=0) for k in ("faz", "fez", "saz", "sez")] + [projektdauer]
+        felder = [Feld(k, f"{k.upper()} {x['id']}", x[k], stellen=0) for k in ("faz", "fez", "saz", "sez")] + [projektdauer]
         auftrag = f"für Vorgang {x['id']} den frühesten und spätesten Anfangs- und Endzeitpunkt (FAZ, FEZ, SAZ, SEZ) sowie die Projektdauer"
     else:
         felder = [Feld("gp", f"Gesamtpuffer {x['id']}", x["gp"], "Tage", stellen=0),

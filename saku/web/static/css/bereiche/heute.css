@@ -115,7 +115,7 @@ a.flaeche:hover { border-color: var(--sumi-mittel); }
 .kalender-legende .kalender-tag { width: 10px; height: 10px; }
 
 /* Tastenhinweis auf dunklem Primärknopf (Lernbereiche) */
-:is(.bereich-heute, .bereich-keiko, .bereich-michi, .bereich-shiken) .btn:not([data-variant]) .taste { background: transparent; color: inherit; border-color: color-mix(in oklab, currentColor 35%, transparent); }
+:is(.bereich-heute, .bereich-keiko, .bereich-rechnen, .bereich-michi, .bereich-shiken) .btn:not([data-variant]) .taste { background: transparent; color: inherit; border-color: color-mix(in oklab, currentColor 35%, transparent); }
 
 @media (max-width: 1000px) {
   .heute-raster { grid-template-columns: 1fr; }
