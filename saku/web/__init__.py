@@ -91,6 +91,14 @@ def create_app(daten: Path | None = None) -> Flask:
         from saku.sensei.suche import quellen_links
         return quellen_links(db(), html)
 
+    @app.errorhandler(OverflowError)
+    def zahl_zu_gross(fehler):
+        """Ganzzahlen aus Adresse oder Formular (type=int) sind unbegrenzt, SQLite speichert höchstens 2^63: eine Seed,
+        Teilaufgabe oder Startzeit darüber ist eine ungültige Eingabe, kein Absturz. Andere Überläufe bleiben Fehler."""
+        if "SQLite INTEGER" not in str(fehler):
+            raise fehler
+        return "Zahl zu groß", 400
+
     @app.teardown_appcontext
     def schliessen(_fehler):
         con = g.pop("db", None)
