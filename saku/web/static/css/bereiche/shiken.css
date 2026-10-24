@@ -39,14 +39,7 @@
 .shiken-zeile > * + * { margin-top: 12px; }
 .shiken-vergleich { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 24px; }
 .shiken-vergleich > div { display: grid; gap: 8px; align-content: start; }
-.shiken-antwort {
-  white-space: pre-wrap; padding: 12px 16px; background: var(--washi-hell);
-  border: 1px solid var(--linie); border-radius: var(--radius);
-}
 .shiken-punkte .input { width: 6rem; }
-.shiken-auto { display: inline-flex; align-items: center; gap: 6px; }
-.shiken-auto .icon { width: 14px; height: 14px; color: var(--matcha); }
-.shiken-auto--fehler .icon { color: var(--beni); }
 
 /* Hochrechnung der Abschlussprüfung */
 .hochrechnung { display: grid; gap: 16px; padding: 22px 24px; border-radius: 14px; margin-bottom: 8px; }

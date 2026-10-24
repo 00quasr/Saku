@@ -35,7 +35,8 @@ def datum_lang(tag: date) -> str:
 
 
 def kalender(con, heute: date, wochen: int = 20) -> list[list[dict]]:
-    """Lerntage der letzten Wochen, je Woche Montag bis Sonntag; stufe 0 bis 4 nach Anzahl Bewertungen."""
+    """Lerntage der letzten Wochen, je Woche Montag bis Sonntag; stufe 0 bis 4 nach Anzahl Übungen (Bewertungen und
+    Rechenaufgaben, v_lerntage.bewertungen)."""
     tage = {z["tag"]: z["bewertungen"] for z in con.execute("SELECT tag, bewertungen FROM v_lerntage")}
     start = heute - timedelta(days=heute.weekday() + 7 * (wochen - 1))
     raster = []

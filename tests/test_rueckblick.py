@@ -59,3 +59,16 @@ def test_heute_und_verlauf_zeigen_den_rueckblick(woche, client):
         assert "Stärkstes Thema:" in html and "Projektmanagement</a>" in html and "Modellierung mit UML</a>" in html
         assert "50 % richtig" in html
     assert "Diese Woche" not in client.get("/keiko/verlauf?seite=1").get_data(as_text=True)  # nur oben auf der ersten Seite
+
+
+def test_lernserie_und_kalender_zaehlen_uebungen(con, client):
+    """v_lerntage zählt seit Migration 9 auch Rechenaufgaben: beschriftet ist die Zahl als Übungen, nicht als Bewertungen."""
+    karten.bewerten(con, 1, 3)
+    heute = date.today().strftime("%d.%m.")
+    html = client.get("/").get_data(as_text=True)
+    assert f'title="{heute}: 1 Übung"' in html and f'title="{heute}{date.today():%Y}: 1 Übung"' in html
+    con.execute("INSERT INTO rechenuebung (art, seed, richtig, felder_richtig, felder_gesamt) VALUES ('subnetz', 1, 1, 1, 1)")
+    con.commit()
+    html = client.get("/").get_data(as_text=True)
+    assert f'title="{heute}: 2 Übungen"' in html and f'title="{heute}{date.today():%Y}: 2 Übungen"' in html
+    assert "2 Bewertungen" not in html

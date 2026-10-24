@@ -66,3 +66,14 @@ def test_fokus_und_ansagen_nach_dem_tausch(client, con):
     ergebnis = client.post("/keiko/9/sql", data={"antwort": "SELECT * FROM lager"}).get_data(as_text=True)
     assert '<figure class="sql-tabelle" aria-live="off">' in ergebnis and "3 Zeilen" in ergebnis
     assert 'id="sql-ergebnis" class="sql-ergebnis" aria-live="polite"' in client.get("/keiko/?teilaufgabe=9").get_data(as_text=True)
+
+
+def test_geteilte_bausteine_stehen_in_saku_css():
+    """Was mehrere Bereiche nutzen, steht in saku.css; eine Bereichsdatei, die so eine Klasse ohne Bereichsbezug neu definiert,
+    gestaltet alle Bereiche um (so machte .verlauf aus rechnen.css einmal die ganze Verlauf-Seite zur Zeile)."""
+    css = Path(__file__).parents[1] / "saku" / "web" / "static" / "css"
+    gemeinsam = css.joinpath("saku.css").read_text(encoding="utf-8")
+    for klasse in ("segment", "shiken-auto", "shiken-antwort", "rechnen-link", "verlauf", "verlauf-punkt", "bunseki-versteckt"):
+        assert re.search(rf"^\.{klasse}[\s{{>\[.:-]", gemeinsam, re.M), klasse
+        for datei in css.joinpath("bereiche").glob("*.css"):
+            assert not re.search(rf"^\.{klasse}(?![\w-])", datei.read_text(encoding="utf-8"), re.M), (klasse, datei.name)

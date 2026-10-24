@@ -116,7 +116,7 @@
       <p class="kachel-zahl"><span class="zahl">{{ lernserie }}</span> {{ 'Tag' if lernserie == 1 else 'Tage' }} in Folge</p>
       <ol class="heute-woche" aria-label="Die letzten sieben Tage">
         {% for t in woche %}
-        <li class="{{ 'gelernt' if t.n }}{{ ' heute-tag' if loop.last }}" title="{{ t.tag.strftime('%d.%m.') }}: {{ t.n }} Übungen">
+        <li class="{{ 'gelernt' if t.n }}{{ ' heute-tag' if loop.last }}" title="{{ t.tag.strftime('%d.%m.') }}: {{ t.n }} {{ 'Übung' if t.n == 1 else 'Übungen' }}">
           <span aria-hidden="true">{{ 'MDMDFSS'[t.tag.weekday()] }}</span>
         </li>
         {% endfor %}
@@ -166,7 +166,7 @@
       {% for w in kalender %}<span>{% if loop.first or w[0].tag.month != kalender[loop.index0 - 1][0].tag.month %}{{ ['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'][w[0].tag.month - 1] }}{% endif %}</span>{% endfor %}
     </div>
     <div class="kalender" role="img" aria-label="An {{ kalender|sum(start=[])|selectattr('n')|list|length }} von 140 Tagen gelernt">
-      {% for w in kalender %}{% for t in w %}<span class="kalender-tag stufe-{{ t.stufe }}{{ ' zukunft' if t.zukunft }}" title="{{ t.tag.strftime('%d.%m.%Y') }}: {{ t.n }}"></span>{% endfor %}{% endfor %}
+      {% for w in kalender %}{% for t in w %}<span class="kalender-tag stufe-{{ t.stufe }}{{ ' zukunft' if t.zukunft }}" title="{{ t.tag.strftime('%d.%m.%Y') }}: {{ t.n }} {{ 'Übung' if t.n == 1 else 'Übungen' }}"></span>{% endfor %}{% endfor %}
     </div>
   </section>
 </div>

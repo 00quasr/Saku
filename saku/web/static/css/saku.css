@@ -231,6 +231,39 @@ a:not(.btn) { color: inherit; text-underline-offset: 3px; }
 .tusche { animation: tusche .45s ease-out backwards; }  /* nicht "both": eine anhaltende Animation isoliert den Blend-Modus der Ausschnitte */
 @keyframes tusche { from { opacity: 0; filter: blur(6px); } }
 
+/* Geteilte Bausteine mehrerer Bereiche (Namen von dort, wo sie zuerst gebraucht wurden) */
+/* Segment-Schalter: Radios bleiben fokussierbar, nur unsichtbar */
+.segment { display: inline-flex; gap: 2px; padding: 3px; background: var(--flaeche); border-radius: 9px; }
+.segment label { position: relative; }
+.segment input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.segment > span, .segment > a, .segment label > span { display: block; padding: 5px 12px; border-radius: 7px; font-size: 0.875rem; color: var(--sumi-mittel); white-space: nowrap; }
+.segment > span.aktiv, .segment > a[aria-current], .segment input:checked + span { background: var(--washi-hell); color: var(--sumi); box-shadow: 0 1px 2px rgb(0 0 0 / .15); }
+.segment > a { display: inline-flex; align-items: center; gap: 6px; text-decoration: none; }
+.segment > a:hover { color: var(--sumi); }
+.segment input:focus-visible + span { outline: 2px solid var(--shu); outline-offset: 1px; }
+.segment[aria-disabled="true"] { opacity: .7; }
+/* Nur für Screenreader */
+.bunseki-versteckt {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip-path: inset(50%); white-space: nowrap;
+}
+/* Eigene Antwort und automatische Bewertung: Simulation, Mini-Test, Üben */
+.shiken-antwort {
+  white-space: pre-wrap; padding: 12px 16px; background: var(--washi-hell);
+  border: 1px solid var(--linie); border-radius: var(--radius);
+}
+.shiken-auto { display: inline-flex; align-items: center; gap: 6px; }
+.shiken-auto .icon { width: 14px; height: 14px; color: var(--matcha); }
+.shiken-auto--fehler .icon { color: var(--beni); }
+/* Dezenter Hinweis auf der Üben-Karte und in der Themen-Notiz */
+.rechnen-link { color: var(--sumi-mittel); }
+.rechnen-link a { color: var(--shu); text-decoration: none; }
+.rechnen-link a:hover { text-decoration: underline; }
+/* Makro m.verlauf. Die letzten zehn Versuche: gefüllt richtig, hohl falsch (nicht nur Farbe) */
+.verlauf { display: inline-flex; gap: 3px; }
+.verlauf-punkt { width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid var(--beni); }
+.verlauf-punkt--richtig { background: var(--matcha); border-color: var(--matcha); }
+
 /* Ensō */
 .enso { overflow: visible; }
 .enso-spur { fill: none; stroke: var(--linie); stroke-width: 6; }
