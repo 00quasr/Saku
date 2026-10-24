@@ -82,6 +82,18 @@ def test_endlosschleife_und_grenzen(monkeypatch):
     assert time.monotonic() - start < 2
     gross = sql.ausfuehren(DDL, DATEN, "WITH RECURSIVE r(x) AS (SELECT 1 UNION ALL SELECT x + 1 FROM r LIMIT 6000) SELECT x FROM r")
     assert gross["meldung"] == "mehr als 5000 Zeilen" and len(gross["tabellen"][0]["zeilen"]) == sql.ZEIGEN
+    # Speicher: lange Texte, viele Spalten und ein großes Ergebnis brechen ab, bevor Gigabytes im Speicher liegen
+    lang = "WITH RECURSIVE r(x) AS (SELECT 1 UNION ALL SELECT x + 1 FROM r LIMIT {}) SELECT {} FROM r"
+    for anweisung in (lang.format(1, "randomblob(200000)"), lang.format(400, "printf('%.*c', 99000, 'x')"),
+                      lang.format(1, ", ".join(["x"] * 200))):
+        with pytest.raises(sql.SqlFehler, match="Zu groß|too many columns"):
+            sql.ausfuehren(DDL, DATEN, anweisung)
+    # berechnete Spalten sind gespeichert klein, gelesen groß: auch der Tabellenstand hält die Grenze
+    berechnet = ("CREATE TABLE gross (a, " + ", ".join(f"b{i} AS (zeroblob(99000))" for i in range(5)) + "); INSERT INTO gross (a) "
+                 "WITH RECURSIVE r(x) AS (SELECT 1 UNION ALL SELECT x + 1 FROM r LIMIT 100) SELECT x FROM r;")
+    for lauf in (lambda: sql.ausfuehren(DDL, DATEN, berechnet), lambda: sql.pruefen(DDL, DATEN, "DELETE FROM kunde", berechnet)):
+        with pytest.raises(sql.SqlFehler, match="Zu groß"):
+            lauf()
     with pytest.raises(sql.SqlFehler, match="Zu lang"):
         sql.ausfuehren(DDL, DATEN, "SELECT 1;" * (sql.ANWEISUNGEN + 1))
     with pytest.raises(sql.SqlFehler, match="Schreib erst"):

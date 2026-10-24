@@ -618,9 +618,10 @@ def _c_delete(rng, s):
     if fall == "alt":
         # Grenze so, dass davor Erledigtes und Offenes liegt: wer die Bedingung für NULL vergisst, löscht zu viel
         d = rng.choice([d for d in sorted(set(v.werte(3))) if {z[5] is None for z in v.zeilen if z[3] < d} == {True, False}])
+        erledigt = w["erledigt"].removeprefix("die ")
         return ("DELETE", f"alle {w['vorgaenge']} vor dem {_de_datum(d)} löscht, {w['erledigt']}.",
                 f"DELETE FROM {v.name}\nWHERE {v.spalte(3)} < '{d}'\n  AND {v.spalte(5)} IS NOT NULL;",
-                [f"„vor dem“ heißt <, der Tag selbst bleibt", f"{w['erledigt'].removeprefix('die ').capitalize()}: {v.spalte(5)} ist gesetzt, also IS NOT NULL",
+                [f"„vor dem“ heißt <, der Tag selbst bleibt", f"{erledigt[0].upper()}{erledigt[1:]}: {v.spalte(5)} ist gesetzt, also IS NOT NULL",
                  "Beide Bedingungen mit AND; ohne WHERE wäre die Tabelle leer"])
     t, wer = (s.wer, f"alle {w['wer']} löscht, die noch keine {w['vorgang']} haben.") if fall == "wer" else \
         (s.was, f"alle {w['was']} löscht, die in keiner {w['vorgang']} vorkommen.")

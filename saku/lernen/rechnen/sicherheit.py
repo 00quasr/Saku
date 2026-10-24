@@ -122,7 +122,7 @@ def _brute_force(rng):
     dauer = sekunden / faktor
     frage = (f"Die Passwortrichtlinie der {rng.choice(FIRMEN)} verlangt Passwörter aus genau **{laenge} Zeichen**; erlaubt sind {text}.{_umlaute(anzahl)} "
              f"Ein Angreifer probiert {wie} **{rate} Passwörter pro Sekunde**.\n\nBerechnen Sie den Zeichenvorrat, die Anzahl der "
-             f"möglichen Passwörter (als Potenz wie 10^4 oder ausgeschrieben) und die Dauer des Brute-Force-Angriffs in {in_einheit} im "
+             f"möglichen Passwörter (ausgeschrieben, als Potenz wie 10^4 oder gerundet wie 1,23 · 10^9) und die Dauer des Brute-Force-Angriffs in {in_einheit} im "
              "schlimmsten Fall und im Mittel (zwei Nachkommastellen; 1 Jahr = 365 Tage).")
     felder = [Feld("vorrat", "Zeichenvorrat", n, "Zeichen", stellen=0), Feld("kombinationen", "Mögliche Passwörter", kombinationen, stellen=0),
               Feld("max", "Dauer im schlimmsten Fall", dauer, einheit), Feld("mittel", "Dauer im Mittel", dauer / 2, einheit)]

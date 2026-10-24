@@ -43,7 +43,7 @@
       <li class="flaeche shiken-bereich shiken-schnelltest" id="schnelltest">
         <p class="etikett">Schnelltest</p>
         <p class="shiken-bereich-name">WiSo gemischt</p>
-        <p class="klein gedaempft zahl">{{ schnelltest.anzahl }} Teilaufgaben zum Anklicken · etwa {{ schnelltest.minuten }} Minuten · aus {{ schnelltest.termine }} {{ 'Termin' if schnelltest.termine == 1 else 'Terminen' }}</p>
+        <p class="klein gedaempft zahl">{{ schnelltest.anzahl }} {{ 'Teilaufgabe' if schnelltest.anzahl == 1 else 'Teilaufgaben' }} zum Anklicken · etwa {{ schnelltest.minuten }} {{ 'Minute' if schnelltest.minuten == 1 else 'Minuten' }} · aus {{ schnelltest.termine }} {{ 'Termin' if schnelltest.termine == 1 else 'Terminen' }}</p>
         <p class="klein gedaempft">Zufällig quer durch alle Termine, Zeit wie in der Prüfung. Saku wertet sofort aus.</p>
         <form method="post" action="{{ url_for('shiken.neu') }}">
           <input type="hidden" name="bereich" value="{{ schnelltest.bereich }}">

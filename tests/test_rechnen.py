@@ -990,6 +990,8 @@ def test_passwortstaerke_nachgerechnet():
             assert l["vorrat"] == n and l["kombinationen"] == n ** laenge
             assert l["max"] == pytest.approx(n ** laenge / rate / einheit) and l["mittel"] == pytest.approx(l["max"] / 2)
             assert rechnen.stimmt(a.felder[1], f"{n}^{laenge}")  # als Potenz getippt
+            mantisse, exponent = f"{n ** laenge:.2e}".split("e")  # gerundet wie im Rechenweg: 2,18 · 10^14
+            assert rechnen.stimmt(a.felder[1], f"{mantisse.replace('.', ',')} · 10^{int(exponent)}", a.toleranz)
             falsch = _mit(a, kombinationen=str(n * laenge), mittel=de(l["max"]), vorrat=str(n - 10))
             assert not (falsch["kombinationen"] or falsch["mittel"] or falsch["vorrat"]) and falsch["max"]
         elif a.titel == "Entropie und Mindestlänge":
@@ -1270,6 +1272,11 @@ def test_sql_musterloesung_laeuft_und_typische_fehler_fallen_auf(art):
         assert not rechnen.pruefen(a, {"sql": "SELECT 1"})["sql"] and not rechnen.pruefen(a, {"sql": "SELEKT"})["sql"]
 
 
+def test_sql_erklaerung_schreibt_nur_den_satzanfang_gross():
+    weg = next(a.rechenweg for _, a in _alle("aendern", "DELETE") if "Karten bereits abgeholt" in a.frage)
+    assert "Deren Karten bereits abgeholt sind:" in weg  # str.capitalize machte daraus „Deren karten …“
+
+
 def test_sql_daten_lassen_typische_fehler_auffallen():
     from saku.lernen.rechnen.datenbanken import SZENARIEN
     for s in SZENARIEN:
@@ -1286,6 +1293,21 @@ def test_sql_daten_lassen_typische_fehler_auffallen():
         assert min(treffer) >= 1 and max(treffer) >= 2
 
 
+def test_pruefen_fuehrt_sql_und_pseudocode_nur_einmal_aus(client, monkeypatch):
+    from saku.lernen import sql
+    from saku.lernen.rechnen import pseudocode
+    aufrufe = []
+    for modul, name in ((sql, "pruefen"), (pseudocode, "vergleich")):
+        echt = getattr(modul, name)
+        monkeypatch.setattr(modul, name, lambda *x, echt=echt: aufrufe.append(1) or echt(*x))
+    for art in ("join", "algorithmus"):
+        seed, a = next(_alle(art))
+        aufrufe.clear()
+        html = client.post(f"/rechnen/{art}/pruefen", data={"seed": seed, f"feld-{a.felder[0].name}": a.felder[0].loesung},
+                           headers={"HX-Request": "true"}).get_data(as_text=True)
+        assert "Richtig." in html and len(aufrufe) == 1, art  # nicht noch einmal für rechnen.pruefen
+
+
 def test_create_table_prueft_schluessel_nicht_die_datentypen():
     from saku.lernen import sql
     seed, a = next((seed, a) for seed, a in _alle("aendern") if a.titel == "CREATE TABLE" and "FOREIGN KEY" in a.felder[0].loesung
@@ -1299,6 +1321,11 @@ def test_create_table_prueft_schluessel_nicht_die_datentypen():
     assert ohne_pflicht["ergebnis"] == 2 and any("NOT NULL fehlt" in h for h in ohne_pflicht["hinweise"])
     assert "Primärschlüssel fehlt" in " ".join(rechnen.sql_vergleich(a, re.sub(r" PRIMARY KEY|,\n    PRIMARY KEY \([^)]*\)", "", loesung))["hinweise"])
     assert rechnen.sql_vergleich(a, "PRAGMA foreign_keys = ON")["fehler"].startswith("Nicht erlaubt")  # die Sandbox bleibt dicht
+    # temporäre Tabellen (im Vergleich unsichtbar) verdecken weder die Schema-Abfragen (sonst Fehler 500) noch die eigene Tabelle
+    verdeckt = "\nCREATE TEMP TABLE pragma_table_info (x);\nCREATE TEMP TABLE pragma_foreign_key_list (x);"
+    assert rechnen.sql_vergleich(a, loesung + verdeckt)["ergebnis"] == 3
+    ohne_schluessel = re.sub(r"\s+(PRIMARY KEY|NOT NULL)\b|,\n    (PRIMARY|FOREIGN) KEY [^\n]*", "", loesung)
+    assert rechnen.sql_vergleich(a, f"{ohne_schluessel}\n{loesung.replace('CREATE TABLE', 'CREATE TEMP TABLE')}")["ergebnis"] == 2
     with pytest.raises(sql.SqlFehler):
         sql.schluessel(*a.sandbox, "SELECT * FROM pragma_table_info('kunde')")
 

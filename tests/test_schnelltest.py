@@ -112,3 +112,13 @@ def test_zaehlt_nicht_als_wiso_simulation_und_steht_in_der_palette(wiso):
 def test_ohne_wiso_kein_schnelltest(client):
     assert 'id="schnelltest"' not in client.get("/shiken/").get_data(as_text=True)  # Demo ohne WiSo-Prüfungen
     assert client.post("/shiken/neu", data={"bereich": simulation.SCHNELLTEST}).status_code == 400
+
+
+def test_schnelltest_zaehlt_in_der_einzahl(wiso):
+    con, client = wiso
+    erste = simulation.schnelltest_kandidaten(con)[0]["teilaufgabe_id"]
+    con.execute("UPDATE teilaufgabe SET antwort = NULL WHERE id <> ?", (erste,))  # nur eine anklickbare bleibt
+    con.execute("UPDATE teilaufgabe SET punkte = 1 WHERE id = ?", (erste,))  # 0,6 Minuten
+    con.commit()
+    html = " ".join(client.get("/shiken/").get_data(as_text=True).split())
+    assert "1 Teilaufgabe zum Anklicken · etwa 1 Minute · aus 1 Termin<" in html

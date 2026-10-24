@@ -13,6 +13,9 @@ GRENZE = 5000        # mehr Zeilen liest Saku nicht
 SEKUNDEN = 2         # je Ausführung
 ANWEISUNGEN = 20     # ein kleines Skript, kein Programm
 ZEICHEN = 20_000
+# Speicher: Text je Wert, Spalten, Text und Blobs eines Ergebnisses zusammen (5000 Zeilen langer Texte wären sonst Gigabytes)
+LAENGE, SPALTEN, BYTES = 100_000, 100, 20_000_000
+ZU_GROSS = "Zu groß: Die Sandbox ist für kleine Beispieldaten gedacht."
 
 _VERBOTEN = {sqlite3.SQLITE_ATTACH, sqlite3.SQLITE_DETACH, sqlite3.SQLITE_PRAGMA}
 _FUNKTIONEN = {"load_extension", "fts3_tokenizer"}
@@ -54,8 +57,25 @@ def _meldung(fehler: Exception) -> str:
     if "not authorized" in text or "authorization denied" in text:
         return "Nicht erlaubt: ATTACH, PRAGMA und Erweiterungen sind in der Sandbox gesperrt."
     if "database or disk is full" in text or "too big" in text:
-        return "Zu groß: Die Sandbox ist für kleine Beispieldaten gedacht."
+        return ZU_GROSS
     return f"SQLite meldet: {text}"
+
+
+def _bytes(zeile: tuple) -> int:
+    return sum(len(w) for w in zeile if isinstance(w, (str, bytes)))
+
+
+def _holen(cur: sqlite3.Cursor, frei: int = BYTES) -> list[tuple]:
+    """Höchstens GRENZE + 1 Zeilen und frei Bytes an Text und Blobs."""
+    zeilen = []
+    for zeile in cur:
+        frei -= _bytes(zeile)
+        if frei < 0:
+            raise SqlFehler(ZU_GROSS)
+        zeilen.append(zeile)
+        if len(zeilen) > GRENZE:
+            break
+    return zeilen
 
 
 def _ausfuehren(con: sqlite3.Connection, sql: str) -> tuple[list[str], list[tuple]] | None:
@@ -67,7 +87,7 @@ def _ausfuehren(con: sqlite3.Connection, sql: str) -> tuple[list[str], list[tupl
         for teil in anweisungen(sql):
             cur = con.execute(teil)
             if cur.description:
-                ergebnis = [d[0] for d in cur.description], cur.fetchmany(GRENZE + 1)
+                ergebnis = [d[0] for d in cur.description], _holen(cur)
     except (sqlite3.Error, ValueError) as fehler:  # ValueError: Nullzeichen im Text
         raise SqlFehler(_meldung(fehler)) from None
     finally:
@@ -79,7 +99,8 @@ def _datenbank(ddl: str, daten: str) -> sqlite3.Connection:
     """Frische Datenbank im Speicher mit Tabellen und Beispieldaten, schon mit allen Grenzen."""
     con = sqlite3.connect(":memory:", isolation_level=None)
     con.setlimit(sqlite3.SQLITE_LIMIT_ATTACHED, 0)
-    con.setlimit(sqlite3.SQLITE_LIMIT_LENGTH, 1_000_000)
+    con.setlimit(sqlite3.SQLITE_LIMIT_LENGTH, LAENGE)
+    con.setlimit(sqlite3.SQLITE_LIMIT_COLUMN, SPALTEN)
     con.execute("PRAGMA max_page_count = 5000")  # höchstens 20 MB, auch für temporäre Tabellen
     con.execute("PRAGMA temp.max_page_count = 5000")
     con.set_authorizer(_erlaubt)
@@ -102,11 +123,16 @@ def _eigene(con: sqlite3.Connection, sql: str) -> tuple[list[str], list[tuple]] 
 
 
 def _stand(con: sqlite3.Connection) -> dict[str, tuple[list[str], list[tuple]]]:
-    """Alle Tabellen mit Spalten und Zeilen."""
-    stand = {}
-    for (name,) in con.execute("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name").fetchall():
-        cur = con.execute('SELECT * FROM "{}"'.format(name.replace('"', '""')))
-        stand[name] = [d[0] for d in cur.description], cur.fetchmany(GRENZE + 1)
+    """Alle Tabellen mit Spalten und Zeilen, zusammen in den Grenzen eines Ergebnisses: berechnete Spalten (b AS (…)) sind erst
+    beim Lesen groß. SqlFehler, wenn das Lesen scheitert."""
+    stand, frei = {}, BYTES
+    try:
+        for (name,) in con.execute("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name").fetchall():
+            cur = con.execute('SELECT * FROM "{}"'.format(name.replace('"', '""')))
+            stand[name] = [d[0] for d in cur.description], _holen(cur, frei)
+            frei -= sum(map(_bytes, stand[name][1]))
+    except sqlite3.Error as fehler:
+        raise SqlFehler(_meldung(fehler)) from None
     return stand
 
 
@@ -286,12 +312,13 @@ def schluessel(ddl: str, daten: str, anweisung: str) -> set[tuple[str, str, str]
     with closing(_datenbank(ddl, daten)) as con:
         _eigene(con, anweisung)
         con.set_authorizer(None)  # die Anweisung ist durch, das Schema liest nur Saku (PRAGMA bleibt ihr gesperrt)
+        # main. und 'main': temporäre Tabellen (unsichtbar im Vergleich) verdecken weder die Funktion noch die Tabelle
         raus = set()
         for (t,) in con.execute("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'").fetchall():
-            for _, spalte, _, pflicht, _, pk in con.execute("SELECT * FROM pragma_table_info(?)", (t,)).fetchall():
+            for _, spalte, _, pflicht, _, pk in con.execute("SELECT * FROM main.pragma_table_info(?, 'main')", (t,)).fetchall():
                 if pk or pflicht:
                     raus.add((t.lower(), spalte.lower(), "Primärschlüssel" if pk else "NOT NULL"))
-            for ziel, spalte in con.execute('SELECT "table", "from" FROM pragma_foreign_key_list(?)', (t,)).fetchall():
+            for ziel, spalte in con.execute("""SELECT "table", "from" FROM main.pragma_foreign_key_list(?, 'main')""", (t,)).fetchall():
                 raus.add((t.lower(), spalte.lower(), f"Fremdschlüssel auf {ziel.lower()}"))
     return raus
 
