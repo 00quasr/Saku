@@ -198,6 +198,9 @@ def test_passende_art_zu_themen():
         "verfuegbarkeit": ["Verfügbarkeit von Diensten", "Hochverfügbarkeit im Rechenzentrum", "MTBF und MTTR", "Redundanz im Netz"],
         "kuendigung": ["Kündigungsfristen im Arbeitsverhältnis", "Ausbildungsvertrag und Probezeit", "Grundlagen Arbeitsrecht"],
         "urlaub": ["Urlaubsanspruch berechnen", "Jugendarbeitsschutz in der Ausbildung"],
+        "backup": ["Datensicherung im Büro", "Backupstrategien vergleichen", "Generationenprinzip"],
+        "monitor": ["Peripheriegeräte auswählen", "Pixeldichte von Displays"],
+        "bandbreite": ["PC-Komponenten und ihre Leistungsdaten", "Arbeitsspeicher aufrüsten"],
     }
     for slug, namen in passt.items():
         for name in namen:
@@ -207,7 +210,8 @@ def test_passende_art_zu_themen():
     for name in ["Bandbreitenmanagement mit QoS", "Übertragungsmedien im Gebäude",
                  "Datenstrom-Verarbeitung", "Speicherverwaltung im Betriebssystem", "Netzwerkmonitoring", "Elektrische Sicherheit prüfen",
                  "Energielabel und Gütesiegel", "NAT mit privaten Adressen", "Vertragsarten im Kaufrecht", "Laufzeit und Speicherbedarf",
-                 "Fehlersuche im Netzwerk", "Hashwerte und digitale Signaturen", "Gruppenrichtlinien", None]:
+                 "Fehlersuche im Netzwerk", "Hashwerte und digitale Signaturen", "Gruppenrichtlinien", "Netzwerkmonitoring",
+                 "Bildschirmmasken entwerfen", "Namensauflösung mit DNS", "Qualitätssicherung", "Sozialversicherung", None]:
         assert rechnen.passend([name]) is None, name
     # mehrere Themen: das erste passende (Keiko sortiert nach Gewicht)
     assert rechnen.passend(["Scrum", "Netzplantechnik", "RAID-Level"]).slug == "netzplan"
@@ -739,3 +743,65 @@ def test_lernpfad_zeigt_rechentraining(client, con):
     html = " ".join(client.get(f"/michi/{nach_name['Projektmanagement']}").get_data(as_text=True).split())
     assert '<span class="zahl">4 von 5</span> zuletzt richtig' in html
     assert "Rechentraining" not in client.get(f"/michi/{nach_name['Anforderungen']}").get_data(as_text=True)
+
+
+
+# --- Datensicherung, Monitor, Bandbreite (Runde 7) ------------------------------------------
+
+def test_backup_nachgerechnet():
+    tage = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag"]
+    for seed, a in _alle("backup"):
+        l, f = a.loesung, a.frage
+        if a.titel == "Großvater-Vater-Sohn":
+            arbeitstage, wochen, monate = (int(x) for x in re.search(r"an (\d) Arbeitstagen.*?aufbewahrt (\d) Wochen.*?aufbewahrt (\d+) Monate", f, re.S).groups())
+            assert l["medien"] == (arbeitstage - 1) + wochen + monate
+            continue
+        gesamt = _zahl(re.search(r"([\d.]+) GB\*?\*? ?(?:Daten|\))", f)[1])
+        d = int(re.search(r"mit (?:zusammen )?\*?\*?(\d+) GB", f.split("ändern sich")[1])[1])
+        inkrementell = "inkrementell" in a.titel
+        if a.titel.startswith("Datenmenge"):
+            tag = tage.index(re.search(r"sichert der (\w+)", f)[1])
+            assert l["tag"] == (d if inkrementell else tag * d)
+            assert l["woche"] == gesamt + (4 * d if inkrementell else 10 * d)
+        else:
+            ausfall = tage.index(re.search(r"\*\*(\w+)morgen\*\*", f)[1])
+            erwartet = tage[:ausfall] if inkrementell else ([tage[0], tage[ausfall - 1]] if ausfall > 1 else [tage[0]])
+            assert rechnen.stimmt(a.felder[0], ", ".join(erwartet)) and l["menge"] == gesamt + (ausfall - 1) * d
+    tage_feld = Feld("t", "Tage", "Montag, Donnerstag", typ="wochentage")
+    assert all(rechnen.stimmt(tage_feld, t) for t in ["Mo, Do", "Montag (voll) und Donnerstag", "mo do"])
+    assert not any(rechnen.stimmt(tage_feld, t) for t in ["Do, Mo", "Montag", "Mo, Di, Do", ""])
+
+
+def test_monitor_und_bandbreite_nachgerechnet():
+    import math
+    for seed, a in _alle("monitor"):
+        l, f = a.loesung, a.frage
+        if a.titel == "Pixeldichte":
+            b, h = map(_zahl, re.search(r"\*\*([\d.]+) × ([\d.]+) Pixel\*\*", f).groups())
+            d = _zahl(re.search(r"\*\*([\d,]+) Zoll\*\*", f)[1])
+            assert l["ppi"] == pytest.approx(math.sqrt(b * b + h * h) / d)
+        elif a.titel == "Seitenverhältnis":
+            b, h = map(_zahl, re.search(r"\*\*([\d.]+) × ([\d.]+)\*\*", f).groups())
+            x, y = _folge(l["verhaeltnis"])
+            assert x * h == y * b and math.gcd(x, y) == 1
+        elif a.titel == "Breite und Höhe":
+            d = _zahl(re.search(r"\*\*([\d,]+) Zoll\*\*", f)[1])
+            x, y = map(int, re.search(r"\*\*(\d+):(\d+)\*\*", f).groups())
+            assert l["breite"] / l["hoehe"] == pytest.approx(x / y) and math.hypot(l["breite"], l["hoehe"]) == pytest.approx(d * 2.54)
+        else:
+            dpi = int(re.search(r"\*\*(\d+) dpi\*\*", f)[1])
+            assert l["breite"] == pytest.approx({"10 × 15 cm": 10, "13 × 18 cm": 13, "DIN A4": 21, "DIN A5": 14.8, "20 × 30 cm": 20}[
+                re.search(r"Format \*\*(.+?)\*\*", f)[1]] / 2.54 * dpi, abs=0.5)
+    for seed, a in _alle("bandbreite"):
+        l, f = a.loesung, a.frage
+        if a.titel == "Arbeitsspeicher":
+            mt = int(re.search(r"-(\d{4})\*\*", f)[1]) if "vom Typ" in f else 2 * _zahl(re.search(r"\*\*([\d.]+) MHz", f)[1])
+            kanaele = int(re.search(r"\*\*(\d) Kan", f)[1])
+            assert (l["effektiv"], l["kanal"], l["gesamt"]) == (mt, mt * 8, pytest.approx(mt * 8 * kanaele / 1000))
+        elif a.titel == "PCIe-Lanes":
+            gen, lanes = map(int, re.search(r"PCIe-(\d)\.0-x(\d+)", f).groups())
+            je_lane = {2: 0.5, 3: 0.9846, 4: 1.9692, 5: 3.9385}[gen]  # GB/s je Richtung laut PCI-SIG
+            assert l["lane"] == pytest.approx(je_lane, abs=0.0005) and l["gesamt"] == pytest.approx(je_lane * lanes, abs=0.01)
+        else:
+            gb = int(re.search(r"\*\*(\d+) GB\*\*", f)[1])
+            assert l["sata"] == pytest.approx(gb * 1000 / 600) and l["faktor"] > 5

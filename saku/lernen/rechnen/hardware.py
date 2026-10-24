@@ -33,6 +33,12 @@ FORMELN = {
 - Aus MTBF (mittlere Zeit zwischen Ausfällen) und MTTR (mittlere Reparaturzeit): V = MTBF : (MTBF + MTTR)
 
 *Beispiel:* 99,9 % im Jahr: 0,001 · 8.760 h = 8,76 h Ausfall; zwei Server mit je 99 % redundant: 1 − 0,01 · 0,01 = 99,99 %""",
+    "backup": """- Vollsicherung: alle Daten; inkrementell: was sich seit der **letzten Sicherung** geändert hat; differenziell: was sich seit der **letzten Vollsicherung** geändert hat
+- Ändern sich täglich andere Dateien mit d GB: inkrementell jeden Tag d, differenziell am k-ten Tag nach der Vollsicherung k · d
+- Wiederherstellen: inkrementell braucht die Vollsicherung und **alle** inkrementellen danach, differenziell die Vollsicherung und nur die **letzte** differenzielle
+- Großvater-Vater-Sohn: Medien = Söhne (Tagessicherungen, die eine Woche lang überschrieben werden) + Väter (Wochensicherungen) + Großväter (Monatssicherungen), jeweils so viele, wie aufbewahrt werden
+
+*Beispiel:* 500 GB, täglich 20 GB neu, Vollsicherung Montag: Donnerstag inkrementell 20 GB, differenziell 60 GB""",
 }
 
 
@@ -316,3 +322,78 @@ def _mtbf(rng):
                    f"Ausfall pro Jahr: (1 − {de(v, 6)}) · 8.760 h = **{de((1 - v) * 8760)} h**")
     felder = [Feld("v", "Verfügbarkeit", v * 100, "%", stellen=3), Feld("ausfall", "Ausfall pro Jahr", (1 - v) * 8760, "h")]
     return Aufgabe(frage, felder, weg, toleranz=0.002, titel="MTBF und MTTR")
+
+
+# --- Datensicherung -------------------------------------------------------------
+
+TAGE = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag"]
+
+
+@art("backup", "Datensicherung", "Daten & Medien", "Voll, inkrementell, differenziell: Datenmenge, Wiederherstellung, Großvater-Vater-Sohn",
+     ("Datensicherung", "Backupstrateg", "Sicherungsmedien", "Generationenprinzip", "Snapshot"), formeln=FORMELN["backup"])
+def backup(rng):
+    return rng.choice([_backup_menge, _wiederherstellen, _generationen])(rng)
+
+
+def _backup_lage(rng) -> tuple[int, int, str]:
+    gesamt = rng.choice([200, 300, 400, 500, 800, 1000, 1200])
+    return gesamt, round(gesamt * rng.choice([2, 3, 4, 5, 8, 10]) / 100), rng.choice(["inkrementell", "differenziell"])
+
+
+def _backup_menge(rng):
+    gesamt, taeglich, art_ = _backup_lage(rng)
+    tag = rng.randint(2, 4)  # Mittwoch bis Freitag (Montag ist die Vollsicherung)
+    mengen = [gesamt] + [taeglich if art_ == "inkrementell" else taeglich * k for k in range(1, 5)]
+    frage = (f"Der Dateiserver der {rng.choice(FIRMEN)} hält **{de(gesamt)} GB** Daten. Montags läuft eine Vollsicherung, dienstags bis freitags "
+             f"eine **{art_}e** Sicherung. Täglich ändern sich jeweils andere Dateien mit zusammen **{taeglich} GB**.\n\n"
+             f"Wie viele Daten sichert der {TAGE[tag]}, und wie viele Daten werden von Montag bis Freitag insgesamt gesichert?")
+    zeilen = [f"{TAGE[k]}: {'Vollsicherung' if k == 0 else art_}, {de(m)} GB" for k, m in enumerate(mengen)]
+    regel = ("seit der letzten Sicherung, also jeden Tag nur die Änderungen eines Tages" if art_ == "inkrementell"
+             else "seit der letzten Vollsicherung, also jeden Tag mehr: k · " + f"{taeglich} GB")
+    weg = schritte(f"{art_.capitalize()} sichert, was sich {regel}", *zeilen,
+                   f"{TAGE[tag]}: **{de(mengen[tag])} GB**; zusammen: {' + '.join(de(m) for m in mengen)} = **{de(sum(mengen))} GB**")
+    felder = [Feld("tag", f"Sicherung am {TAGE[tag]}", mengen[tag], "GB", stellen=0),
+              Feld("woche", "Montag bis Freitag zusammen", sum(mengen), "GB", stellen=0)]
+    return Aufgabe(frage, felder, weg, titel=f"Datenmenge {art_}")
+
+
+def _wiederherstellen(rng):
+    gesamt, taeglich, art_ = _backup_lage(rng)
+    ausfall = rng.randint(2, 5)  # morgens ausgefallen, die letzte Sicherung war am Vorabend
+    noetig = [0] + (list(range(1, ausfall)) if art_ == "inkrementell" else [ausfall - 1] if ausfall > 1 else [])
+    noetig = list(dict.fromkeys(noetig))
+    menge = gesamt + (taeglich * (ausfall - 1) if art_ == "inkrementell" else taeglich * (ausfall - 1))
+    frage = (f"Bei der {rng.choice(FIRMEN)} läuft montags abends eine Vollsicherung ({de(gesamt)} GB), dienstags bis freitags abends eine "
+             f"**{art_}e** Sicherung; täglich ändern sich andere Dateien mit {taeglich} GB. Am **{TAGE[ausfall]}morgen** fällt die "
+             "Festplatte des Servers aus.\n\nWelche Sicherungen braucht man für die Wiederherstellung (Wochentage in der Reihenfolge des "
+             "Einspielens), und wie viele Daten müssen eingespielt werden?")
+    weg = schritte(
+        f"Letzte Sicherung: {TAGE[ausfall - 1]}abend",
+        "Inkrementell: die Vollsicherung und alle inkrementellen danach, jede enthält nur einen Tag"
+        if art_ == "inkrementell" else "Differenziell: die Vollsicherung und nur die letzte differenzielle, sie enthält alle Änderungen seit Montag",
+        f"Einspielen: **{', '.join(TAGE[k] for k in noetig)}**",
+        f"Datenmenge: {de(gesamt)} GB + {ausfall - 1} · {taeglich} GB = **{de(menge)} GB** (bei beiden Verfahren gleich, nur verteilt "
+        "auf unterschiedlich viele Sicherungen)")
+    felder = [Feld("tage", "Benötigte Sicherungen", ", ".join(TAGE[k] for k in noetig), typ="wochentage"),
+              Feld("menge", "Einzuspielende Daten", menge, "GB", stellen=0)]
+    return Aufgabe(frage, felder, weg, titel=f"Wiederherstellen ({art_})")
+
+
+def _generationen(rng):
+    tage, wochen, monate = rng.choice([5, 6]), rng.choice([4, 5]), rng.choice([6, 12])
+    gesamt_gb, band = rng.choice([400, 600, 800, 1200]), rng.choice([1.5, 2.5, 6, 12])  # LTO-ähnliche Kapazitäten in TB
+    soehne = tage - 1
+    medien = soehne + wochen + monate
+    frage = (f"Die {rng.choice(FIRMEN)} sichert nach dem **Großvater-Vater-Sohn-Prinzip** auf Bänder, an {tage} Arbeitstagen pro Woche:\n\n"
+             f"- Sohn: an den ersten {soehne} Arbeitstagen eine Tagessicherung, jedes Band wird nach einer Woche überschrieben\n"
+             f"- Vater: am letzten Arbeitstag der Woche eine Wochensicherung, aufbewahrt {wochen} Wochen\n"
+             f"- Großvater: am Monatsende eine Monatssicherung, aufbewahrt {monate} Monate\n\n"
+             f"Jede Sicherung ist eine Vollsicherung mit {de(gesamt_gb)} GB, ein Band fasst {de(band)} TB. Wie viele Bänder braucht man "
+             "mindestens, und wie viel Speicher stehen auf allen Bändern zusammen höchstens?")
+    weg = schritte(f"Söhne: {soehne} (eins je Tagessicherung, die Woche wiederholt sich)",
+                   f"Väter: {wochen} (so viele Wochensicherungen werden aufbewahrt)",
+                   f"Großväter: {monate}", f"Bänder: {soehne} + {wochen} + {monate} = **{medien}**",
+                   f"Daten auf allen Bändern: {medien} · {de(gesamt_gb)} GB = **{de(medien * gesamt_gb / 1000)} TB** "
+                   f"(passt auf je ein Band, weil {de(gesamt_gb)} GB < {de(band)} TB)")
+    felder = [Feld("medien", "Bänder", medien, stellen=0), Feld("daten", "Daten auf allen Bändern", medien * gesamt_gb / 1000, "TB")]
+    return Aufgabe(frage, felder, weg, titel="Großvater-Vater-Sohn")
