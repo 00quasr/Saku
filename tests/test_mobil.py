@@ -120,3 +120,12 @@ def test_raster_mit_langen_namen_sprengen_die_karte_nicht():
     for datei, regel in (("heute.css", ".fahrplan-bereich > summary"), ("rechnen.css", ".sprint-aufgabe"), ("shiken.css", ".hochrechnung")):
         css = CSS.joinpath("bereiche", datei).read_text(encoding="utf-8")
         assert re.search(rf"^{re.escape(regel)} \{{ display: grid; grid-template-columns: minmax\(0, 1fr\);", css, re.M), regel
+
+
+def test_suche_laesst_sich_auf_touch_schliessen(client):
+    """Mobil ist die Suche Vollbild: ohne Esc und ohne Fläche daneben braucht sie einen eigenen Schließen-Knopf."""
+    seite = client.get("/").get_data(as_text=True)
+    dialog = seite[seite.index('<dialog id="suche-dialog"'):seite.index("</dialog>", seite.index('<dialog id="suche-dialog"'))]
+    assert re.search(r'<button type="button" class="btn suche-zu"[^>]*aria-label="Suche schließen" onclick="this.closest\(\'dialog\'\).close\(\)">', dialog)
+    css = CSS.joinpath("bereiche", "suche.css").read_text(encoding="utf-8")
+    assert ".suche-zu { display: none; }" in css and "@media (max-width: 720px), (pointer: coarse) { .suche-zu { display: inline-flex; } }" in css

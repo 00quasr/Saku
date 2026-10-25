@@ -123,6 +123,11 @@
   .heft-punkte { right: calc(-1 * var(--rand-breite) - 14px); font-size: 0.75rem; line-height: 1.1; }
   .heft-zeit { margin-right: calc(-1 * var(--rand-breite) - 14px); font-size: 0.75rem; }
   .heft-text { grid-template-columns: 1.75rem minmax(0, 1fr); }
+  /* Restzeit und Knöpfe in einer Zeile: die Leiste klebt beim Scrollen, jede Zeile weniger ist mehr Platz fürs Heft */
+  .shiken-leiste { gap: 8px; }
+  .shiken-leiste .zeile { gap: 8px; }
+  .shiken-zeit .etikett { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .shiken-zeit time { font-size: 1.5rem; }
 }
 
 /* Fachgespräch */

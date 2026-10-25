@@ -51,7 +51,7 @@
   .graph-legende { right: 12px; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; pointer-events: auto; white-space: nowrap; }
   .graph-notiz {
     position: fixed; top: auto; left: 0; right: 0; bottom: calc(var(--tab-hoehe) + env(safe-area-inset-bottom)); z-index: 35;
-    width: auto; max-height: 62dvh; overscroll-behavior: contain; padding: 16px var(--rand) 20px;
+    width: auto; max-height: 55dvh; overscroll-behavior: contain; padding: 16px var(--rand) 20px;
     border-radius: 16px 16px 0 0; border-bottom: 0; box-shadow: 0 -24px 64px -24px rgb(0 0 0 / .45);
     animation: blatt-ein var(--mittel) ease-out;
   }
