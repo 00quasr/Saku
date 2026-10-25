@@ -62,10 +62,11 @@ saku/
 │   ├── backups/                tägliche Sicherungen, die letzten sieben
 │   └── saku.db                 Katalog und Lernstand
 ├── saku/                       Python-Paket
-│   ├── __main__.py             Befehle: init, assets, analyse, start, lernstand
+│   ├── __main__.py             Befehle: init, assets, analyse, start, lernstand, paket, server
 │   ├── config.py               liest .env
 │   ├── db.py                   Verbindung, Schema, Migrationen, Sicherung
 │   ├── assets.py               Fremddateien für den Offline-Betrieb laden
+│   ├── paket.py                Archiv für Saku im Netz bauen, prüfen und einspielen (docs/DEPLOY.md)
 │   ├── niwa.py                 Wissensgraph: Knoten und Kanten für force-graph, Lehrplan
 │   ├── pipeline/               ein Modul je Schritt, Reihenfolge in SCHRITTE (__init__.py)
 │   │   ├── sammeln.py          Prüfungen aus data/quellen nach data/pdfs (eigener Befehl)
@@ -104,8 +105,8 @@ saku/
 │   │   ├── vektoren.py         fastembed lokal, Kosinus, Reciprocal Rank Fusion
 │   │   └── werkzeuge.py        exakte Rechnungen als Werkzeug für Sensei
 │   └── web/
-│       ├── __init__.py         Flask-App-Factory, CSRF-Schutz, Fehler für zu große Zahlen
-│       ├── routen/             ein Blueprint je Bereich, kern.py für Bilder und Einstellungen
+│       ├── __init__.py         Flask-App-Factory, CSRF-Schutz, Anmeldung, Fehler für zu große Zahlen
+│       ├── routen/             ein Blueprint je Bereich, kern.py für Bilder und Einstellungen, anmeldung.py
 │       ├── templates/
 │       └── static/             css/saku.css und css/bereiche/, js/saku.js, vendor/, fonts/
 └── tests/
@@ -256,6 +257,7 @@ Wichtige Regeln:
 - **CSRF-Schutz:** Ein `before_request` in `create_app` lehnt POST, PUT, PATCH und DELETE mit 403 ab, wenn `Sec-Fetch-Site` nicht `same-origin` oder `none` ist oder der `Origin` nicht zum Host passt. Ohne beide Kopfzeilen (Testclient, curl) geht die Anfrage durch, GET prüft der Schutz nicht.
 - **Zu große Zahlen:** Werte aus Adresse oder Formular über 2⁶³ (Seed, IDs) beantwortet ein Fehlerhandler mit 400 statt mit einem Absturz in SQLite.
 - **Port 5050:** Auf macOS belegt AirPlay den Flask-Standardport 5000. Die App lauscht nur auf `127.0.0.1` und ist von außen nicht erreichbar.
+- **Im Netz:** `python -m saku server` startet `create_app(server=True)` unter gunicorn (ein Prozess, Threads) auf `0.0.0.0:$PORT`, mit ProxyFix, sicheren Cookies und dem Hochladen eines Pakets in den Einstellungen. Mit `SAKU_PASSWORT` verlangt ein `before_request` die Anmeldung für alles außer `/anmelden` und `/static`. Siehe [DEPLOY.md](DEPLOY.md).
 
 ### Routen
 
@@ -418,7 +420,7 @@ Prüfungstermine, Beruf und Prüfungsteil, Puffer, Schwelle des Mini-Tests, Rech
 
 ## Datenschutz und Sicherheit
 
-- Die App lauscht nur auf `127.0.0.1` und nimmt schreibende Anfragen nur von gleicher Herkunft an (CSRF-Schutz, siehe Aufbau).
+- Die App lauscht nur auf `127.0.0.1` und nimmt schreibende Anfragen nur von gleicher Herkunft an (CSRF-Schutz, siehe Aufbau). Im Netz nur hinter Passwort, mit Sperre nach Fehlversuchen ([DEPLOY.md](DEPLOY.md)).
 - Eigene SQL-Anweisungen laufen nur in der Sandbox im Speicher, nie auf `saku.db`.
 - `data/`, `.env` und alle PDFs sind per `.gitignore` ausgeschlossen.
 - An die Claude-API gehen nur Aufgabentexte, Lösungshinweise, eigene Antworten und Fragen, keine persönlichen Daten.

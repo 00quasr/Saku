@@ -1,13 +1,17 @@
-"""Bereichsübergreifend: Bildausschnitte aus data/aufgaben, Einstellungen und „Alle Seiten“."""
+"""Bereichsübergreifend: Bildausschnitte aus data/aufgaben, Einstellungen (mit Sicherung, im Netz Paket und Datenbank)
+und „Alle Seiten“."""
 
 import json
+import os
 import sqlite3
+import tempfile
+import threading
 from datetime import date, datetime
 
-from flask import Blueprint, abort, current_app, redirect, render_template, request, send_from_directory, url_for
+from flask import Blueprint, abort, current_app, redirect, render_template, request, send_file, send_from_directory, url_for
 
-from saku import config
-from saku.db import einstellung, letzte_sicherung, setze_einstellung, sichern
+from saku import config, paket
+from saku.db import einstellung, kopieren, letzte_sicherung, setze_einstellung, sichern
 from saku.web import db
 from saku.web.routen.bunseki import THEMEN_ZAHLEN
 from saku.web.routen.heute import NEU_IN_SAKU
@@ -97,6 +101,55 @@ def jetzt_sichern():
     except (OSError, sqlite3.Error) as fehler:
         return f"Sicherung fehlgeschlagen: {fehler}"
     return sicherung_info()
+
+
+@bp.get("/einstellungen/saku.db")
+def datenbank_herunterladen():
+    """Stimmige Kopie der Datenbank, als Sicherung nach Hause; die Kopie ist gelöscht, sobald sie gesendet ist."""
+    fd, pfad = tempfile.mkstemp(suffix=".db", dir=current_app.config["DATEN"])  # neben der Datenbank: auf dem Volume
+    os.close(fd)
+    try:
+        kopieren(current_app.config["DB_PFAD"], pfad)
+        datei = open(pfad, "rb")
+    finally:
+        os.unlink(pfad)  # die offene Datei liest send_file trotzdem zu Ende
+    return send_file(datei, mimetype="application/vnd.sqlite3", as_attachment=True,
+                     download_name=f"saku-{date.today().isoformat()}.db")
+
+
+_einspielen = threading.Lock()
+
+
+@bp.post("/einstellungen/paket")
+def paket_hochladen():
+    """Paket aus python -m saku paket, nur im Netz: roh im Rumpf statt als Formular, damit es in Blöcken direkt auf den
+    Datenträger neben der Datenbank geht (das Volume) und nicht erst ins Temp-Verzeichnis des Containers."""
+    if not (current_app.config["SERVER"] and current_app.config["PASSWORT"]):
+        abort(404)
+    if (request.content_length or 0) > paket.GRENZE:
+        return "Das Paket ist zu groß.", 413
+    if not _einspielen.acquire(blocking=False):
+        return "Es wird gerade schon ein Paket übernommen.", 409
+    daten = current_app.config["DATEN"]
+    teil = daten / ".paket.teil"
+    try:
+        groesse = 0
+        with open(teil, "wb") as datei:
+            while block := request.stream.read(1024 * 1024):
+                groesse += len(block)
+                if groesse > paket.GRENZE:
+                    return "Das Paket ist zu groß.", 413
+                datei.write(block)
+        zahlen = paket.einspielen(teil, daten)
+    except ValueError as fehler:
+        return str(fehler), 400
+    except (OSError, sqlite3.Error) as fehler:
+        return f"Übernahme fehlgeschlagen: {fehler}", 500
+    finally:
+        teil.unlink(missing_ok=True)
+        _einspielen.release()
+    behalten = sum(uebernommen for uebernommen, _ in zahlen.values())
+    return f"Paket übernommen. Vom Lernstand hier kamen {behalten} Einträge dazu, die alte Datenbank liegt in backups/."
 
 
 @bp.post("/einstellungen/<schluessel>")

@@ -1,15 +1,18 @@
 """Flask-App-Factory: ein Blueprint je Bereich."""
 
 import re
+import secrets
+from datetime import timedelta
 from pathlib import Path
 from urllib.parse import urlsplit
 
-from flask import Flask, abort, current_app, g, render_template, request
+from flask import Flask, abort, current_app, g, redirect, render_template, request, session, url_for
 from markdown_it import MarkdownIt
 from markupsafe import Markup, escape
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from saku import config
-from saku.db import einstellung, verbinden
+from saku.db import einstellung, taeglich_sichern, verbinden
 
 BERUFE = {"1201": "Anwendungsentwicklung", "1202": "Systemintegration"}
 
@@ -142,18 +145,28 @@ def ganzzahl(text: str | None) -> int | None:
         return None
 
 
-def create_app(daten: Path | None = None) -> Flask:
+def create_app(daten: Path | None = None, server: bool = False) -> Flask:
+    """server: python -m saku server, im Netz hinter dem Proxy von Railway (docs/DEPLOY.md)."""
     app = Flask(__name__)
     app.config["DATEN"] = daten or config.DATEN
     app.config["DB_PFAD"] = config.db_pfad(app.config["DATEN"])
     app.config["SENSEI_BEREIT"] = bool(config.API_KEY)
     app.config["FENSTER"] = False  # True im eigenen App-Fenster (python -m saku start)
+    app.config["SERVER"] = server
     # DNS-Rebinding: eine fremde Seite, deren Name auf 127.0.0.1 zeigt, gälte im Browser als gleiche Herkunft und könnte
     # Lernstand lesen und Sensei (API-Kosten) aufrufen – Flask beantwortet jeden anderen Host-Namen mit 400
-    app.config["TRUSTED_HOSTS"] = ["127.0.0.1", "localhost"]  # Saku lauscht nur auf IPv4
+    app.config["TRUSTED_HOSTS"] = ["127.0.0.1", "localhost", *config.domains()]  # Saku lauscht lokal nur auf IPv4
 
-    from saku.web.routen import bunseki, heute, keiko, kern, michi, niwa, rechnen, sensei, shiken, suche
-    for modul in (kern, heute, michi, keiko, rechnen, shiken, niwa, sensei, bunseki, suche):
+    # Anmeldung nur mit SAKU_PASSWORT; das Passwort steckt im Schlüssel, ein neues meldet also überall ab
+    app.config["PASSWORT"] = config.PASSWORT
+    app.secret_key = (config.GEHEIM or secrets.token_hex(32)) + config.PASSWORT
+    app.config.update(SESSION_COOKIE_SECURE=server, SESSION_COOKIE_SAMESITE="Lax", PERMANENT_SESSION_LIFETIME=timedelta(days=30))
+    if server:
+        # Railway beendet HTTPS am Proxy: Schema, Host und Absender-IP aus dessen X-Forwarded-Kopfzeilen (je ein Proxy)
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
+
+    from saku.web.routen import anmeldung, bunseki, heute, keiko, kern, michi, niwa, rechnen, sensei, shiken, suche
+    for modul in (anmeldung, kern, heute, michi, keiko, rechnen, shiken, niwa, sensei, bunseki, suche):
         app.register_blueprint(modul.bp)
 
     app.add_template_filter(markdown_zu_html, "markdown")
@@ -193,6 +206,20 @@ def create_app(daten: Path | None = None) -> Flask:
         if (seite is not None and seite not in ("same-origin", "none")) or \
                 (herkunft is not None and urlsplit(herkunft).netloc.lower() != request.host.lower()):
             abort(403)
+
+    @app.before_request
+    def angemeldet():
+        """Mit Passwort zuerst die Anmeldung, für alles außer ihr und den Oberflächen-Dateien (auch Bilder, Streams,
+        Downloads); htmx lädt dann die ganze Seite neu, statt die Anmeldung in ein Stück der Seite zu setzen."""
+        if not app.config["PASSWORT"] or session.get("angemeldet") or request.endpoint in ("anmeldung.anmelden", "static"):
+            return None
+        if request.headers.get("HX-Request"):
+            return "", 401, {"HX-Redirect": url_for("anmeldung.anmelden")}
+        return redirect(url_for("anmeldung.anmelden"))
+
+    if server:
+        # sonst sicherte Saku nur bei jedem Deploy; ist die von heute schon da, kostet das einen Blick ins Verzeichnis
+        app.before_request(lambda: taeglich_sichern(app.config["DB_PFAD"]))
 
     @app.errorhandler(OverflowError)
     def zahl_zu_gross(fehler):

@@ -16,6 +16,8 @@ KEINE_SEITE = {
     "/suche/": "die Treffer der Suche selbst, ein Fragment für ⌘K",
     "/fahrplan.ics": "Download, verlinkt auf dem Fahrplan",
     "/einstellungen/lernstand.json": "Download in den Einstellungen",
+    "/einstellungen/saku.db": "Download in den Einstellungen, nur im Netz angezeigt",
+    "/anmelden": "nur im Netz mit Passwort, sonst eine Weiterleitung",
     "/rechnen/sprint/neu": "startet den Sprint (Weiterleitung), der Knopf steht auf /rechnen/sprint",
     "/rechnen/sprint/lauf": "der laufende Sprint; ohne Aufgaben in der Adresse eine Weiterleitung",
 }

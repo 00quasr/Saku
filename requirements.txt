@@ -12,3 +12,4 @@ scikit-learn>=1.4       # TF-IDF für ähnliche Aufgaben
 markdown-it-py>=3.0     # KI-Antworten als sicheres HTML
 rich>=13.7              # Terminal-Ausgabe der Pipeline
 pywebview>=5.0          # eigenes App-Fenster
+gunicorn>=23            # Produktionsserver im Netz (python -m saku server)

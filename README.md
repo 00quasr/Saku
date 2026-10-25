@@ -173,6 +173,8 @@ SAKU_DATENORDNER=/tmp/saku-demo python -m saku start --browser
 | `python -m saku lernstand export DATEI` | Lernstand als JSON-Datei mitnehmen (auch in den Einstellungen unter Daten) |
 | `python -m saku lernstand import DATEI` | Lernstand übernehmen; mehrfach importieren ändert nichts |
 | `python -m saku.pipeline.sammeln` | Prüfungen aus `data/quellen/` (auch ZIPs) nach `data/pdfs/` kopieren |
+| `python -m saku paket [DATEI]` | Datenbank und benötigte Bilder als Archiv für Saku im Netz, sonst nach `data/saku-paket.tar.gz` ([Deploy](docs/DEPLOY.md)) |
+| `python -m saku server` | Saku im Netz betreiben (gunicorn, nur mit `SAKU_PASSWORT`), z. B. auf Railway ([Deploy](docs/DEPLOY.md)) |
 
 Die KI-Schritte der Analyse (Deckblätter, Aufgaben neu aufbauen, SQL-Sandboxen, Klassifikation, Wissensseiten und Begriffe, Lernpfad, Einführungen) laufen beim Erstlauf über das lokal installierte [Claude Code](https://code.claude.com) (`claude -p`, eigenes Login, kein API-Schlüssel nötig). Spätere Läufe und Sensei nutzen die Claude-API. Beide Wege teilen sich denselben Cache, eine schon beantwortete Anfrage kostet also nichts mehr. `python -m saku analyse --ohne-ki` läuft komplett lokal.
 
@@ -181,7 +183,7 @@ Die KI-Schritte der Analyse (Deckblätter, Aufgaben neu aufbauen, SQL-Sandboxen,
 - **Tägliche Sicherung:** Vor `start`, `init`, `analyse` und `lernstand import` sichert Saku die Datenbank einmal am Tag nach `data/backups/saku-JJJJ-MM-TT.db`; die letzten sieben bleiben. In den Einstellungen unter Daten gibt es außerdem „Jetzt sichern“.
 - **Lernstand als Datei:** Der Export hängt nicht an internen IDs und übersteht einen Neuaufbau der Datenbank. Der Import übernimmt alles oder nichts; Zeilen und Einstellungen, die Saku nicht versteht, überspringt er.
 - **Migrationen:** Ein neues Schema bringt `python -m saku init` (oder der nächste Start) auf die vorhandene Datenbank, nach der Sicherung und jede Migration in einer eigenen Transaktion.
-- **Nur lokal:** Die App lauscht nur auf `127.0.0.1`, und schreibende Anfragen nimmt sie nur von sich selbst an (Schutz gegen fremde Webseiten im Browser).
+- **Nur lokal:** Die App lauscht nur auf `127.0.0.1`, und schreibende Anfragen nimmt sie nur von sich selbst an (Schutz gegen fremde Webseiten im Browser). Im Netz (`python -m saku server`) nur hinter einem Passwort, siehe [Deploy](docs/DEPLOY.md).
 
 ## Dokumentation
 
@@ -192,6 +194,7 @@ Die KI-Schritte der Analyse (Deckblätter, Aufgaben neu aufbauen, SQL-Sandboxen,
 | [Design](docs/DESIGN.md) | Prinzipien, Farben, Typografie, Signature-Momente |
 | [Sensei](docs/SENSEI.md) | KI-Tutor: Modi, Prompts, Chat mit Quellen, Kosten |
 | [Roadmap](docs/ROADMAP.md) | Phasen, Demo-Ablauf, Risiken |
+| [Deploy](docs/DEPLOY.md) | Saku privat im Netz (Railway): Login, Paket hochladen, Lernstand, Kosten |
 | [Schema](db/schema.sql) | SQLite-Datenbank mit Sichten und Volltextsuche |
 
 ## Technik
