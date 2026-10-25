@@ -46,6 +46,9 @@ def test_formeln_vor_markdown_geschuetzt():
     assert '<span class="formel">|x| &lt; 2</span>' in html and "&lt;b&gt;" in html and "<b>" not in html
     tabelle = markdown_zu_html("| a | b |\n|---|---|\n| $|x|$ | 2 |", formeln=True)
     assert '<td><span class="formel">|x|</span></td>' in tabelle  # der Strich in der Formel teilt keine Zelle
+    # Zeichen aus dem Privatbereich (PDF-Symbolschriften, Sensei) sehen aus wie die Platzhalter, sind aber keine
+    assert "0" in markdown_zu_html("Kästchen 0")
+    assert "7" in markdown_zu_html("$x$ und 7", formeln=True)
 
 
 def test_einstellungen_speichern(client, con):

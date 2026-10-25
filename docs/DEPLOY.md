@@ -108,7 +108,8 @@ hat.
 7. **Anmelden und Paket hochladen.** Die Railway-Adresse öffnen, mit `SAKU_PASSWORT` anmelden, dann
    **Einstellungen → Daten → Paket übernehmen**, die Datei wählen, „Hochladen“. Saku schreibt das Paket in Blöcken direkt
    auf das Volume (bis 2 GB), prüft jeden Eintrag (nur `saku.db`, `aufgaben/…png|jpg|webp` und die Projektdatei; keine
-   Links, kein `../`), sichert die alte Datenbank nach `/data/backups`, spielt die neue ein und bringt sie auf das
+   Links, kein `../`), sichert die alte Datenbank nach `/data/backups/saku-vor-paket-…db` (mit Uhrzeit, die letzten drei
+   bleiben), spielt die neue ein und bringt sie auf das
    aktuelle Schema. Ob Railways Proxy so große Uploads und so lange Anfragen zulässt, steht nicht im Skill
    (**unsicher**); bei einem Abbruch einfach noch einmal, es bleibt nichts Halbes liegen.
 
@@ -120,7 +121,9 @@ hat.
 - **Neue Prüfungen:** zu Hause `python -m saku analyse --ki claude-code`, dann `python -m saku paket` und wieder
   hochladen. **Der Lernstand im Netz geht dabei nicht verloren:** Saku nimmt ihn vor dem Einspielen mit und führt ihn mit
   dem aus dem Paket zusammen (wie `lernstand import`: Doppeltes wird übersprungen, bei Karten gilt der neuere Stand).
-  Die Einstellungen (Prüfungstermin, Farbschema …) kommen aus dem Paket. Ist das Paket aus einer neueren Saku-Version als
+  Die Einstellungen (Prüfungstermin, Farbschema …) kommen aus dem Paket, ebenso Sensei-Gespräche und KI-Protokoll: die
+  von hier und Lernstand zu Teilaufgaben, die das Paket nicht mehr kennt, stehen danach nur noch in der Sicherung von
+  vor dem Paket. Ist das Paket aus einer neueren Saku-Version als
   der Server, lehnt Saku es ab: erst neu deployen.
 
 ## Lernstand zwischen zu Hause und dem Netz

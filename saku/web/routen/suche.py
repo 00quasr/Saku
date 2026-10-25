@@ -4,7 +4,7 @@ from flask import Blueprint, render_template, request
 
 from saku.lernen import rechnen
 from saku.sensei import vektoren
-from saku.web import ALLGEMEIN, BEREICHE, db, seiten
+from saku.web import ALLGEMEIN, BEREICHE, SEITEN, db, seiten
 
 bp = Blueprint("suche", __name__, url_prefix="/suche")
 
@@ -46,12 +46,13 @@ BEFEHLE = [
 ]
 
 
-def befehle(q: str) -> list[tuple]:
-    """Befehle, deren Name oder Suchwörter alle Wortteile der Anfrage enthalten."""
+def befehle(q: str, teil: str = "AP2") -> list[tuple]:
+    """Befehle, deren Name oder Suchwörter alle Wortteile der Anfrage enthalten, ohne Seiten außerhalb des Umfangs."""
     if not q:
         return BEFEHLE[:4]
-    woerter = q.casefold().split()
-    return [b for b in BEFEHLE if all(w in f"{b[1]} {b[2]}".casefold() for w in woerter)][:6]
+    woerter, im_umfang = q.casefold().split(), [s[1:3] for liste in seiten(teil).values() for s in liste]
+    ausserhalb = [s[1:3] for liste in SEITEN.values() for s in liste if s[1:3] not in im_umfang]
+    return [b for b in BEFEHLE if all(w in f"{b[1]} {b[2]}".casefold() for w in woerter) and b[3] not in ausserhalb][:6]
 
 
 def _like(q: str) -> str:
@@ -107,7 +108,7 @@ def index():
     if not q:
         return render_template("suche/_treffer.html", q=q, befehle=befehle(q), seiten=seiten_zu(teil, q), themen=[], treffer=[])
     return render_template(
-        "suche/_treffer.html", q=q, befehle=befehle(q), seiten=seiten_zu(teil, q, befehle(q)),
+        "suche/_treffer.html", q=q, befehle=befehle(q, teil), seiten=seiten_zu(teil, q, befehle(q, teil)),
         themen=con.execute("SELECT id, name, ebene FROM thema WHERE name LIKE ?1 ESCAPE '\\' OR stichworte LIKE ?1 ESCAPE '\\' "
                            "ORDER BY ebene, position LIMIT 6", (_like(q),)).fetchall(),
         treffer=suchen(con, q),

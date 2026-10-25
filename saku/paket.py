@@ -9,6 +9,7 @@ import shutil
 import sqlite3
 import tarfile
 import tempfile
+from datetime import datetime
 from pathlib import Path
 
 from saku import config, db
@@ -17,6 +18,7 @@ from saku import config, db
 ERLAUBT = re.compile(r"saku\.db|projekt/(text\.md|name\.txt)|aufgaben/[^\s\"'()\[\]<>\\]+?\.(png|jpe?g|webp)", re.I)
 BILD = re.compile(r"aufgaben/[^\s\"'()\[\]<>\\]+?\.(?:png|jpe?g|webp)", re.I)  # in JSON-Listen und Markdown (/bild/…)
 GRENZE = 2 * 1024**3  # Bytes, gepackt und entpackt
+VORHER = 3  # Sicherungen von vor einem Paket, die bleiben
 
 
 def erlaubt(name: str) -> bool:
@@ -104,7 +106,14 @@ def einspielen(archiv: Path, daten: Path) -> dict:
             raise ValueError("Das Paket stammt aus einer neueren Saku-Version: erst diese hier neu deployen.")
 
         pfad = config.db_pfad(daten)
-        db.sichern(pfad, erzwingen=True)
+        # eigene Sicherung mit Uhrzeit statt der täglichen: die überschriebe ein zweites Paket am selben Tag und mit ihr, was
+        # das erste nicht übernommen hat (Sensei-Gespräche und KI-Protokoll von hier, Lernstand zu Teilaufgaben, die fehlen)
+        ordner = daten / "backups"
+        ordner.mkdir(exist_ok=True)
+        db.kopieren(pfad, ordner / "vor-paket.teil")
+        (ordner / "vor-paket.teil").replace(ordner / f"saku-vor-paket-{datetime.now():%Y-%m-%d-%H%M%S-%f}.db")
+        for alt in sorted(ordner.glob("saku-vor-paket-*.db"))[:-VORHER]:
+            alt.unlink()
         con = db.verbinden(pfad)
         try:
             bisher = lernstand.exportieren(con)

@@ -11,6 +11,9 @@ window.saku = {
   // Mobil: Blatt „Mehr“ mit allen Bereichen; der Eintrag im Verlauf lässt Zurück (Wischgeste, Browser) es schließen
   mehr() {
     saku.oeffne("mehr");
+    // htmx stellt beim Zurück nur Einträge mit htmx-Zustand wieder her; den setzt es sonst beim Weitergehen, hier aber erst am
+    // Eintrag des Blatts. Ohne ihn bliebe nach Mehr → Seite → Zurück auf der ersten Seite nach dem Laden die neue stehen
+    history.replaceState({ htmx: true }, "");
     history.pushState({ mehr: true }, "");
   },
   sensei() {

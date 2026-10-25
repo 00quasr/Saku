@@ -109,10 +109,12 @@ def markdown_zu_html(text: str | None, formeln: bool = False) -> Markup:
     formeln: Formeln (Merkblätter, Rechenwege) vor Markdown schützen, das _ und * darin sonst als Betonung läse; sie kommen
     als <span class="formel"> mit dem LaTeX-Quelltext zurück, den saku.js mit KaTeX setzt. Nur dort: Sensei schreibt auch Preise in $."""
     gefunden = []
-    if formeln:
-        text = FORMEL.sub(lambda f: gefunden.append(f) or f"\ue000{len(gefunden) - 1}\ue001", text or "")
+    if formeln:  # ein \ue000 im Text selbst (PDF-Symbolschrift) bekommt \ue002 dahinter, so gleicht es keinem Platzhalter
+        text = FORMEL.sub(lambda f: gefunden.append(f) or f"\ue000{len(gefunden) - 1}\ue001", (text or "").replace("\ue000", "\ue000\ue002"))
     html = re.sub(r"&lt;br\s*/?&gt;", "<br>", _markdown.render(text or ""), flags=re.I)
-    return Markup(PLATZHALTER.sub(lambda p: _formel(gefunden[int(p[1])]), html))
+    if formeln:
+        html = PLATZHALTER.sub(lambda p: _formel(gefunden[int(p[1])]), html).replace("\ue000\ue002", "\ue000")
+    return Markup(html)
 
 
 def _formel(f: re.Match) -> str:
