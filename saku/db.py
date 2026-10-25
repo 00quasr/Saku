@@ -91,16 +91,21 @@ def sichern(pfad: Path | None = None, erzwingen: bool = False, behalten: int = 7
     ordner.mkdir(exist_ok=True)
     teil = ziel.with_suffix(".teil")  # erst fertig schreiben, dann umbenennen: nie eine halbe Sicherung
     teil.unlink(missing_ok=True)
-    quelle, kopie = sqlite3.connect(pfad), sqlite3.connect(teil)
-    try:
-        quelle.backup(kopie)
-    finally:
-        kopie.close()
-        quelle.close()
+    kopieren(pfad, teil)
     teil.replace(ziel)
     for alt in sorted(ordner.glob("saku-????-??-??.db"))[:-behalten]:
         alt.unlink()
     return ziel
+
+
+def kopieren(quelle: Path | str, ziel: Path | str) -> None:
+    """Stimmige Kopie einer Datenbank über die Backup-API von SQLite, auch während Saku in sie schreibt (WAL)."""
+    von, nach = sqlite3.connect(quelle), sqlite3.connect(ziel)
+    try:
+        von.backup(nach)
+    finally:
+        nach.close()
+        von.close()
 
 
 def taeglich_sichern(pfad: Path | None = None) -> None:

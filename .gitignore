@@ -3,6 +3,7 @@
 !/data/README.md
 !/data/themen.example.md
 *.pdf
+saku-paket*.tar.gz
 
 # --- Geheimnisse -----------------------------------------------------
 .env

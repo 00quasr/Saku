@@ -185,6 +185,55 @@
           </div>
           <a class="btn" data-variant="outline" data-size="sm" href="{{ url_for('kern.lernstand_export') }}" download>{{ m.icon('download') }} Lernstand exportieren</a>
         </div>
+        {% if config.SERVER %}
+        {# Nur im Netz (python -m saku server): Katalog von zu Hause herauf, Datenbank als Sicherung herunter #}
+        <div class="einstellung-zeile einstellung-befehle">
+          <div>
+            <label class="einstellung-name" for="paket-datei">Paket übernehmen</label>
+            <p class="klein gedaempft">Ersetzt Katalog und Bilder durch das Paket von zu Hause, der Lernstand von hier bleibt. Vorher
+              sichert Saku die Datenbank. Das Paket baut im Saku-Ordner:</p>
+            <pre><code>python -m saku paket</code></pre>
+            <input class="input" type="file" id="paket-datei" accept=".gz,.tgz,application/gzip">
+            <p class="klein einstellung-info" id="paket-info" aria-live="polite"></p>
+          </div>
+          <button type="button" class="btn" data-variant="outline" data-size="sm" id="paket-hochladen">{{ m.icon('upload') }} Hochladen</button>
+        </div>
+        <div class="einstellung-zeile">
+          <div>
+            <p class="einstellung-name">Datenbank</p>
+            <p class="klein gedaempft">Katalog und Lernstand als eine Datei, als Sicherung auf deinem Rechner.</p>
+          </div>
+          <a class="btn" data-variant="outline" data-size="sm" href="{{ url_for('kern.datenbank_herunterladen') }}" download>{{ m.icon('download') }} Herunterladen</a>
+        </div>
+        <script>
+          // roh statt als Formular: der Server schreibt es in Blöcken direkt auf das Volume
+          document.getElementById("paket-hochladen").addEventListener("click", async (e) => {
+            const knopf = e.currentTarget, datei = document.getElementById("paket-datei").files[0], info = document.getElementById("paket-info");
+            if (!datei) { info.textContent = "Erst ein Paket wählen."; return; }
+            knopf.disabled = true;
+            info.textContent = `Lädt ${Math.round(datei.size / 1e6)} MB hoch und übernimmt sie …`;
+            try {
+              const antwort = await fetch("{{ url_for('kern.paket_hochladen') }}", {method: "POST", body: datei, headers: {"HX-Request": "true"}});
+              if (antwort.headers.get("HX-Redirect")) { location.href = antwort.headers.get("HX-Redirect"); return; }
+              info.textContent = await antwort.text();
+            } catch (fehler) {
+              info.textContent = `Hochladen fehlgeschlagen: ${fehler.message}`;
+            }
+            knopf.disabled = false;
+          });
+        </script>
+        {% endif %}
+        {% if config.PASSWORT %}
+        <div class="einstellung-zeile">
+          <div>
+            <p class="einstellung-name">Anmeldung</p>
+            <p class="klein gedaempft">Auf diesem Gerät bleibst du 30 Tage angemeldet. Ein neues Passwort meldet überall ab.</p>
+          </div>
+          <form method="post" action="{{ url_for('anmeldung.abmelden') }}">
+            <button class="btn" data-variant="outline" data-size="sm">{{ m.icon('log-out') }} Abmelden</button>
+          </form>
+        </div>
+        {% endif %}
         <div class="einstellung-zeile einstellung-befehle">
           <div>
             <p class="einstellung-name">Neue Prüfungen aufnehmen</p>

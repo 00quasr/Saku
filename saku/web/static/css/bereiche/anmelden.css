@@ -1,0 +1,7 @@
+/* Anmeldung (nur im Netz mit SAKU_PASSWORT): eine Karte mittig, auch auf dem Handy */
+.anmelden { display: grid; place-items: center; min-height: 100dvh; padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom)); }
+.anmelden-karte { width: min(100%, 22rem); }
+.anmelden-karte form { display: grid; gap: 12px; }
+.anmelden-karte .input { font-size: 1rem; }  /* unter 16 px zoomt Safari auf dem iPhone beim Tippen hinein */
+.anmelden-logo { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; font-family: var(--schrift-titel); font-weight: 600; font-size: 1.375rem; }
+.anmelden-logo [lang="ja"] { color: var(--shu); font-size: 1.75rem; }
