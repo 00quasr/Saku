@@ -63,6 +63,17 @@ tbody:first-of-type .bunseki-bereich { padding-top: 4px; }
 @media (max-width: 900px) { .bunseki-kennzahlen { grid-template-columns: repeat(2, 1fr); } }
 .bunseki-balken a > :last-child { text-align: right; }
 
+/* Handy: Reiter in einer Zeile, die waagrecht scrollt; Balken unter Name und Zahl; Tippflächen 44 px */
+@media (max-width: 720px) {
+  .bunseki-tabs > [role="tablist"] { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  .bunseki-tabs [role="tab"] { min-height: 44px; }
+  .bunseki-balken a { grid-template-columns: minmax(0, 1fr) auto; gap: 6px 12px; min-height: 44px; }
+  .bunseki-balken-spur { grid-column: 1 / -1; grid-row: 2; }
+  .katalog-thema > summary { min-height: 44px; align-items: center; }
+  .katalog-thema li a { display: inline-block; padding-block: 12px; margin-block: -12px; }  /* größere Tippfläche, gleiche Zeile */
+  .bunseki-thema a { display: inline-block; padding-block: 13px; margin-block: -13px; }
+}
+
 /* Katalog-Abdeckung */
 .katalog-bereich + .katalog-bereich { margin-top: 28px; }
 .katalog-bereich header { margin-bottom: 10px; }

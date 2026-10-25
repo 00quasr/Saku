@@ -87,7 +87,7 @@ a:not(.btn) { color: inherit; text-underline-offset: 3px; }
 .prosa h1, .prosa h2, .prosa h3 { font-family: var(--schrift-titel); font-weight: 600; margin-top: 1.25em; }
 .prosa ul { list-style: disc; padding-left: 1.25em; }
 .prosa ol { list-style: decimal; padding-left: 1.25em; }
-.prosa code { font-size: 0.875em; background: var(--flaeche); padding: 0.1em 0.3em; border-radius: 4px; }
+.prosa code { font-size: 0.875em; background: var(--flaeche); padding: 0.1em 0.3em; border-radius: 4px; overflow-wrap: break-word; }  /* lange IPv6-Adressen im Satz brechen um */
 .prosa pre { background: var(--flaeche); padding: 12px 16px; border-radius: var(--radius); overflow-x: auto; }
 .prosa pre code { background: none; padding: 0; }
 .prosa table { border-collapse: collapse; }
@@ -199,7 +199,28 @@ a:not(.btn) { color: inherit; text-underline-offset: 3px; }
   .nav-mehr--aktiv .nav-zeichen { background: var(--shu); border-color: var(--shu); color: #FBFAF7; }
   .nav-mehr--aktiv { color: var(--sumi); font-weight: 500; }
   .toast { right: 16px; bottom: calc(var(--tab-hoehe) + env(safe-area-inset-bottom) + 12px); }
+  /* Markdown-Tabellen (Aufgaben, Rechenwege, Merkblätter) scrollen in sich statt über den Rand */
+  .prosa table { display: block; max-width: 100%; overflow-x: auto; }
+  /* Zellen mit data-titel nennen ihren Spaltenkopf selbst, wo eine Tabelle zu Zeilen umbricht und der Kopf nur noch vorgelesen wird */
+  [data-titel]::before { content: attr(data-titel) " "; color: var(--sumi-mittel); }
+  .kopf-vorgelesen { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 }
+
+/* Touch und Handy: Tippflächen mindestens 44 px; Eingaben in 16 px, sonst zoomt iOS beim Antippen ins Feld (Basecoat setzt 14 px,
+   Bereiche teils 15 px, daher !important) */
+@media (max-width: 720px), (pointer: coarse) {
+  .btn, .input, .select, details:is(.kontext, .operatoren) > summary, .tabelle-eingabe input, input[type="range"] { min-height: 44px; }
+  .btn[data-size^="icon"] { min-width: 44px; }
+  .segment > :is(span, a, button), .segment label > span { display: flex; align-items: center; min-height: 44px; }
+  .sprungmarken a { display: flex; align-items: center; min-height: 44px; }
+  input, select, textarea, .code-zeilen { font-size: max(1rem, 16px) !important; }
+}
+
+/* Breite Tabellen, Diagramme und Code scrollen waagrecht in ihrem Kasten; wo dahinter noch etwas kommt, blendet der Rand aus
+   (saku.quer setzt die Klassen) */
+.quer--rechts { mask-image: linear-gradient(to left, transparent, #000 40px); }
+.quer--links { mask-image: linear-gradient(to right, transparent, #000 40px); }
+.quer--links.quer--rechts { mask-image: linear-gradient(to right, transparent, #000 40px, #000 calc(100% - 40px), transparent); }
 
 /* Blatt „Mehr“: gleitet von unten herein */
 .mehr {
@@ -257,10 +278,11 @@ a:not(.btn) { color: inherit; text-underline-offset: 3px; }
 .kopf--schmal .kopf-inhalt > * { white-space: nowrap; }
 .kopf--schmal .titel { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 @media (max-width: 720px) {
-  .kopf { height: 112px; margin-top: 12px; border-radius: 10px; }
+  /* wächst mit dem Inhalt (Kennzahlen im Fahrplan, zweizeilige Titel) */
+  .kopf { height: auto; min-height: 112px; padding-top: 16px; margin-top: 12px; border-radius: 10px; }
   .kopf-inhalt { padding: 0 16px 14px; }
   .kopf-inhalt .titel { font-size: 1.375rem; line-height: 1.75rem; }
-  .kopf--schmal { height: 52px; }
+  .kopf--schmal { height: 52px; min-height: 0; padding-top: 0; }
   .kopf--schmal .kopf-inhalt { padding-bottom: 0; gap: 10px; }
   .kopf--schmal .titel { font-size: 1.125rem; }
 }

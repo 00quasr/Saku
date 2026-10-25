@@ -94,6 +94,7 @@ window.saku = {
     breiten();
     document.fonts.ready.then(breiten);  // Inter ist beim ersten Aufruf evtl. noch nicht geladen
     const pulsieren = new Set(daten.pulsieren);
+    const finger = matchMedia("(pointer: coarse)").matches;
 
     const nachbarn = new Map(daten.knoten.map((k) => [k.id, new Set()]));
     daten.kanten.forEach((l) => { nachbarn.get(l.source)?.add(l.target); nachbarn.get(l.target)?.add(l.source); });
@@ -154,10 +155,10 @@ window.saku = {
           ctx.fillText(k.name, k.x, y);
         }
       })
-      .nodePointerAreaPaint((k, c, ctx) => {
+      .nodePointerAreaPaint((k, c, ctx, zoom) => {
         ctx.fillStyle = c;
         ctx.beginPath();
-        ctx.arc(k.x, k.y, k._r + 2, 0, 2 * Math.PI);
+        ctx.arc(k.x, k.y, k._r + 2 + (finger ? 8 / zoom : 0), 0, 2 * Math.PI);  // mit dem Finger 8 px mehr Trefferfläche
         ctx.fill();
       })
       .linkColor((l) => anFokus(l) ? f.shu : mitte_() ? f.linie + "40" : l.art === "voraussetzung" ? f["sumi-mittel"] : f.linie + "b0")
@@ -183,10 +184,12 @@ window.saku = {
 
     const pfad = { t: "thema", lf: "lernfeld", b: "begriff" };
     let gezoomt = false, selbst = false;
-    // der gewählte Knoten in die Mitte der Fläche, die die Notiz frei lässt
+    // der gewählte Knoten in die Mitte der Fläche, die die Notiz frei lässt: rechts daneben, mobil darüber (Blatt von unten)
     const zeigeAuf = (k, zoom) => {
+      const blatt = !notiz.hidden && getComputedStyle(notiz).position === "fixed";
+      const unten = blatt ? Math.max(0, flaeche.getBoundingClientRect().bottom - notiz.getBoundingClientRect().top) : 0;
       g.zoom(zoom, 600);
-      g.centerAt(k.x + (notiz.hidden ? 0 : (notiz.offsetWidth + 12) / 2 / zoom), k.y, 600);
+      g.centerAt(k.x + (notiz.hidden || blatt ? 0 : (notiz.offsetWidth + 12) / 2 / zoom), k.y + unten / 2 / zoom, 600);
     };
     const waehlen = (k) => {
       auswahl = k.id;
@@ -331,6 +334,20 @@ window.saku = {
       saku.melden("Markiert, mit ⌘C kopieren");
     }
   },
+  // Waagrecht scrollende Kästen: quer--links/--rechts sagen, ob dort noch etwas kommt (der Rand blendet aus, siehe saku.css)
+  quer(wurzel) {
+    wurzel.querySelectorAll?.(".tabelle-rahmen, .table-container, .uml-bild, .saeulen-rahmen, .prosa table, .prosa pre, .formel--block, .bunseki-tabs > [role=tablist]").forEach((kasten) => {
+      const pruefen = () => {
+        kasten.classList.toggle("quer--links", kasten.scrollLeft > 1);
+        kasten.classList.toggle("quer--rechts", kasten.scrollLeft + kasten.clientWidth < kasten.scrollWidth - 1);
+      };
+      kasten.addEventListener("scroll", pruefen, { passive: true });
+      new ResizeObserver(pruefen).observe(kasten);
+      // Reiter per Adresse (Analyse ?reiter=ki): der gewählte steht im Bild, auch wenn die Zeile schmal scrollt
+      const gewaehlt = kasten.querySelector("[aria-selected='true']")?.getBoundingClientRect(), rand = kasten.getBoundingClientRect();
+      if (gewaehlt?.right > rand.right) kasten.scrollLeft += gewaehlt.left - rand.left - 16;
+    });
+  },
   // Formelsammlung: Karten nach Text filtern; Gruppen ohne Treffer und ihre Sprungmarken verschwinden
   formelSuche(text) {
     const q = text.trim().toLowerCase();
@@ -348,6 +365,7 @@ window.saku = {
 // nach dem Laden und nach jedem htmx-Tausch (Prüfen, Rechenweg, Sprint, Probeprüfung, Bereichswechsel)
 document.addEventListener("htmx:load", (e) => {
   saku.formeln(e.target);
+  saku.quer(e.target);
   e.target.querySelectorAll?.("[data-sprungmarken]").forEach((nav) => saku.sprungmarken(nav));
 });
 

@@ -27,9 +27,9 @@
   {{ r.felder(a, eingaben, werte, seed=seed) }}
 
   {% if not fertig %}
-  {% if leer %}<p class="hinweis hinweis--fehler klein" role="status">Noch nichts eingetragen. Rechne erst, oder hol dir mit {{ m.taste('Esc') }} und {{ m.taste('␣') }} den Rechenweg.</p>{% endif %}
-  {% if sql_fehler %}<p class="hinweis hinweis--fehler klein sql-fehler" role="status">{{ sql_fehler }} Korrigier die Anweisung oder hol dir mit {{ m.taste('Esc') }} und {{ m.taste('␣') }} die Musterlösung.</p>{% endif %}
-  {% if code_fehler %}<p class="hinweis hinweis--fehler klein sql-fehler" role="status">{{ code_fehler }} Korrigier den Pseudocode oder hol dir mit {{ m.taste('Esc') }} und {{ m.taste('␣') }} die Musterlösung.</p>{% endif %}
+  {% if leer %}<p class="hinweis hinweis--fehler klein" role="status">Noch nichts eingetragen. Rechne erst, oder hol dir den Rechenweg<span class="nur-tastatur"> mit {{ m.taste('Esc') }} und {{ m.taste('␣') }}</span>.</p>{% endif %}
+  {% if sql_fehler %}<p class="hinweis hinweis--fehler klein sql-fehler" role="status">{{ sql_fehler }} Korrigier die Anweisung oder hol dir die Musterlösung<span class="nur-tastatur"> mit {{ m.taste('Esc') }} und {{ m.taste('␣') }}</span>.</p>{% endif %}
+  {% if code_fehler %}<p class="hinweis hinweis--fehler klein sql-fehler" role="status">{{ code_fehler }} Korrigier den Pseudocode oder hol dir die Musterlösung<span class="nur-tastatur"> mit {{ m.taste('Esc') }} und {{ m.taste('␣') }}</span>.</p>{% endif %}
   <div class="zeile rechnen-aktionen">
     <button type="submit" class="btn" data-taste="Enter">Prüfen {{ m.taste('↵') }}</button>
     <button type="button" class="btn" data-variant="ghost" data-taste=" " title="Zählt als nicht gelöst"

@@ -27,6 +27,18 @@
 .suche-leer { padding: 24px 10px 8px; text-align: center; }
 .suche-zahl { padding: 8px 10px 0; }
 
+/* Handy: Vollbild mit Schließen-Knopf (Esc gibt es dort nicht, daneben tippen auch nicht) */
+.suche-zu { display: none; }
+@media (max-width: 720px), (pointer: coarse) { .suche-zu { display: inline-flex; } }
+@media (max-width: 720px) {
+  .suche-dialog > div {
+    top: 0; left: 0; --tw-translate-x: 0; --tw-translate-y: 0; width: 100%; height: 100dvh; max-height: none;
+    border: 0; border-radius: 0; padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+  }
+  .suche-dialog .suche-kopf { padding: 6px 4px 6px 16px; }
+  .suche-liste a { min-height: 44px; align-items: center; }
+}
+
 .suche-dialog .suche-fuss {
   flex-direction: row; justify-content: flex-start; align-items: center; gap: 6px;
   padding: 10px 18px; border-top: 1px solid var(--linie);

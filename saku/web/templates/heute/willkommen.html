@@ -82,8 +82,8 @@
 {% endcall %}
 
 {% call szene(4, 'keiko', '稽', 'Üben') %}
-<h2 class="titel" id="szene-4" tabindex="-1">Üben geht am schnellsten mit der Tastatur.</h2>
-<p class="einfuehrung-text">Auswahlfragen klickst du an oder wählst sie mit den Zahlentasten, Saku prüft sofort. Bei Textaufgaben schreibst du deine Antwort, deckst mit der Leertaste die Lösung auf, und Sensei schlägt eine Bewertung vor. Mit ↵ übernimmst du sie, mit 1, 2 oder 3 entscheidest du selbst. Probier es aus:</p>
+<h2 class="titel" id="szene-4" tabindex="-1">Üben geht schnell<span class="nur-tastatur">, am schnellsten mit der Tastatur</span>.</h2>
+<p class="einfuehrung-text">Auswahlfragen klickst du an<span class="nur-tastatur"> oder wählst sie mit den Zahlentasten</span>, Saku prüft sofort. Bei Textaufgaben schreibst du deine Antwort, deckst<span class="nur-tastatur"> mit der Leertaste</span> die Lösung auf, und Sensei schlägt eine Bewertung vor. Die übernimmst du<span class="nur-tastatur"> mit ↵</span>, oder du entscheidest selbst<span class="nur-tastatur"> mit 1, 2 oder 3</span>. Probier es aus:</p>
 <div class="flaeche einfuehrung-probe" id="probe">
   <p class="etikett">Übungsaufgabe</p>
   <p>Wandle die Binärzahl <code>1011</code> in eine Dezimalzahl um.</p>
@@ -104,14 +104,14 @@
     {% endfor %}
   </div>
 </div>
-<p class="klein gedaempft">Außerdem: {{ m.taste('M') }} markieren, {{ m.taste('→') }} überspringen, {{ m.taste('?') }} alle Tastenkürzel.</p>
+<p class="klein gedaempft nur-tastatur">Außerdem: {{ m.taste('M') }} markieren, {{ m.taste('→') }} überspringen, {{ m.taste('?') }} alle Tastenkürzel.</p>
 {% endcall %}
 
 {% call szene(5, 'sensei', '先生', 'Sensei') %}
 <h2 class="titel" id="szene-5" tabindex="-1">Sensei hilft bei jeder Aufgabe.</h2>
 <p class="einfuehrung-text">Ein Tipp, ohne die Lösung zu verraten. Eine Erklärung. Eine Prüfung deiner Antwort. Eine neue Variante derselben Aufgabe. Im Chat sucht Sensei in allen Prüfungen und verlinkt die Aufgaben, auf die er sich bezieht.</p>
 <ul class="zeile einfuehrung-modi">
-  {% for taste, name in [('T', 'Tipp'), ('E', 'Erklären'), ('P', 'Prüfen'), ('V', 'Variante')] %}<li>{{ m.taste(taste) }} {{ name }}</li>{% endfor %}
+  {% for taste, name in [('T', 'Tipp'), ('E', 'Erklären'), ('P', 'Prüfen'), ('V', 'Variante')] %}<li><span class="nur-tastatur">{{ m.taste(taste) }} </span>{{ name }}</li>{% endfor %}
 </ul>
 {% if sensei_bereit %}
 <p>Frag ihn gleich etwas:</p>
@@ -123,7 +123,7 @@
 {% endif %}
 <p class="klein gedaempft">
   <button type="button" class="btn" data-variant="ghost" data-size="sm" data-taste="s" onclick="saku.sensei()">{{ m.taste('S') }} Sensei öffnen</button>
-  geht überall, {{ m.taste('⌘K') }} durchsucht alle Prüfungen.
+  geht überall<span class="nur-tastatur">, {{ m.taste('⌘K') }} durchsucht alle Prüfungen</span>.
 </p>
 {% endcall %}
 

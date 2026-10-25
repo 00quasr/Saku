@@ -23,7 +23,7 @@
         · {{ k.ergebnis(3) }} {{ s.gewusst }} · {{ k.ergebnis(2) }} {{ s.teilweise }} · {{ k.ergebnis(1) }} {{ s.falsch }}{% if s.dauer_s %} · etwa {{ (s.dauer_s / 60)|round|int }} min{% endif %}</p>
     </header>
     <table class="table verlauf-tabelle">
-      <thead><tr><th>Uhrzeit</th><th>Teilaufgabe</th><th>Ergebnis</th><th class="verlauf-rechts">Punkte</th><th>Quelle</th></tr></thead>
+      <thead class="kopf-vorgelesen"><tr><th>Uhrzeit</th><th>Teilaufgabe</th><th>Ergebnis</th><th class="verlauf-rechts">Punkte</th><th>Quelle</th></tr></thead>
       <tbody>
         {% for z in t.zeilen %}
         <tr>
@@ -33,7 +33,8 @@
             <span class="klein gedaempft verlauf-bereich">{{ z.bereich }}</span>
           </td>
           <td>{{ k.ergebnis(z.ergebnis) }}</td>
-          <td class="zahl verlauf-rechts">{% if z.punkte is not none %}{{ k.punkte(z.punkte) }}{% if z.maximal %} / {{ k.punkte(z.maximal) }}{% endif %}{% else %}<span class="gedaempft">–</span>{% endif %}</td>
+          {% if z.punkte is not none %}<td class="zahl verlauf-rechts" data-titel="Punkte">{{ k.punkte(z.punkte) }}{% if z.maximal %} / {{ k.punkte(z.maximal) }}{% endif %}</td>
+          {% else %}<td class="zahl verlauf-rechts verlauf-leer"><span class="gedaempft">–</span></td>{% endif %}
           <td class="klein">{{ quellen[z.quelle] }}</td>
         </tr>
         {% endfor %}

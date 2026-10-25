@@ -32,7 +32,7 @@
 {% set werkzeuge = seed is not none and not fertig %}
 {% set code = f.typ == 'code' %}
 <div class="rechnen-sql{{ ' rechnen-code' if code }}{{ (' rechnen-sql--richtig' if ok else ' rechnen-sql--falsch') if fertig }}">
-  <label class="etikett" for="{{ praefix }}{{ f.name }}">{{ f.label }} · Tab rückt ein, ⇧Tab aus{{ ', ⌘↵ führt aus' if werkzeuge }}, Esc verlässt das Feld</label>
+  <label class="etikett" for="{{ praefix }}{{ f.name }}">{{ f.label }}<span class="nur-tastatur"> · Tab rückt ein, ⇧Tab aus{{ ', ⌘↵ führt aus' if werkzeuge }}, Esc verlässt das Feld</span></label>
   {% if code %}<div class="code-editor"><pre class="code-zeilen" aria-hidden="true">{% for i in range(1, eingaben.get(f.name, '').split('\n')|length + 1) %}{{ i }}
 {% endfor %}</pre>{% endif %}
   <textarea class="textarea editor" id="{{ praefix }}{{ f.name }}" name="{{ praefix }}{{ f.name }}" rows="{{ 12 if code else 8 }}" spellcheck="false" autocapitalize="off"

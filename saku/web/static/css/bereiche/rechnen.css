@@ -192,7 +192,7 @@
 .sprint-uhr [data-rest] { font-size: 1.125rem; font-weight: 500; min-width: 3.5rem; text-align: right; }
 .sprint-uhr--knapp [data-rest] { color: var(--beni); }
 .sprint-uhr--knapp .linie-fortschritt > span { background: var(--beni); }
-.sprint-aufgabe { display: grid; gap: 16px; padding: 24px 0; border-top: 1px solid var(--linie); }
+.sprint-aufgabe { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; padding: 24px 0; border-top: 1px solid var(--linie); }
 .sprint-aufgabe > header { gap: 12px; }
 .sprint-ergebnis { display: grid; gap: 18px; padding-bottom: 8px; }
 .sprint-punkte { font-size: 1.125rem; }
@@ -211,4 +211,9 @@
   .rechnen-felder { grid-template-columns: minmax(0, 1fr); gap: 4px; }
   .rechnen-marke:empty { display: none; }
   .rechnen-eingabe .input, :is(.rechnen-feld--text, .rechnen-feld--ipv6) .input { width: 100%; }
+}
+/* Touch: Links im Text bekommen eine größere Tippfläche, ohne dass die Zeile wächst */
+@media (max-width: 720px), (pointer: coarse) {
+  .rechnen-pruefungen a, .formel-titel a { padding-block: 12px; }
+  .sprint-liste a { padding-block: 12px; margin-block: -12px; }
 }
