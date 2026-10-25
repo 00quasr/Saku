@@ -68,6 +68,7 @@ def test_unterseiten_in_der_seitenleiste(client, con):
     con.execute("UPDATE einstellung SET wert = 'AP1' WHERE schluessel = 'teil'")
     con.commit()
     assert "WiSo-Schnelltest" not in nav("/shiken/")
+    assert "schnelltest" not in client.get("/suche/", query_string={"q": "wiso"}, headers=HTMX).get_data(as_text=True)  # ⌘K auch nicht
 
 
 def test_reiter_der_analyse_per_adresse(client):
