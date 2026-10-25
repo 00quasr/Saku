@@ -1,11 +1,12 @@
-# Nie ins Image: private Daten (Urheberrecht), Geheimnisse, lokale Umgebung
-.env
+# Nie ins Image: private Daten (Urheberrecht), Geheimnisse, lokale Umgebung. **/ auch in Unterordnern: anders als in
+# .gitignore gilt *.pdf hier nur im Wurzelordner
+**/.env*
 data/
-*.pdf
-*.db
-*.db-wal
-*.db-shm
-saku-paket*.tar.gz
+**/*.pdf
+**/*.db
+**/*.db-wal
+**/*.db-shm
+**/saku-paket*.tar.gz
 .venv/
 venv/
 .git/
