@@ -115,6 +115,15 @@
   .heft-material { position: sticky; top: 80px; align-self: start; max-height: calc(100dvh - 96px); overflow: auto; }
 }
 .heft-linien:focus { background-color: color-mix(in oklab, var(--shu) 4%, transparent); }
+/* Handy: schmaler Korrekturrand und weniger Polster, sonst bleiben bei 390 px nur 210 px für den Text */
+@media (max-width: 720px) {
+  .heft { --rand-breite: 56px; }
+  .heft-deckblatt { padding: 18px calc(var(--rand-breite) + 14px) 16px 14px; }
+  .heft-aufgabe { padding: 18px calc(var(--rand-breite) + 14px) 20px 14px; }
+  .heft-punkte { right: calc(-1 * var(--rand-breite) - 14px); font-size: 0.75rem; line-height: 1.1; }
+  .heft-zeit { margin-right: calc(-1 * var(--rand-breite) - 14px); font-size: 0.75rem; }
+  .heft-text { grid-template-columns: 1.75rem minmax(0, 1fr); }
+}
 
 /* Fachgespräch */
 .fachgespraech-karte { display: grid; gap: 4px; padding: 18px 22px; border-radius: 14px; text-decoration: none; margin-top: 12px; }
