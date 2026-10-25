@@ -28,14 +28,14 @@
     <h2 class="ueberschrift" id="verlauf-titel">Verlauf</h2>
     {% if verlauf %}
     <table class="table shiken-verlauf probe-verlauf">
-      <thead><tr><th>Datum</th><th>Umfang</th><th class="rechts">Punkte</th><th>Note</th><th>Ergebnis</th></tr></thead>
+      <thead class="kopf-vorgelesen"><tr><th>Datum</th><th>Umfang</th><th class="rechts">Punkte</th><th>Note</th><th>Ergebnis</th></tr></thead>
       <tbody>
         {% for p in verlauf %}
         <tr>
           <td class="zahl"><a href="{{ url_for('rechnen.probe_heft', pp_id=p.id) }}">{{ p.datum }}</a></td>
           <td>{{ p.pfad }}</td>
           {% if p.note %}
-          <td class="zahl rechts"><span class="probe-punkte">{{ zahl(p.punkte) }}
+          <td class="zahl rechts" data-titel="Punkte"><span class="probe-punkte">{{ zahl(p.punkte) }}
             <span class="linie-fortschritt" aria-hidden="true"><span style="width: {{ p.punkte }}%"></span></span></span></td>
           <td>{{ p.note }} · {{ noten[p.note] }}</td>
           <td class="{{ 'shiken-gokaku' if p.punkte >= 50 }}">{{ m.wort('合格', 'Bestanden') if p.punkte >= 50 else m.wort('再', 'Noch nicht') }}</td>

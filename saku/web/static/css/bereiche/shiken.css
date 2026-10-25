@@ -16,6 +16,14 @@
 .shiken-verlauf a { text-decoration: none; }
 .shiken-verlauf a:hover { text-decoration: underline; }
 .shiken-gokaku [lang="ja"] { color: var(--shu); }
+/* Handy: je Simulation bzw. Probeprüfung eine Zeile, die umbricht; der Link (Bereich oder Datum) steht oben */
+@media (max-width: 720px) {
+  .shiken-verlauf, .shiken-verlauf tbody { display: block; }
+  .shiken-verlauf tbody tr { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 14px; padding: 6px 0 10px; }
+  .shiken-verlauf td { padding: 0; white-space: normal; }
+  .shiken-verlauf td:has(> a) { flex-basis: 100%; order: -1; }
+  .shiken-verlauf td > a { display: inline-flex; align-items: center; min-height: 44px; font-weight: 500; }
+}
 
 /* Laufende Simulation: Restzeit bleibt oben sichtbar */
 .seite.shiken-simulation { padding-top: 0; }
@@ -44,7 +52,7 @@
 .shiken-punkte .input { width: 6rem; }
 
 /* Hochrechnung der Abschlussprüfung */
-.hochrechnung { display: grid; gap: 16px; padding: 22px 24px; border-radius: 14px; margin-bottom: 8px; }
+.hochrechnung { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; padding: 22px 24px; border-radius: 14px; margin-bottom: 8px; }
 .hochrechnung header p { max-width: 70ch; margin-top: 4px; }
 .hochrechnung-gesamt { display: grid; justify-items: end; gap: 2px; text-align: right; }
 .hochrechnung-gesamt .zahl { font-weight: 300; font-size: 2.75rem; line-height: 1; letter-spacing: -0.02em; }
@@ -56,6 +64,18 @@
 .hochrechnung-tabelle .rechts { text-align: right; }
 .hochrechnung-tabelle td:first-child { white-space: normal; }  /* lange Bereichsnamen brechen um, sonst läuft die Tabelle unter 1100 px aus der Fläche */
 .hochrechnung-eingabe { width: 96px; }
+/* Handy: je Bereich der Name mit Gewicht, darunter eigene Punkte, Quelle und Note */
+@media (max-width: 720px) {
+  .hochrechnung { padding: 18px 16px; }
+  .hochrechnung-tabelle, .hochrechnung-tabelle tbody { display: block; }
+  .hochrechnung-tabelle tbody tr { display: grid; grid-template-columns: 6rem minmax(0, 1fr) auto; align-items: center; gap: 6px 12px; padding: 12px 0; }
+  .hochrechnung-tabelle td { padding: 0; }
+  .hochrechnung-tabelle td:first-child { grid-column: 1 / 3; font-weight: 500; }
+  .hochrechnung-tabelle td:nth-child(2) { grid-area: 1 / 3; }
+  .hochrechnung-tabelle td:nth-child(5) { grid-area: 2 / 3; }
+  .hochrechnung-tabelle td:nth-child(4) { white-space: normal; }
+  .hochrechnung-eingabe { width: 100%; }
+}
 .hochrechnung-regeln { display: grid; gap: 4px; }
 .hochrechnung-regeln .ok span { color: var(--matcha); }
 .hochrechnung-regeln .fehlt span { color: var(--beni); }

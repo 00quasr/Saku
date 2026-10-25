@@ -148,6 +148,10 @@ a.flaeche:hover { border-color: var(--sumi-mittel); }
 .fahrplan-kennzahlen > div { display: grid; justify-items: end; text-align: right; }
 .fahrplan-zahl { font-weight: 200; font-size: clamp(2.25rem, 4vw, 3.25rem); line-height: 1; letter-spacing: -0.03em; }
 .fahrplan-kennzahlen .klein { opacity: .7; }
+@media (max-width: 720px) {
+  .fahrplan-kennzahlen { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; width: 100%; }
+  .fahrplan-kennzahlen > div { justify-items: start; text-align: left; align-content: start; }
+}
 .fahrplan-versteckt { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 
 .fahrplan-umschalter { display: flex; gap: 4px; }
@@ -178,7 +182,7 @@ a.flaeche:hover { border-color: var(--sumi-mittel); }
 .fahrplan .heute-raster { align-items: start; }  /* Karten nur so hoch wie ihr Inhalt */
 .fahrplan-bereiche { display: grid; }
 .fahrplan-bereich { border-top: 1px solid var(--linie); }
-.fahrplan-bereich > summary { display: grid; gap: 6px; padding: 10px 0; cursor: pointer; list-style: none; }
+.fahrplan-bereich > summary { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; padding: 10px 0; cursor: pointer; list-style: none; }  /* minmax: lange Namen kürzen statt die Karte zu sprengen */
 .fahrplan-bereich > summary::-webkit-details-marker { display: none; }
 .fahrplan-pfeil { display: inline-block; width: 14px; height: 14px; vertical-align: -2px; color: var(--sumi-mittel); transition: rotate var(--kurz) ease-out; }
 .fahrplan-bereich[open] .fahrplan-pfeil { rotate: 90deg; }

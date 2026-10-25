@@ -192,7 +192,7 @@
 .sprint-uhr [data-rest] { font-size: 1.125rem; font-weight: 500; min-width: 3.5rem; text-align: right; }
 .sprint-uhr--knapp [data-rest] { color: var(--beni); }
 .sprint-uhr--knapp .linie-fortschritt > span { background: var(--beni); }
-.sprint-aufgabe { display: grid; gap: 16px; padding: 24px 0; border-top: 1px solid var(--linie); }
+.sprint-aufgabe { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; padding: 24px 0; border-top: 1px solid var(--linie); }
 .sprint-aufgabe > header { gap: 12px; }
 .sprint-ergebnis { display: grid; gap: 18px; padding-bottom: 8px; }
 .sprint-punkte { font-size: 1.125rem; }
