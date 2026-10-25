@@ -1,0 +1,219 @@
+/* rechnen – Rechentrainer: Arten im Überblick, Aufgabe mit Eingabefeldern, Rechenweg */
+
+.rechnen-start { gap: 16px; margin-bottom: 8px; }
+.rechnen-gruppe { margin-top: 40px; }
+.rechnen-gruppe > .etikett { margin-bottom: 12px; }
+.rechnen-arten { display: grid; grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr)); gap: 12px; }
+/* Die Karte ist das li: darin der Link zur Art und darunter die Zeile „In deinen Prüfungen“ mit eigenem Link */
+.rechnen-arten > li {
+  display: grid; grid-template-rows: 1fr auto;  /* der Link füllt die Karte, die Prüfungszeile steht unten */
+  background: var(--washi-hell); border: 1px solid var(--linie); border-radius: 10px;
+  transition: border-color var(--kurz) ease-out;
+}
+.rechnen-arten > li:has(> .rechnen-art:hover) { border-color: var(--sumi-mittel); }
+.rechnen-art { display: grid; align-content: start; gap: 6px; padding: 16px 18px; border-radius: 10px; text-decoration: none; }
+.rechnen-arten .rechnen-pruefungen { margin-top: -4px; padding: 0 18px 14px; }
+.rechnen-art-titel { font-family: var(--schrift-titel); font-weight: 600; font-size: 1.125rem; line-height: 1.5rem; }
+.rechnen-art-stand { display: flex; align-items: center; gap: 10px; margin-top: 6px; }
+
+/* Fällig (Leitner: nie, unsicher oder lange her) und das kleine Tagesziel */
+.rechnen-faellig {
+  display: inline-block; margin-left: 6px; padding: 0 8px; border-radius: 999px; vertical-align: 0.15em;
+  font-family: var(--schrift); font-size: 0.6875rem; font-weight: 500; line-height: 1.25rem; letter-spacing: .02em;
+  color: var(--shu); border: 1px solid color-mix(in oklab, var(--shu) 45%, transparent);
+}
+.rechnen-ziel { display: inline-flex; align-items: center; gap: 8px; }
+.rechnen-ziel .linie-fortschritt { width: 80px; }
+.rechnen-ziel .linie-fortschritt > span { background: var(--shu); }
+
+/* Aufgabe */
+.seite.rechnen:has(.rechnen-karte) { padding-top: 24px; }
+/* Grid-Kinder dürfen schmaler werden als ihr Inhalt: lange Codezeilen scrollen im pre, statt die Karte zu verbreitern */
+.rechnen-karte > *, .rechnen-ergebnis > * { min-width: 0; }
+.rechnen-kopf { display: grid; gap: 2px; }
+.rechnen-werkzeuge { gap: 12px; }
+
+/* Felder: Beschriftung | Eingabe mit Einheit | Ergebnis */
+.rechnen-felder { display: grid; grid-template-columns: minmax(10rem, max-content) max-content minmax(0, 1fr); gap: 10px 16px; align-items: center; }
+.rechnen-feld { display: contents; }
+.rechnen-feld > label { font-weight: 500; }
+.rechnen-eingabe { display: flex; align-items: center; gap: 8px; }
+.rechnen-eingabe .input { width: 15rem; font-family: var(--schrift-code); font-size: 0.9375rem; font-variant-numeric: tabular-nums; }
+:is(.rechnen-feld--text, .rechnen-feld--ipv6) .input { width: 24rem; }  /* ausgeschriebene IPv6-Adressen: 39 Zeichen */
+.rechnen-eingabe .select { min-width: 12rem; }
+.rechnen-eingabe :disabled { opacity: 1; cursor: default; }
+.rechnen-feld--richtig :is(.input, .select) { border-color: var(--matcha); background: color-mix(in oklab, var(--matcha) 8%, var(--washi-hell)); }
+.rechnen-feld--falsch :is(.input, .select) { border-color: var(--beni); background: color-mix(in oklab, var(--beni) 8%, var(--washi-hell)); }
+.rechnen-marke { font-weight: 600; }
+.rechnen-feld--richtig .rechnen-marke { color: var(--matcha); }
+.rechnen-feld--falsch .rechnen-marke > [aria-label] { color: var(--beni); }
+.rechnen-marke strong { font-family: var(--schrift-code); font-weight: 600; }
+.rechnen-denkfehler { display: block; font-weight: 400; font-size: 0.875rem; }  /* typischer Fehler unter „richtig: …“ */
+
+/* SQL-Aufgabe: Editor, Ausführen und Beispieldaten wie in Üben (.editor, .sql-*), darunter ✓ oder ✕ */
+.rechnen-sql { display: grid; gap: 8px; }
+.rechnen-sql .editor:disabled { opacity: 1; cursor: default; }
+.rechnen-sql--richtig .editor { border-color: var(--matcha); }
+.rechnen-sql--falsch .editor { border-color: var(--beni); }
+.rechnen-sql--richtig .rechnen-marke { color: var(--matcha); }
+.rechnen-sql--falsch .rechnen-marke { color: var(--beni); }
+
+/* Pseudocode-Aufgabe: derselbe Editor mit Zeilennummern links, Ausführen zeigt die Ausgabe, nach dem Prüfen die Testfälle */
+.code-editor { display: grid; grid-template-columns: auto minmax(0, 1fr); }
+.code-zeilen {
+  margin: 0; padding: 8px 8px 8px 10px; min-width: 2.75em; overflow: hidden; text-align: right; user-select: none;
+  font-family: var(--schrift-code); font-size: 0.875rem; line-height: 1.5; font-variant-numeric: tabular-nums;
+  color: var(--sumi-mittel); background: var(--flaeche); border: 1px solid var(--linie); border-right: 0; border-radius: var(--radius) 0 0 var(--radius);
+}
+.code-editor .editor { border-top-left-radius: 0; border-bottom-left-radius: 0; }
+.rechnen-sql--richtig .code-zeilen { border-color: var(--matcha); }
+.rechnen-sql--falsch .code-zeilen { border-color: var(--beni); }
+.code-lauf { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 16px; margin: 0; }
+.code-lauf dt { font-weight: 500; }
+.code-lauf dd { margin: 0; overflow-wrap: anywhere; }
+.code-faelle td { vertical-align: top; white-space: normal; overflow-wrap: anywhere; }
+.code-faelle .rechnen-marke { margin-right: 4px; }
+.code-fall--richtig .rechnen-marke { color: var(--matcha); }
+.code-fall--falsch .rechnen-marke, .code-abbruch { color: var(--beni); }
+
+/* Struktogramm (Nassi-Shneiderman): Kästen in Tuschelinien; Verzweigung mit Dreieck (SVG, auf die Breite gestreckt), darunter
+   ja | nein; Schleife mit Kopf und eingerücktem Rumpf, links läuft der Rand mit */
+.struktogramm {
+  --sg-linie: var(--sumi-mittel);
+  max-width: 44rem; border: 1px solid var(--sg-linie); background: var(--washi-hell); color: var(--sumi);
+  font-family: var(--schrift-code); font-size: 0.8125rem; line-height: 1.45; overflow-wrap: anywhere;
+}
+.sg + .sg { border-top: 1px solid var(--sg-linie); }
+:is(.sg-anweisung, .sg-kopf) { padding: 6px 10px; }
+.sg-bedingung { position: relative; padding: 6px 10px 20px; text-align: center; min-height: 3.6em; }
+.sg-dreieck { position: absolute; inset: 0; width: 100%; height: 100%; fill: none; stroke: var(--sg-linie); stroke-width: 1px; }
+.sg-text { position: relative; padding: 0 4px; background: var(--washi-hell); }
+:is(.sg-ja, .sg-nein) { position: absolute; bottom: 2px; font-family: var(--schrift); font-size: 0.6875rem; color: var(--sumi-mittel); }
+.sg-ja { left: 8px; }
+.sg-nein { right: 8px; }
+.sg-zweige { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); border-top: 1px solid var(--sg-linie); }
+.sg-zweig { min-height: 2em; }
+.sg-zweig + .sg-zweig { border-left: 1px solid var(--sg-linie); }
+.sg-rumpf { margin-left: 1.75rem; border-top: 1px solid var(--sg-linie); border-left: 1px solid var(--sg-linie); }
+.rechnen-weg + .struktogramm, .rechnen-frage + .struktogramm { margin-top: -4px; }
+
+/* Diagramme als SVG (svg.py): Linien und Schrift in currentColor, Flächen aus den Tokens. Breiter als die Spalte wird das Bild
+   kleiner, in schmalen Fenstern bleibt es lesbar groß und scrollt waagrecht */
+.uml-bild { overflow-x: auto; }
+@media (max-width: 720px) { .uml-bild > .uml { max-width: none; } }
+.uml {
+  display: block; max-width: 100%; height: auto; color: var(--sumi); background: var(--washi-hell);
+  border: 1px solid var(--linie); border-radius: 10px; font-family: var(--schrift-code); font-size: 12px;
+}
+.uml text { fill: currentColor; }
+.uml .uml-kasten, .uml .uml-hohl { fill: var(--washi-hell); stroke: currentColor; stroke-width: 1.2; }
+.uml .uml-linie { fill: none; stroke: currentColor; stroke-width: 1.2; stroke-linejoin: round; }
+.uml .uml-strich { stroke-dasharray: 6 4; }
+.uml .uml-voll { fill: currentColor; stroke: currentColor; }
+.uml .uml-kursiv { font-style: italic; }
+.uml .uml-fett { font-weight: 600; }
+.uml .uml-unterstrichen { text-decoration: underline; }
+.rechnen-frage + .uml-bild { margin-top: -4px; }
+
+/* Eingabetabelle (Wertetabelle, Array): die Grundform kommt aus Üben (.tabelle-eingabe) */
+.rechnen-tabelle { max-width: max-content; }
+.rechnen-tabelle th[scope="row"] { background: none; font-weight: 500; color: var(--sumi-mittel); }
+.rechnen-tabelle :is(th, td) { padding: 6px 8px; }
+.rechnen-tabelle td { vertical-align: top; }
+/* Arrays mit bis zu 11 Plätzen sollen ohne Scrollen in die Lesebreite passen */
+.rechnen-tabelle input { min-width: 2.75rem; padding: 4px 5px; font-family: var(--schrift-code); font-variant-numeric: tabular-nums; }
+.rechnen-tabelle input:disabled { opacity: 1; border-style: solid; }
+.rechnen-zelle--richtig input { border-color: var(--matcha); background: color-mix(in oklab, var(--matcha) 10%, var(--washi)); }
+.rechnen-zelle--falsch input { border-color: var(--beni); background: color-mix(in oklab, var(--beni) 10%, var(--washi)); }
+.rechnen-soll { display: block; margin-top: 2px; font-family: var(--schrift-code); font-size: 0.8125rem; font-weight: 600; color: var(--beni); }
+
+.rechnen-aktionen, .rechnen-weiter { gap: 10px; }
+.rechnen-aktionen .btn, .rechnen-weiter .btn { gap: 10px; }
+.rechnen-ergebnis { display: grid; gap: 14px; padding-top: 24px; border-top: 1px solid var(--linie); }
+.rechnen-weg ol { padding-left: 1.5em; }
+.rechnen-weg ol > li + li { margin-top: 4px; }
+
+.rechnen-formeln { margin-top: 4px; }
+.rechnen-start .btn .icon { width: 16px; height: 16px; }
+
+/* Formeln (LaTeX, von saku.js mit KaTeX gesetzt): kleiner als KaTeX' 1,21 em, Wörter darin in Inter so groß wie der Text daneben */
+.formel .katex { font-size: 1.1em; }
+.formel--block { display: block; overflow-x: auto; overflow-y: hidden; }
+.formel .katex .text, .formel-zeichen { font-family: var(--schrift); font-size: 0.91em; }
+
+/* Formelsammlung: am Bildschirm Karten je Art in Spalten ohne Lücken, gedruckt zweispaltig auf weißem Papier */
+.nur-drucken { display: none; }
+.formelsammlung .mit-sprungmarken { margin-top: 24px; }
+.formel-gruppe { margin-top: 36px; }
+.formel-gruppe:first-child { margin-top: 0; }
+.formel-gruppe > .etikett { margin-bottom: 12px; }
+.formel-arten { columns: 24rem; column-gap: 16px; }
+.formel-art { break-inside: avoid; margin-bottom: 16px; padding: 16px 20px; background: var(--washi-hell); border: 1px solid var(--linie); border-radius: 10px; }
+.formel-art:target { border-color: var(--shu); }
+.formel-art:has(th:nth-child(5)) { column-span: all; }  /* breite Tabellen (Ports, OSI) über alle Spalten */
+.formel-titel { font-family: var(--schrift-titel); font-weight: 600; font-size: 1.125rem; margin-bottom: 8px; }
+.formel-titel a { text-decoration: none; }
+.formel-titel a:hover { text-decoration: underline; text-decoration-color: var(--linie); }
+.formel-text { font-size: 0.9375rem; max-width: none; }
+.formel-text ul { padding-left: 1.1em; }
+.formel-text li + li { margin-top: 2px; }
+.formel-text code { overflow-wrap: anywhere; }  /* ausgeschriebene IPv6-Adressen */
+.formel-text table { display: block; max-width: 100%; overflow-x: auto; font-size: 0.875rem; }  /* schmal scrollt die Tabelle */
+
+@media print {
+  html:has(.formelsammlung) {
+    --washi: #FFFFFF; --washi-hell: #FFFFFF; --flaeche: #F1EFEA; --sumi: #1F1D1A; --sumi-mittel: #55514A; --linie: #D9D4C9; --shu: #C2452D;
+    font-size: 9.5pt;
+  }
+  html:has(.formelsammlung) :is(.seitenleiste, .kopf, .nicht-drucken, .toast, .sprung) { display: none !important; }
+  html:has(.formelsammlung) .app { display: block; }
+  .formelsammlung { padding: 0; max-width: none; columns: 2; column-gap: 18px; }
+  .formelsammlung .mit-sprungmarken { display: block; }
+  .formelsammlung .nur-drucken { display: block; column-span: all; font-size: 14pt; line-height: 1.3; margin-bottom: 6px; }
+  .formel-gruppe { margin-top: 10px; }
+  .formel-gruppe > .etikett { margin-bottom: 4px; break-after: avoid; }
+  .formel-arten { columns: auto; }
+  /* Karten dürfen zwischen Spalten umbrechen, sonst lässt Chrome halbe Spalten leer; Titel, Punkte und Zeilen bleiben ganz */
+  .formel-art { break-inside: auto; padding: 6px 8px; margin-bottom: 8px; border-radius: 4px; }
+  .formel-art:has(th:nth-child(5)) { column-span: none; }
+  .formel-titel { font-size: 11pt; margin-bottom: 2px; break-after: avoid; }
+  .formel-text { font-size: 9pt; line-height: 1.35; }
+  .formel-text :is(li, p, tr) { break-inside: avoid; }
+  .formel-text table { display: table; width: 100%; font-size: 8pt; hyphens: auto; }  /* Silbentrennung hält breite Tabellen in der Spalte */
+  .formel-text :is(th, td) { padding: 2px 4px; }
+}
+
+/* Rechen-Sprint: Restzeit klebt oben, Aufgaben untereinander, am Ende Punkte und Note */
+.sprint-uhr {
+  position: sticky; top: 0; z-index: 30; display: flex; align-items: center; gap: 16px;
+  padding: 12px 0; background: var(--washi);
+}
+.sprint-uhr .linie-fortschritt { flex: 1; }
+.sprint-uhr [data-rest] { font-size: 1.125rem; font-weight: 500; min-width: 3.5rem; text-align: right; }
+.sprint-uhr--knapp [data-rest] { color: var(--beni); }
+.sprint-uhr--knapp .linie-fortschritt > span { background: var(--beni); }
+.sprint-aufgabe { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; padding: 24px 0; border-top: 1px solid var(--linie); }
+.sprint-aufgabe > header { gap: 12px; }
+.sprint-ergebnis { display: grid; gap: 18px; padding-bottom: 8px; }
+.sprint-punkte { font-size: 1.125rem; }
+.sprint-punkte .zahl { font-weight: 300; font-size: 3rem; line-height: 1; letter-spacing: -0.02em; margin-right: 6px; }
+.sprint-liste { display: grid; gap: 4px; max-width: 28rem; }
+.sprint-liste li { display: flex; justify-content: space-between; gap: 16px; }
+.sprint-liste a { text-decoration-color: var(--linie); }
+
+/* Probeprüfung im Heft der Simulation: breite Tabellen und Editoren dürfen das Heft nicht über den Korrekturrand schieben */
+.probe .heft > * { min-width: 0; }
+.probe .heft-aufgabe > p:last-child { margin-top: -4px; }
+.probe-punkte { display: inline-flex; align-items: center; gap: 10px; }
+.probe-punkte .linie-fortschritt { width: 72px; }
+
+@media (max-width: 720px) {
+  .rechnen-felder { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+  .rechnen-marke:empty { display: none; }
+  .rechnen-eingabe .input, :is(.rechnen-feld--text, .rechnen-feld--ipv6) .input { width: 100%; }
+}
+/* Touch: Links im Text bekommen eine größere Tippfläche, ohne dass die Zeile wächst */
+@media (max-width: 720px), (pointer: coarse) {
+  .rechnen-pruefungen a, .formel-titel a { padding-block: 12px; }
+  .sprint-liste a { padding-block: 12px; margin-block: -12px; }
+}

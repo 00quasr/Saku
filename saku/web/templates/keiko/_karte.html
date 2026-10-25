@@ -18,7 +18,7 @@
     <span class="klein zahl">{{ erledigt }} / {{ gesamt }}</span>
   </div>
 
-  {% if sicher_geworden %}<p class="hinweis tusche" role="status">Sicher. Das sitzt.</p>{% endif %}
+  {{ k.rueckmeldung(eben, sicher_geworden) }}
 
   <header class="keiko-kopf">
     {% if thema_pfad %}<p class="etikett">{{ thema_pfad|join(' › ') }}</p>{% endif %}
@@ -39,6 +39,10 @@
         </button>
       </div>
     </div>
+    <p class="klein gedaempft keiko-stand">
+      <span>{{ stand.art }}{% if stand.letzte %} · zuletzt {% for b in stand.letzte %}{{ k.ergebnis(b.ergebnis) }} {{ b.tag }}{{ ' · ' if not loop.last }}{% endfor %}{% endif %}{% if stand.noch %} · noch {{ stand.noch }}× „Gewusst“ bis sicher{% endif %}</span>
+      {% if stand.warum %}<span class="keiko-warum">{{ m.icon('clock') }} {{ stand.warum|join(' · ') }}</span>{% endif %}
+    </p>
   </header>
 
   {% if ist_variante %}<p class="hinweis klein">Ähnlich wie eben, aus einem anderen Jahrgang: dieselbe Idee noch einmal.</p>{% endif %}
@@ -65,7 +69,7 @@
 
       <div class="zeile zwischen keiko-aktionen">
         <div id="loesung-knopf" class="zeile">
-          {% if pruefbar(t.antwort) %}
+          {% if pruefbar(t.antwort) or (t.sandbox and t.loesung_sql) %}
           <button type="button" class="btn" data-taste="Enter" hx-post="{{ url_for('keiko.pruefen', t_id=t.id) }}"
                   hx-target="#loesung" hx-swap="innerHTML">Prüfen {{ m.taste('↵') }}</button>
           <button type="button" class="btn" data-variant="ghost" data-taste=" " hx-get="{{ url_for('keiko.loesung', t_id=t.id) }}" hx-include="#antwortfeld"
@@ -81,6 +85,9 @@
 
       <div id="loesung" aria-live="polite"></div>
 
+      {% if rechenart %}
+      <p class="klein rechnen-link">Ähnliches rechnen, mit immer neuen Zahlen: <a href="{{ url_for('rechnen.aufgabe', art=rechenart.slug) }}">{{ rechenart.titel }} →</a></p>
+      {% endif %}
       {% if aehnlich %}
       <p class="klein gedaempft keiko-aehnlich">Kam so ähnlich auch dran:
         {% for a in aehnlich %}<a href="{{ url_for('keiko.index', teilaufgabe=a.teilaufgabe_id) }}">{{ a.termin }} · {{ a.aufgabe_nr }} {{ a.kennung }}</a>{{ ' · ' if not loop.last }}{% endfor %}

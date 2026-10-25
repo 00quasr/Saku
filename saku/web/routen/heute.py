@@ -1,16 +1,21 @@
 """Heute 今日: Was mache ich jetzt? Tagesziel, Countdown, Prüfungsreife, nächste Station.
 Beim ersten Start führt /willkommen einmal durch Saku."""
 
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, time, timedelta
 
 from flask import Blueprint, abort, make_response, redirect, render_template, request, url_for
 
 from saku.db import einstellung, setze_einstellung
-from saku.lernen import karten, operatoren, pfad, simulation, tagesziel
+from saku.lernen import fahrplan, karten, operatoren, pfad, rueckblick, simulation, tagesziel
+from saku.lernen import kalender as ics
 from saku.web import db
-from saku.web.routen.bunseki import dauerbrenner
+from saku.web.routen.bunseki import THEMEN_ZAHLEN, dauerbrenner, termin_name
+from saku.web.routen.rechnen import heute_gerechnet, tagesziel as rechnen_ziel
 
 bp = Blueprint("heute", __name__)
+
+# „Neu in Saku“ auf Heute: eine neue Marke, sobald es wieder Neues vorzustellen gibt
+NEU_IN_SAKU = "2026-10-25"  # neue Marke: wer „Verstanden“ geklickt hat, sieht die Karte für das Neue noch einmal
 
 
 def begruessung(stunde: int) -> tuple[str, str]:
@@ -31,7 +36,8 @@ def datum_lang(tag: date) -> str:
 
 
 def kalender(con, heute: date, wochen: int = 20) -> list[list[dict]]:
-    """Lerntage der letzten Wochen, je Woche Montag bis Sonntag; stufe 0 bis 4 nach Anzahl Bewertungen."""
+    """Lerntage der letzten Wochen, je Woche Montag bis Sonntag; stufe 0 bis 4 nach Anzahl Übungen (Bewertungen und
+    Rechenaufgaben, v_lerntage.bewertungen)."""
     tage = {z["tag"]: z["bewertungen"] for z in con.execute("SELECT tag, bewertungen FROM v_lerntage")}
     start = heute - timedelta(days=heute.weekday() + 7 * (wochen - 1))
     raster = []
@@ -92,7 +98,56 @@ def index():
         luecken=luecken(con),
         grundwissen=karten.begriffe(con, []),
         laufend=simulation.laufende(con),
+        gerechnet=heute_gerechnet(con),
+        rechnen_ziel=rechnen_ziel(con),
+        # nur für alle, die schon gelernt haben; wer gerade die Einführung gemacht hat, kennt alles
+        neu=NEU_IN_SAKU if einstellung(con, "neu_gesehen") != NEU_IN_SAKU
+        and con.execute("SELECT 1 FROM bewertung LIMIT 1").fetchone() else None,
+        rueckblick=rueckblick.woche(con),
     )
+
+
+@bp.get("/fahrplan", endpoint="fahrplan")  # die Funktion heißt anders als das Modul fahrplan
+def fahrplan_seite():
+    """Fahrplan bis zur Prüfung: Prognose der Wiederholungen, Tempo, Abdeckung nach Prüfungsgewicht, was am meisten bringt."""
+    con = db()
+    if not con.execute("SELECT 1 FROM teilaufgabe LIMIT 1").fetchone():
+        return render_template("heute/fahrplan.html", leer=True)
+    heute = date.today()
+    spanne = 30 if request.args.get("tage") == "30" else 14
+    ziel = tagesziel.tagesziel(con, heute)
+    return render_template(
+        "heute/fahrplan.html",
+        spanne=spanne,
+        tage=tagesziel.tage_bis_pruefung(con, heute),
+        lerntage=tagesziel.lerntage(con, heute),
+        puffer=einstellung(con, "puffer_tage", "7"),
+        ziel=ziel,
+        prognose=fahrplan.prognose(con, heute, spanne, ziel),
+        tempo=fahrplan.tempo(con, heute),
+        abdeckung=fahrplan.abdeckung(con),
+        gewinn=fahrplan.gewinn(con),
+        termin_name=lambda i: termin_name(i, einstellung(con, "teil") == "AP1"),
+    )
+
+
+@bp.get("/fahrplan.ics")
+def fahrplan_kalender():
+    """Fahrplan zum Importieren in den Kalender; lernen=1 mit uhrzeit (HH:MM) und dauer (Minuten) für den täglichen Lern-Termin."""
+    con = db()
+    heute = date.today()
+    lernen = None
+    if request.args.get("lernen"):
+        try:
+            uhrzeit = time.fromisoformat(request.args.get("uhrzeit") or "18:00").replace(tzinfo=None, second=0, microsecond=0)
+            minuten = int(request.args.get("dauer") or 30)
+        except ValueError:
+            abort(400)
+        if not 5 <= minuten <= 240:
+            abort(400)
+        lernen = ics.lern_termin(heute, uhrzeit, minuten, tagesziel.tage_bis_pruefung(con, heute))
+    return ics.datei(fahrplan.meilensteine(con, heute), lernen), 200, {
+        "Content-Type": "text/calendar; charset=utf-8", "Content-Disposition": "attachment; filename=saku-fahrplan.ics"}
 
 
 def luecken(con) -> list[dict]:
@@ -129,10 +184,10 @@ def willkommen():
     con = db()
     if not con.execute("SELECT 1 FROM teilaufgabe LIMIT 1").fetchone():
         return redirect(url_for("heute.index"))
-    zahlen = con.execute("""SELECT
+    zahlen = con.execute(f"""SELECT
         (SELECT COUNT(DISTINCT termin_index) FROM v_teilaufgabe) AS termine,
         (SELECT COUNT(*) FROM v_teilaufgabe) AS teilaufgaben,
-        (SELECT COUNT(*) FROM v_themen_statistik WHERE ebene = 2 AND teilaufgaben > 0) AS themen,
+        {THEMEN_ZAHLEN},
         (SELECT COUNT(*) FROM v_station) AS stationen""").fetchone()
     # Dauerbrenner nach Punkten: so mischen sich die Prüfungsbereiche, statt dass WiSo mit 100 % vorn liegt
     themen = sorted(dauerbrenner(con), key=lambda t: -t["punkte"])[:5]
@@ -171,6 +226,7 @@ def willkommen_umfang():
 def willkommen_fertig():
     con = db()
     setze_einstellung(con, "einfuehrung", "gesehen")
+    setze_einstellung(con, "neu_gesehen", NEU_IN_SAKU)
     station = next((s for s in pfad.stationen(con) if s["aktuell"]), None)
     if request.form.get("ziel") == "station" and station:
         return redirect(url_for("michi.station", station_id=station["id"]))

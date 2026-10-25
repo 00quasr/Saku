@@ -1,14 +1,11 @@
 /* bunseki – Reiter, Heatmap in Tuschestufen, Tabellen, Korrektur der Zuordnung */
 
 .bunseki-tabs { margin-top: 24px; gap: 24px; }
-.bunseki-tabs > [role="tablist"] { max-width: 100%; overflow-x: auto; scrollbar-width: none; justify-content: flex-start; }
-.bunseki-tabs [role="tab"] { gap: 6px; white-space: nowrap; }
+/* schmal (1024 px) eine zweite Zeile, statt die letzten Reiter unsichtbar wegzuscrollen */
+.bunseki-tabs > [role="tablist"] { max-width: 100%; height: auto; flex-wrap: wrap; justify-content: flex-start; }
+.bunseki-tabs [role="tab"] { flex: none; gap: 6px; white-space: nowrap; }
 .bunseki-reiter > * + * { margin-top: 16px; }
 
-.bunseki-versteckt {
-  position: absolute; width: 1px; height: 1px; overflow: hidden;
-  clip-path: inset(50%); white-space: nowrap;
-}
 .bunseki-block { display: block; }
 .bunseki-umbruch, .bunseki-auszug { white-space: normal !important; }
 .bunseki-auszug { min-width: 240px; max-width: 360px; }
@@ -65,6 +62,17 @@ tbody:first-of-type .bunseki-bereich { padding-top: 4px; }
 .bunseki-scan { color: var(--sumi-mittel); }
 @media (max-width: 900px) { .bunseki-kennzahlen { grid-template-columns: repeat(2, 1fr); } }
 .bunseki-balken a > :last-child { text-align: right; }
+
+/* Handy: Reiter in einer Zeile, die waagrecht scrollt; Balken unter Name und Zahl; Tippflächen 44 px */
+@media (max-width: 720px) {
+  .bunseki-tabs > [role="tablist"] { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  .bunseki-tabs [role="tab"] { min-height: 44px; }
+  .bunseki-balken a { grid-template-columns: minmax(0, 1fr) auto; gap: 6px 12px; min-height: 44px; }
+  .bunseki-balken-spur { grid-column: 1 / -1; grid-row: 2; }
+  .katalog-thema > summary { min-height: 44px; align-items: center; }
+  .katalog-thema li a { display: inline-block; padding-block: 12px; margin-block: -12px; }  /* größere Tippfläche, gleiche Zeile */
+  .bunseki-thema a { display: inline-block; padding-block: 13px; margin-block: -13px; }
+}
 
 /* Katalog-Abdeckung */
 .katalog-bereich + .katalog-bereich { margin-top: 28px; }

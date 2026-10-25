@@ -11,9 +11,14 @@
   {% endfor %}
 </div>
 {% endmacro %}
+{# Ein Befehl für das Terminal, mit Kopier-Knopf #}
+{% macro befehl(text) %}
+<div class="befehl"><code>{{ text }}</code><button type="button" class="btn" data-variant="ghost" data-size="icon-sm" title="Kopieren"
+     aria-label="Befehl kopieren: {{ text }}" onclick="saku.kopieren(this)">{{ m.icon('copy') }}</button></div>
+{% endmacro %}
 {{ m.kopf('willkommen', '設', 'Einstellungen', 'Einstellungen', schmal=True) }}
-<div class="seite einstellungen">
-  <nav class="einstellungen-nav" aria-label="Abschnitte">
+<div class="seite einstellungen mit-sprungmarken">
+  <nav class="sprungmarken" aria-label="Abschnitte" data-sprungmarken>
     <a href="#ausbildung">Ausbildung</a>
     <a href="#termin">Prüfungstermin</a>
     <a href="#lernen">Lernen</a>
@@ -22,105 +27,120 @@
     <a href="#daten">Daten</a>
   </nav>
 
-  {# Jede Änderung speichert sofort (POST /einstellungen/<schlüssel>), die Seitenleiste meldet „Gespeichert“ #}
+  {# Jede Zeile: links Name und Erklärung, rechts das Bedienelement in einer festen Spalte. Jede Änderung speichert sofort
+     (POST /einstellungen/<schlüssel>) und meldet „Gespeichert“ #}
   <div class="einstellungen-inhalt">
-    <section id="ausbildung" class="einstellungen-gruppe">
-      <h2>Ausbildung</h2>
+    <section id="ausbildung" class="einstellungen-gruppe" aria-labelledby="ausbildung-titel">
+      <h2 id="ausbildung-titel">Ausbildung</h2>
       <div class="flaeche einstellungen-karte">
         <div class="einstellung-zeile">
-          <div>
+          <div class="einstellung-text">
             <p class="einstellung-name">Ausbildungsberuf</p>
             <p class="klein gedaempft">Bestimmt die Prüfungsbereiche der AP2. AP1 und WiSo sind für alle IT-Berufe gleich.</p>
           </div>
-          {{ segment('beruf', 'Ausbildungsberuf', BERUFE, umfang.beruf) }}
+          <div class="einstellung-steuer">{{ segment('beruf', 'Ausbildungsberuf', BERUFE, umfang.beruf) }}</div>
         </div>
         <div class="einstellung-zeile">
-          <div>
+          <div class="einstellung-text">
             <p class="einstellung-name">Prüfungsteil</p>
             <p class="klein gedaempft">Was Heute, Lernpfad, Üben und Prüfung zeigen. Wechseln geht auch oben in der Seitenleiste.</p>
           </div>
-          {{ segment('teil', 'Prüfungsteil', {'AP1': 'AP1 · Teil 1', 'AP2': 'AP2 · Teil 2'}, umfang.teil) }}
+          <div class="einstellung-steuer">{{ segment('teil', 'Prüfungsteil', {'AP1': 'AP1 · Teil 1', 'AP2': 'AP2 · Teil 2'}, umfang.teil) }}</div>
         </div>
       </div>
     </section>
 
-    <section id="termin" class="einstellungen-gruppe">
-      <h2>Prüfungstermin</h2>
+    <section id="termin" class="einstellungen-gruppe" aria-labelledby="termin-titel">
+      <h2 id="termin-titel">Prüfungstermin</h2>
       <div class="flaeche einstellungen-karte">
-        <div class="einstellung-zeile">
-          <div>
-            <label class="einstellung-name" for="pruefungstermin">Termin der AP2</label>
-            <p class="klein gedaempft">Danach richten sich Countdown, Tagesziel und das längste Wiederholungsintervall.</p>
-            <p class="klein einstellung-info" id="termin-info" aria-live="polite">{{ termin_info.pruefungstermin }}</p>
+        {# der gewählte Prüfungsteil zuerst und betont, der andere zurückgenommen #}
+        {% for teil, feld, info in [('AP2', 'pruefungstermin', 'termin-info'), ('AP1', 'pruefungstermin_ap1', 'termin-info-ap1')]|sort(attribute='0', reverse=umfang.teil == 'AP2') %}
+        {% set aktiv = teil == umfang.teil %}
+        <div class="einstellung-zeile einstellung-zeile--{{ 'aktiv' if aktiv else 'ruhig' }}">
+          <div class="einstellung-text">
+            <p class="einstellung-name"><label for="{{ feld }}">Termin der {{ teil }}</label>
+              {% if aktiv %}<span class="badge">gewählt</span>{% else %}<span class="badge" data-variant="outline">nicht gewählt</span>{% endif %}</p>
+            <p class="klein gedaempft">{% if aktiv %}Danach richten sich Countdown, Tagesziel und das längste Wiederholungsintervall.{% else %}Zählt, sobald du oben zu {{ teil }} wechselst.{% endif %}
+              {% if teil == 'AP1' %}Liegt sie hinter dir, lass das Feld leer.{% endif %}</p>
+            <p class="einstellung-info zahl" id="{{ info }}" aria-live="polite">{{ termin_info[feld] }}</p>
           </div>
-          <div class="einstellung-termin">
-            <input class="input" type="date" id="pruefungstermin" name="pruefungstermin" value="{{ werte.pruefungstermin }}"
-                   hx-post="{{ url_for('kern.speichern', schluessel='pruefungstermin') }}" hx-trigger="change" hx-target="#termin-info">
-            {{ m.termin_vorschlaege('AP2', 'pruefungstermin') }}
+          <div class="einstellung-steuer">
+            <input class="input" type="date" id="{{ feld }}" name="{{ feld }}" value="{{ werte[feld] }}"
+                   hx-post="{{ url_for('kern.speichern', schluessel=feld) }}" hx-trigger="change" hx-target="#{{ info }}"
+                   onchange="const w = document.getElementById('{{ feld }}-ihk'); if (w) { w.value = this.value; if (w.selectedIndex < 0) w.value = '' }">
+            {% set termine = ihk_termine(teil) %}
+            {% if termine %}
+            {# offizielle IHK-Termine: die Wahl trägt das Datum ins Feld ein, das speichert #}
+            <select class="select" id="{{ feld }}-ihk" aria-label="Offiziellen IHK-Termin der {{ teil }} übernehmen"
+                    onchange="if (this.value) { const f = document.getElementById('{{ feld }}'); f.value = this.value; f.dispatchEvent(new Event('change', {bubbles: true})) }">
+              <option value="">IHK-Termin wählen …</option>
+              {% for t in termine %}<option value="{{ t.datum }}" {% if t.datum == werte[feld] %}selected{% endif %}>{{ t.name }} · {{ t.anzeige }}</option>{% endfor %}
+            </select>
+            {% endif %}
           </div>
         </div>
+        {% endfor %}
         <div class="einstellung-zeile">
-          <div>
-            <label class="einstellung-name" for="pruefungstermin_ap1">Termin der AP1</label>
-            <p class="klein gedaempft">Gilt, solange oben AP1 gewählt ist. Liegt sie hinter dir, lass das Feld leer.</p>
-            <p class="klein einstellung-info" id="termin-info-ap1" aria-live="polite">{{ termin_info.pruefungstermin_ap1 }}</p>
-          </div>
-          <div class="einstellung-termin">
-            <input class="input" type="date" id="pruefungstermin_ap1" name="pruefungstermin_ap1" value="{{ werte.pruefungstermin_ap1 }}"
-                   hx-post="{{ url_for('kern.speichern', schluessel='pruefungstermin_ap1') }}" hx-trigger="change" hx-target="#termin-info-ap1">
-            {{ m.termin_vorschlaege('AP1', 'pruefungstermin_ap1') }}
-          </div>
-        </div>
-        <div class="einstellung-zeile">
-          <div>
+          <div class="einstellung-text">
             <label class="einstellung-name" for="puffer_tage">Puffer vor der Prüfung</label>
             <p class="klein gedaempft">In diesen letzten Tagen kommen keine neuen Teilaufgaben mehr, nur Simulationen und Wiederholungen.</p>
           </div>
-          <span class="zeile">
-            <input class="input einstellung-zahl" type="number" min="0" max="60" id="puffer_tage" name="puffer_tage" value="{{ werte.puffer_tage or 7 }}"
+          <div class="einstellung-steuer einstellung-einheit">
+            <input class="input" type="number" min="0" max="60" id="puffer_tage" name="puffer_tage" value="{{ werte.puffer_tage or 7 }}"
                    hx-post="{{ url_for('kern.speichern', schluessel='puffer_tage') }}" hx-trigger="change" hx-swap="none">
             <span class="gedaempft">Tage</span>
-          </span>
+          </div>
         </div>
       </div>
     </section>
 
-    <section id="lernen" class="einstellungen-gruppe">
-      <h2>Lernen</h2>
+    <section id="lernen" class="einstellungen-gruppe" aria-labelledby="lernen-titel">
+      <h2 id="lernen-titel">Lernen</h2>
       <div class="flaeche einstellungen-karte">
         <div class="einstellung-zeile">
-          <div>
+          <div class="einstellung-text">
             <label class="einstellung-name" for="stationstest_schwelle">Mini-Test bestanden ab</label>
             <p class="klein gedaempft">So viele Punkte brauchst du im Mini-Test einer Station, damit die nächste frei wird.</p>
           </div>
-          <span class="zeile">
+          <div class="einstellung-steuer einstellung-einheit">
             <input type="range" min="0.5" max="1" step="0.05" id="stationstest_schwelle" name="stationstest_schwelle"
                    value="{{ werte.stationstest_schwelle or 0.8 }}" oninput="this.nextElementSibling.value = Math.round(this.value * 100) + ' %'"
                    hx-post="{{ url_for('kern.speichern', schluessel='stationstest_schwelle') }}" hx-trigger="change" hx-swap="none">
             <output class="zahl einstellung-wert" for="stationstest_schwelle">{{ ((werte.stationstest_schwelle or 0.8)|float * 100)|round|int }} %</output>
-          </span>
+          </div>
+        </div>
+        <div class="einstellung-zeile">
+          <div class="einstellung-text">
+            <label class="einstellung-name" for="rechnen_ziel">Rechenaufgaben am Tag</label>
+            <p class="klein gedaempft">Ein kleines Ziel für <span lang="ja">算</span> Rechnen, neben den Teilaufgaben. Heute zeigt den Fortschritt. 0 schaltet es aus.</p>
+          </div>
+          <div class="einstellung-steuer einstellung-einheit">
+            <input class="input" type="number" min="0" max="50" id="rechnen_ziel" name="rechnen_ziel" value="{{ werte.rechnen_ziel or 5 }}"
+                   hx-post="{{ url_for('kern.speichern', schluessel='rechnen_ziel') }}" hx-trigger="change" hx-swap="none">
+            <span class="gedaempft">Aufgaben</span>
+          </div>
         </div>
       </div>
     </section>
 
-    <section id="darstellung" class="einstellungen-gruppe">
-      <h2>Darstellung</h2>
+    <section id="darstellung" class="einstellungen-gruppe" aria-labelledby="darstellung-titel">
+      <h2 id="darstellung-titel">Darstellung</h2>
       <div class="flaeche einstellungen-karte">
         <div class="einstellung-zeile">
-          <div>
+          <div class="einstellung-text">
             <p class="einstellung-name">Farbschema</p>
             <p class="klein gedaempft">Dunkel ist der Hauptlook. System folgt der Einstellung deines Macs.</p>
           </div>
-          {{ segment('farbschema', 'Farbschema', farbschemas, werte.farbschema or 'dunkel', 'saku.farbschema(this.value)') }}
+          <div class="einstellung-steuer">{{ segment('farbschema', 'Farbschema', farbschemas, werte.farbschema or 'dunkel', 'saku.farbschema(this.value)') }}</div>
         </div>
       </div>
     </section>
 
-    <section id="sensei" class="einstellungen-gruppe">
-      <h2><span lang="ja" aria-hidden="true">先生</span> Sensei</h2>
+    <section id="sensei" class="einstellungen-gruppe" aria-labelledby="sensei-titel">
+      <h2 id="sensei-titel"><span lang="ja" aria-hidden="true">先生</span> Sensei</h2>
       <div class="flaeche einstellungen-karte">
         <div class="einstellung-zeile">
-          <div>
+          <div class="einstellung-text">
             <p class="einstellung-name">Claude-API</p>
             {% if sensei_bereit %}
             <p class="klein gedaempft">Der Schlüssel steht in <code>.env</code>. Sensei erklärt, prüft und chattet über die API.</p>
@@ -128,48 +148,133 @@
             <p class="klein gedaempft">Trag <code>ANTHROPIC_API_KEY=…</code> in die Datei <code>.env</code> im Saku-Ordner ein und starte Saku neu. Alles andere funktioniert auch ohne.</p>
             {% endif %}
           </div>
-          {% if sensei_bereit %}<span class="status status--gruen"><span class="status-punkt" aria-hidden="true"></span> Bereit</span>{% else %}<span class="gedaempft">Aus</span>{% endif %}
+          <div class="einstellung-steuer">
+            <span class="badge einstellung-status status--{{ 'gruen' if sensei_bereit else 'neu' }}" data-variant="outline">
+              <span class="status-punkt" aria-hidden="true"></span>{{ 'Bereit' if sensei_bereit else 'Aus, kein Schlüssel' }}</span>
+          </div>
         </div>
         <div class="einstellung-zeile">
-          <div>
+          <div class="einstellung-text">
             <p class="einstellung-name">Modelle</p>
             <p class="klein gedaempft">Schnelle Antworten und Einordnung über das kleine Modell, Erklärungen und Prüfen über das starke.</p>
           </div>
-          <span class="klein einstellung-modelle"><code>{{ modelle.schnell }}</code><code>{{ modelle.stark }}</code></span>
+          <dl class="einstellung-steuer einstellung-modelle klein">
+            <dt class="gedaempft">Schnell</dt><dd><code>{{ modelle.schnell }}</code></dd>
+            <dt class="gedaempft">Stark</dt><dd><code>{{ modelle.stark }}</code></dd>
+          </dl>
         </div>
         <div class="einstellung-zeile">
-          <div>
+          <div class="einstellung-text">
             <p class="einstellung-name">Nutzung bisher</p>
             <p class="klein gedaempft">{{ ki.aufrufe }} Aufrufe, davon {{ ki.aus_cache }} aus dem Cache. Die Aufschlüsselung steht unter <a href="{{ url_for('bunseki.index') }}">Analyse</a>.</p>
           </div>
-          <span class="klein zahl">{{ '{:,}'.format(ki.tokens_ein + ki.tokens_aus).replace(',', '.') }} Tokens</span>
+          <p class="einstellung-steuer zahl">{{ '{:,}'.format(ki.tokens_ein + ki.tokens_aus).replace(',', '.') }} Tokens</p>
         </div>
       </div>
     </section>
 
-    <section id="daten" class="einstellungen-gruppe">
-      <h2>Daten</h2>
+    <section id="daten" class="einstellungen-gruppe" aria-labelledby="daten-titel">
+      <h2 id="daten-titel">Daten</h2>
       <div class="flaeche einstellungen-karte">
         <div class="einstellung-zeile">
-          <div>
+          <div class="einstellung-text">
             <p class="einstellung-name">Katalog</p>
-            <p class="klein gedaempft">{{ zahlen.pruefungen }} Prüfungen, {{ zahlen.teilaufgaben }} Teilaufgaben, {{ zahlen.mit_loesung }} mit Lösungshinweis, {{ zahlen.themen }} Themen.</p>
-          </div>
-        </div>
-        <div class="einstellung-zeile einstellung-befehle">
-          <div>
-            <p class="einstellung-name">Neue Prüfungen aufnehmen</p>
-            <p class="klein gedaempft">PDFs oder ZIPs nach <code>data/quellen</code> legen, dann im Saku-Ordner:</p>
-            <pre><code>python -m saku.pipeline.sammeln
-python -m saku analyse --ki claude-code</code></pre>
+            <p class="klein gedaempft">{{ zahlen.pruefungen }} Prüfungen, {{ zahlen.teilaufgaben }} Teilaufgaben, {{ zahlen.mit_loesung }} mit Lösungshinweis, {{ zahlen.themen }} Themen mit {{ zahlen.unterthemen }} Unterthemen.</p>
           </div>
         </div>
         <div class="einstellung-zeile">
-          <div>
+          <div class="einstellung-text">
+            <p class="einstellung-name">Sicherung</p>
+            <p class="klein gedaempft">Beim Start und vor jeder Analyse einmal am Tag, die letzten sieben bleiben.</p>
+            <p class="klein einstellung-info" id="sicherung-info" aria-live="polite">{{ sicherung }}</p>
+          </div>
+          <div class="einstellung-steuer">
+            <button type="button" class="btn" data-variant="outline" hx-post="{{ url_for('kern.jetzt_sichern') }}"
+                    hx-target="#sicherung-info" hx-disabled-elt="this">{{ m.icon('database-backup') }} Jetzt sichern</button>
+          </div>
+        </div>
+        <div class="einstellung-zeile">
+          <div class="einstellung-text">
+            <p class="einstellung-name">Lernstand</p>
+            <p class="klein gedaempft">Bewertungen, Karten, Simulationen und Einstellungen als Datei. Sie hängt nicht an internen Nummern
+              und lässt sich auch nach einem Neuaufbau der Datenbank wieder übernehmen, im Saku-Ordner mit:</p>
+          </div>
+          <div class="einstellung-steuer">
+            <a class="btn" data-variant="outline" href="{{ url_for('kern.lernstand_export') }}" download>{{ m.icon('download') }} Lernstand exportieren</a>
+          </div>
+          <div class="einstellung-befehle">{{ befehl('python -m saku lernstand import DATEI.json') }}</div>
+        </div>
+        {% if config.SERVER %}
+        {# Nur im Netz (python -m saku server): Katalog von zu Hause herauf, Datenbank als Sicherung herunter #}
+        <div class="einstellung-zeile">
+          <div class="einstellung-text">
+            <label class="einstellung-name" for="paket-datei">Paket übernehmen</label>
+            <p class="klein gedaempft">Ersetzt Katalog und Bilder durch das Paket von zu Hause, der Lernstand von hier bleibt. Vorher
+              sichert Saku die Datenbank. Das Paket baut im Saku-Ordner:</p>
+            <input class="input" type="file" id="paket-datei" accept=".gz,.tgz,application/gzip">
+            <p class="klein einstellung-info" id="paket-info" aria-live="polite"></p>
+          </div>
+          <div class="einstellung-steuer">
+            <button type="button" class="btn" data-variant="outline" id="paket-hochladen">{{ m.icon('upload') }} Hochladen</button>
+          </div>
+          <div class="einstellung-befehle">{{ befehl('python -m saku paket') }}</div>
+        </div>
+        <div class="einstellung-zeile">
+          <div class="einstellung-text">
+            <p class="einstellung-name">Datenbank</p>
+            <p class="klein gedaempft">Katalog und Lernstand als eine Datei, als Sicherung auf deinem Rechner.</p>
+          </div>
+          <div class="einstellung-steuer">
+            <a class="btn" data-variant="outline" href="{{ url_for('kern.datenbank_herunterladen') }}" download>{{ m.icon('download') }} Herunterladen</a>
+          </div>
+        </div>
+        <script>
+          // roh statt als Formular: der Server schreibt es in Blöcken direkt auf das Volume
+          document.getElementById("paket-hochladen").addEventListener("click", async (e) => {
+            const knopf = e.currentTarget, datei = document.getElementById("paket-datei").files[0], info = document.getElementById("paket-info");
+            if (!datei) { info.textContent = "Erst ein Paket wählen."; return; }
+            knopf.disabled = true;
+            info.textContent = `Lädt ${Math.round(datei.size / 1e6)} MB hoch und übernimmt sie …`;
+            try {
+              const antwort = await fetch("{{ url_for('kern.paket_hochladen') }}", {method: "POST", body: datei, headers: {"HX-Request": "true"}});
+              if (antwort.headers.get("HX-Redirect")) { location.href = antwort.headers.get("HX-Redirect"); return; }
+              info.textContent = await antwort.text();
+            } catch (fehler) {
+              info.textContent = `Hochladen fehlgeschlagen: ${fehler.message}`;
+            }
+            knopf.disabled = false;
+          });
+        </script>
+        {% endif %}
+        {% if config.PASSWORT %}
+        <div class="einstellung-zeile">
+          <div class="einstellung-text">
+            <p class="einstellung-name">Anmeldung</p>
+            <p class="klein gedaempft">Auf diesem Gerät bleibst du 30 Tage angemeldet. Ein neues Passwort meldet überall ab.</p>
+          </div>
+          <form class="einstellung-steuer" method="post" action="{{ url_for('anmeldung.abmelden') }}">
+            <button class="btn" data-variant="outline">{{ m.icon('log-out') }} Abmelden</button>
+          </form>
+        </div>
+        {% endif %}
+        <div class="einstellung-zeile">
+          <div class="einstellung-text">
+            <p class="einstellung-name">Neue Prüfungen aufnehmen</p>
+            <p class="klein gedaempft">PDFs oder ZIPs nach <code>data/quellen</code> legen, dann im Saku-Ordner nacheinander:</p>
+          </div>
+          <div class="einstellung-befehle">
+            {{ befehl('python -m saku.pipeline.sammeln') }}
+            {{ befehl('python -m saku analyse --ki claude-code') }}
+          </div>
+        </div>
+        <div class="einstellung-zeile">
+          <div class="einstellung-text">
             <p class="einstellung-name"><span lang="ja" aria-hidden="true">はじめまして</span> Einführung</p>
             <p class="klein gedaempft">Die Tour vom ersten Start: was Saku aus deinen Prüfungen gemacht hat und wie du damit lernst.</p>
           </div>
-          <a class="btn" data-variant="outline" data-size="sm" href="{{ url_for('heute.willkommen') }}">Ansehen</a>
+          <div class="einstellung-steuer">
+            <a class="btn" data-variant="outline" href="{{ url_for('heute.willkommen') }}">Einführung ansehen</a>
+          </div>
         </div>
       </div>
     </section>

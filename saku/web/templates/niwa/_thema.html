@@ -21,6 +21,7 @@
       <span lang="ja" aria-hidden="true">先生</span> Sensei erklärt
     </button>
   </div>
+  {% if rechenart %}<p class="klein rechnen-link">Ähnliches rechnen: <a href="{{ url_for('rechnen.aufgabe', art=rechenart.slug) }}">{{ rechenart.titel }} →</a></p>{% endif %}
   {% if not sensei_bereit %}<p class="klein gedaempft">Sensei ist aus: Es fehlt der API-Schlüssel in <code>.env</code>. <a href="{{ url_for('kern.einstellungen') }}">Einstellungen</a></p>{% endif %}
   <div id="niwa-sensei"></div>
 

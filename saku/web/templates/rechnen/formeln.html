@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block titel %}Formelsammlung · Rechnen{% endblock %}
+{% block inhalt %}
+{{ m.kopf('keiko', '算', 'Rechnen', 'Formelsammlung', schmal=True) }}
+
+<div class="seite weit rechnen formelsammlung">
+  <div class="zeile rechnen-start nicht-drucken">
+    <button type="button" class="btn" onclick="print()">{{ m.icon('printer') }} Als Spickzettel drucken</button>
+    <a class="btn" data-variant="outline" href="{{ url_for('rechnen.index') }}">Zur Übersicht</a>
+    <p class="klein gedaempft">Druckt hell und zweispaltig, ohne Seitenleiste. Dieselben Formeln stehen nach dem Prüfen unter jedem Rechenweg.</p>
+  </div>
+  <h1 class="titel nur-drucken"><span lang="ja">算</span> Formelsammlung · Saku</h1>
+
+  <div class="mit-sprungmarken">
+    <nav class="sprungmarken nicht-drucken" aria-label="Gruppen der Formelsammlung" data-sprungmarken>
+      <input type="search" class="input sprungmarken-suche" placeholder="Formel suchen" aria-label="Formeln durchsuchen"
+             aria-controls="formel-gruppen" oninput="saku.formelSuche(this.value)" onkeydown="if (event.key === 'Escape') { this.value = ''; saku.formelSuche('') }">
+      {% for gruppe, arten in gruppen %}
+      <a href="#formel-gruppe-{{ loop.index }}">{{ gruppe }}</a>
+      {% endfor %}
+    </nav>
+
+    <div id="formel-gruppen">
+      {% for gruppe, arten in gruppen %}
+      <section class="formel-gruppe" id="formel-gruppe-{{ loop.index }}" aria-labelledby="formel-gruppe-{{ loop.index }}-titel">
+        <h2 class="etikett" id="formel-gruppe-{{ loop.index }}-titel">{{ gruppe }}</h2>
+        <div class="formel-arten">
+          {% for a in arten %}
+          <article class="formel-art" id="{{ a.slug }}">
+            <h3 class="formel-titel"><a href="{{ url_for('rechnen.aufgabe', art=a.slug) }}">{{ a.titel }}</a></h3>
+            <div class="prosa formel-text">{{ a.formeln|markdown(formeln=True) }}</div>
+          </article>
+          {% endfor %}
+        </div>
+      </section>
+      {% endfor %}
+      <p class="leer" id="formel-leer" role="status" hidden>Keine Formel gefunden. Versuch ein anderes Wort, z. B. Subnetz, Entropie oder RAID.</p>
+    </div>
+  </div>
+</div>
+{% endblock %}

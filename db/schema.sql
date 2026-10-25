@@ -84,7 +84,16 @@ CREATE TABLE teilaufgabe (
     antwort         TEXT,                               -- JSON {art, optionen, richtig, einheit, vorlage}
     loesung_inhalt  TEXT,                               -- Markdown
     muster_id       INTEGER REFERENCES muster(id) ON DELETE SET NULL,
+    loesung_sql     TEXT,                               -- Musterlösung in SQLite (Schritt sandbox), nur bei SQL-Teilaufgaben
     UNIQUE (aufgabe_id, kennung)
+);
+
+-- SQL-Sandbox je Aufgabe (Schritt sandbox): erfundene Tabellen und Beispieldaten zum Ausführen und Prüfen in Üben
+CREATE TABLE sql_sandbox (
+    aufgabe_id  INTEGER PRIMARY KEY REFERENCES aufgabe(id) ON DELETE CASCADE,
+    ddl         TEXT NOT NULL,                          -- CREATE TABLE …
+    daten       TEXT NOT NULL,                          -- INSERT …
+    erstellt    TEXT DEFAULT (datetime('now'))
 );
 
 -- „Kam so ähnlich auch dran“: TF-IDF-Ähnlichkeit zwischen Teilaufgaben
@@ -256,6 +265,32 @@ CREATE TABLE bewertung (
     punkte          REAL                                -- erreichte Punkte, wenn bekannt (Sensei, Auswahl, Selbsteinschätzung)
 );
 
+-- Rechentrainer (算 Rechnen): jede generierte Aufgabe, die geprüft wurde; „Rechenweg zeigen“ zählt als falsch
+CREATE TABLE rechenuebung (
+    id              INTEGER PRIMARY KEY,
+    art             TEXT    NOT NULL,                   -- subnetz, datenmenge … (saku/lernen/rechnen)
+    seed            INTEGER NOT NULL,                   -- erzeugt dieselbe Aufgabe wieder
+    richtig         INTEGER NOT NULL CHECK (richtig IN (0, 1)),
+    felder_richtig  INTEGER NOT NULL,
+    felder_gesamt   INTEGER NOT NULL,
+    dauer_s         INTEGER,
+    zeitpunkt       TEXT    NOT NULL DEFAULT (datetime('now'))
+);
+
+-- Probeprüfung aus den Rechen-Generatoren: dieselben Aufgaben entstehen aus Art und Seed neu; jede Aufgabe kommt bei der
+-- Abgabe auch in rechenuebung
+CREATE TABLE probepruefung (
+    id              INTEGER PRIMARY KEY,
+    pfad            TEXT    NOT NULL,                   -- Lernpfad beim Anlegen (v_umfang.pfad: AP1, AP2-1201 …)
+    aufgaben        TEXT    NOT NULL,                   -- JSON [[art, seed, punkte], …], Punkte zusammen 100
+    eingaben        TEXT,                               -- JSON {Formularfeld: Text}, zwischengespeichert
+    gestartet_am    TEXT    NOT NULL DEFAULT (datetime('now')),
+    dauer_min       INTEGER NOT NULL,
+    beendet_am      TEXT,
+    punkte          REAL,                               -- erreicht von 100, nach der Abgabe
+    note            INTEGER CHECK (note BETWEEN 1 AND 6)
+);
+
 -- ---------------------------------------------------------------------
 -- Prüfungssimulation (Shiken 試験)
 -- ---------------------------------------------------------------------
@@ -361,6 +396,7 @@ CREATE INDEX idx_karte_faellig         ON karte(faellig_am);
 CREATE INDEX idx_bewertung_teilaufgabe ON bewertung(teilaufgabe_id, zeitpunkt);
 CREATE INDEX idx_sensei_gespraech      ON sensei_nachricht(gespraech, zeitpunkt);
 CREATE INDEX idx_aehnlichkeit_wert     ON aehnlichkeit(teilaufgabe_id, wert DESC);
+CREATE INDEX idx_rechenuebung_art      ON rechenuebung(art, id);
 
 -- ---------------------------------------------------------------------
 -- Sichten
@@ -537,10 +573,12 @@ WHERE teilaufgabe_id IN (SELECT teilaufgabe_id FROM v_teilaufgabe)
   AND faellig_am IS NOT NULL
   AND faellig_am <= datetime('now');
 
--- Heute: Lerntage für die Lernserie
+-- Heute: Lerntage für Lernserie und Kalender; Rechenübungen zählen mit (bewertungen = Bewertungen + Rechenaufgaben)
 CREATE VIEW v_lerntage AS
-SELECT date(zeitpunkt, 'localtime') AS tag, COUNT(*) AS bewertungen
-FROM bewertung
+SELECT tag, COUNT(*) AS bewertungen
+FROM (SELECT date(zeitpunkt, 'localtime') AS tag FROM bewertung
+      UNION ALL
+      SELECT date(zeitpunkt, 'localtime') FROM rechenuebung)
 GROUP BY tag;
 
 -- Bunseki: KI-Nutzung
@@ -555,4 +593,4 @@ SELECT
 FROM ki_aufruf
 GROUP BY zweck, modell;
 
-PRAGMA user_version = 4;
+PRAGMA user_version = 10;

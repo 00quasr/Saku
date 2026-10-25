@@ -5,6 +5,19 @@
 
 {% macro kennung(t) %}{{ t.termin }} · Aufgabe {{ t.aufgabe_nr }} {{ t.kennung }}{% endmacro %}
 
+{# Ergebnis einer Bewertung (1–3) als Zeichen, für Screenreader ausgeschrieben #}
+{% macro ergebnis(e) %}<span class="ergebnis ergebnis--{{ e }}" aria-hidden="true">{{ {1: '✗', 2: '~', 3: '✓'}[e] }}</span><span class="bunseki-versteckt">{{ {1: 'nicht gewusst', 2: 'teilweise', 3: 'gewusst'}[e] }}</span>{% endmacro %}
+
+{# Nach dem Bewerten: sicher geworden? Und wann kommt die Teilaufgabe wieder (eben aus keiko._eben) #}
+{% macro rueckmeldung(eben, sicher_geworden) %}
+{% if eben or sicher_geworden %}
+<p class="hinweis tusche keiko-eben" role="status">
+  {% if sicher_geworden %}Sicher. Das sitzt.{% endif %}
+  {% if eben %}{{ kennung(eben) }}: wieder dran {{ eben.wann }}{{ ' · liegt im Fehlerkorb' if eben.status == 'rot' }}{% endif %}
+</p>
+{% endif %}
+{% endmacro %}
+
 {# Alternativtext: Termin, Kennung und Anfang des Aufgabentexts #}
 {% macro alt(t) %}{{ kennung(t) }}{% if t.text %}: {{ t.text|klartext|truncate(90) }}{% endif %}{% endmacro %}
 
@@ -64,25 +77,49 @@
 {% else %}<p class="hinweis hinweis--fehler">Zu dieser Teilaufgabe fehlt der Lösungshinweis. Bewerte dich nach bestem Wissen oder frag Sensei.</p>{% endif %}
 {% endmacro %}
 
-{# Eingabe passend zur Antwortart; werte (nach dem Prüfen): je Option richtig/falsch, dann ist alles gesperrt #}
-{% macro antwortfeld(t, eingabe=None, werte=None, oob=False) %}
+{# Automatische Bewertung (antwort.vorschlag) neben den Punkten: Kurzhinweis zu SQL oder die Meldung, wenn die Anweisung nicht läuft #}
+{% macro auto_hinweis(v, id) %}
+<span class="klein gedaempft shiken-auto{{ ' shiken-auto--fehler' if v.fehler }}" id="{{ id }}">{{ m.icon('circle-x' if v.fehler else 'circle-check') }} {{ '0 Punkte vorbelegt' if v.fehler else 'automatisch bewertet' }}{% if v.hinweise %}: {{ v.hinweise|join(' ') }}{% endif %}</span>
+{% endmacro %}
+
+{# Tabelle aus der SQL-Sandbox (Ergebnis, Beispieldaten, Vergleich): t aus lernen/sql._tabelle #}
+{% macro sql_tabelle(t) %}
+<figure class="sql-tabelle" aria-live="off">
+  <figcaption class="etikett">{{ t.titel }}</figcaption>
+  <div class="tabelle-rahmen">
+    <table class="table">
+      <thead><tr>{% for s in t.spalten %}<th scope="col">{{ s }}</th>{% endfor %}</tr></thead>
+      <tbody>
+        {% for z in t.zeilen %}<tr>{% for w in z %}{% if w is none %}<td class="sql-null">NULL</td>{% else %}<td>{{ w|round(4) if w is float else w }}</td>{% endif %}{% endfor %}</tr>
+        {% else %}<tr><td colspan="{{ t.spalten|length or 1 }}" class="gedaempft">keine Zeilen</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if t.weitere %}<p class="klein gedaempft">… und {{ 'mehr als ' if t.abgeschnitten }}{{ t.weitere }} weitere Zeilen</p>{% endif %}
+</figure>
+{% endmacro %}
+
+{# Eingabe passend zur Antwortart; eingabe (aus antwort.eingabe) füllt die Felder vor;
+   werte (nach dem Prüfen): je Option richtig/falsch, dann ist alles gesperrt.
+   praefix: eigene Namen und IDs je Teilaufgabe, wenn mehrere auf einer Seite stehen (Simulation, nur prüfbare Arten) #}
+{% macro antwortfeld(t, eingabe=None, werte=None, oob=False, praefix='') %}
 {% set a = t.antwort %}
 {% set art = a.art if a else 'frei' %}
 {% set fertig = werte is not none %}
-<div id="antwortfeld"{% if oob %} hx-swap-oob="true"{% endif %} class="keiko-antwort keiko-antwort--{{ art }}{{ ' keiko-antwort--fertig' if fertig }}">
+<div id="{{ praefix }}antwortfeld"{% if oob %} hx-swap-oob="true"{% endif %} class="keiko-antwort keiko-antwort--{{ art }}{{ ' keiko-antwort--fertig' if fertig }}">
 {% if art in ('einfach', 'mehrfach') and a.optionen %}
-  <p class="etikett">{{ 'Eine Antwort wählen' if art == 'einfach' else 'Alle zutreffenden wählen' }}{% if not fertig %} · Zifferntasten{% endif %}</p>
+  <p class="etikett">{{ 'Eine Antwort wählen' if art == 'einfach' else 'Alle zutreffenden wählen' }}{% if not fertig and not praefix %} · Zifferntasten{% endif %}</p>
   <div class="wahl" role="group">
     {% for o in a.optionen %}
-    {% set gewaehlt = fertig and o.wert in eingabe.wahl %}
+    {% set gewaehlt = eingabe and o.wert in eingabe.wahl %}
     {% set soll = fertig and o.wert in a.richtig %}
-    <label class="wahl-option{{ ' wahl-option--richtig' if soll }}{{ ' wahl-option--falsch' if gewaehlt and not soll }}"
-           {% if not fertig and o.wert|length == 1 and o.wert.isdigit() %}data-taste="{{ o.wert }}"{% endif %}>
-      <input type="{{ 'radio' if art == 'einfach' else 'checkbox' }}" name="wahl" value="{{ o.wert }}"
+    <label class="wahl-option{{ ' wahl-option--richtig' if soll }}{{ ' wahl-option--falsch' if fertig and gewaehlt and not soll }}"
+           {% if not fertig and not praefix and o.wert|length == 1 and o.wert.isdigit() %}data-taste="{{ o.wert }}"{% endif %}>
+      <input type="{{ 'radio' if art == 'einfach' else 'checkbox' }}" name="{{ praefix }}wahl" value="{{ o.wert }}"
              {{ 'checked' if gewaehlt }} {{ 'disabled' if fertig }}>
       <span class="wahl-wert">{{ o.wert }}</span>
       <span class="wahl-text">{{ o.text }}</span>
-      {% if soll %}<span class="wahl-marke" aria-label="richtig">✓</span>{% elif gewaehlt %}<span class="wahl-marke" aria-label="falsch">✕</span>{% endif %}
+      {% if soll %}<span class="wahl-marke" aria-label="richtig">✓</span>{% elif fertig and gewaehlt %}<span class="wahl-marke" aria-label="falsch">✕</span>{% endif %}
     </label>
     {% endfor %}
   </div>
@@ -92,8 +129,8 @@
     {% for o in a.optionen %}
     {% set soll = (a.richtig.index(o.wert) + 1) if o.wert in a.richtig else '' %}
     <label class="wahl-option{{ (' wahl-option--richtig' if werte[o.wert] else ' wahl-option--falsch') if fertig and o.wert in werte }}">
-      <input class="input wahl-platz" type="number" min="1" max="{{ a.optionen|length }}" name="position-{{ o.wert }}"
-             value="{{ eingabe.position.get(o.wert, '') if fertig }}" {{ 'disabled' if fertig }} aria-label="Platz für {{ o.wert }}">
+      <input class="input wahl-platz" type="number" min="1" max="{{ a.optionen|length }}" name="{{ praefix }}position-{{ o.wert }}"
+             value="{{ eingabe.position.get(o.wert, '') if eingabe }}" {{ 'disabled' if fertig }} aria-label="Platz für {{ o.wert }}">
       <span class="wahl-wert">{{ o.wert }}</span>
       <span class="wahl-text">{{ o.text }}</span>
       {% if fertig %}<span class="wahl-marke">Platz {{ soll }}</span>{% endif %}
@@ -107,19 +144,19 @@
     <label class="wahl-option{{ (' wahl-option--richtig' if werte[o.wert] else ' wahl-option--falsch') if fertig and o.wert in werte }}">
       <span class="wahl-wert">{{ o.wert }}</span>
       <span class="wahl-text">{{ o.text }}</span>
-      <select class="select wahl-ziel" name="ziel-{{ o.wert }}" {{ 'disabled' if fertig }} aria-label="Ziel für {{ o.wert }}">
+      <select class="select wahl-ziel" name="{{ praefix }}ziel-{{ o.wert }}" {{ 'disabled' if fertig }} aria-label="Ziel für {{ o.wert }}">
         <option value="">–</option>
-        {% for z in a.ziele %}<option value="{{ z.wert }}" {{ 'selected' if fertig and eingabe.ziel.get(o.wert) == z.wert }}>{{ z.wert }} · {{ z.text }}</option>{% endfor %}
+        {% for z in a.ziele %}<option value="{{ z.wert }}" {{ 'selected' if eingabe and eingabe.ziel.get(o.wert) == z.wert }}>{{ z.wert }} · {{ z.text }}</option>{% endfor %}
       </select>
     </label>
     {% endfor %}
   </div>
   <p class="klein gedaempft">{% for z in a.ziele %}{{ z.wert }} = {{ z.text }}{{ ' · ' if not loop.last }}{% endfor %}</p>
 {% elif art == 'zahl' %}
-  <label class="etikett" for="zahl">Dein Ergebnis</label>
+  <label class="etikett" for="{{ praefix }}zahl">Dein Ergebnis</label>
   <span class="zeile">
-    <input class="input zahl-eingabe{{ (' zahl-eingabe--richtig' if werte.zahl else ' zahl-eingabe--falsch') if fertig }}" id="zahl" name="zahl"
-           inputmode="decimal" autocomplete="off" value="{{ eingabe.zahl if fertig }}" {{ 'disabled' if fertig }}
+    <input class="input zahl-eingabe{{ (' zahl-eingabe--richtig' if werte.zahl else ' zahl-eingabe--falsch') if fertig }}" id="{{ praefix }}zahl" name="{{ praefix }}zahl"
+           inputmode="decimal" autocomplete="off" value="{{ eingabe.zahl if eingabe }}" {{ 'disabled' if fertig }}
            onkeydown="if (event.key === 'Escape') this.blur()">
     {% if a.einheit %}<span class="gedaempft">{{ a.einheit }}</span>{% endif %}
     {% if fertig and not werte.zahl %}<span>Richtig: <strong class="zahl">{{ a.richtig[0] }}</strong> {{ a.einheit }}</span>{% endif %}
@@ -139,17 +176,31 @@
   </div>
   <textarea name="antwort" hidden></textarea>
 {% elif art in ('code', 'sql') %}
-  <label class="etikett" for="antwort">{{ 'Deine SQL-Anweisung' if art == 'sql' else 'Dein Code' }} · Tab rückt ein, Esc verlässt das Feld</label>
+  {% set sandbox = art == 'sql' and t.sandbox and not praefix %}
+  <label class="etikett" for="antwort">{{ 'Deine SQL-Anweisung' if art == 'sql' else 'Dein Code' }}<span class="nur-tastatur"> · Tab rückt ein, ⇧Tab aus{{ ', ⌘↵ führt aus' if sandbox }}, Esc verlässt das Feld</span></label>
   <textarea class="textarea editor" id="antwort" name="antwort" rows="9" spellcheck="false" autocapitalize="off" autocomplete="off"
             placeholder="{{ 'SELECT …' if art == 'sql' else '' }}" onkeydown="saku.editorTaste(event)">{{ a.vorlage }}</textarea>
+  {# SQL-Sandbox: auf erfundenen Beispieldaten ausführen (Schritt sandbox) #}
+  {% if sandbox %}
+  <div class="zeile sql-werkzeuge">
+    <button type="button" class="btn" data-variant="outline" data-size="sm" data-sql-ausfuehren
+            hx-post="{{ url_for('keiko.sql_ausfuehren', t_id=t.id) }}" hx-include="#antwort" hx-target="#sql-ergebnis">
+      {{ m.icon('play') }} Ausführen {{ m.taste('⌘↵') }}
+    </button>
+    <button type="button" class="btn" data-variant="ghost" data-size="sm"
+            hx-get="{{ url_for('keiko.sql_tabellen', t_id=t.id) }}" hx-target="#sql-ergebnis">{{ m.icon('table') }} Tabellen ansehen</button>
+  </div>
+  <div id="sql-ergebnis" class="sql-ergebnis" aria-live="polite"></div>
+  {% endif %}
 {% else %}
-  <label class="etikett" for="antwort">Deine Antwort</label>
+  {# Esc nicht im Platzhalter: den kann kein Stylesheet auf Touch ausblenden #}
+  <label class="etikett" for="antwort">Deine Antwort<span class="nur-tastatur"> · Esc verlässt das Feld</span></label>
   <textarea class="textarea" id="antwort" name="antwort" rows="4"
-            placeholder="Überleg dir die Antwort oder tipp sie ein. Esc verlässt das Feld."
+            placeholder="Überleg dir die Antwort oder tipp sie ein."
             onkeydown="if (event.key === 'Escape') this.blur()"></textarea>
 {% endif %}
 {# Zeichenaufgaben (UML, ER-Modell, Netzplan …): eigene Zeichnung als Foto oder Screenshot, Sensei vergleicht sie #}
-{% if not fertig and (t.typ == 'zeichnen' or '/bild/' in (t.loesung_inhalt or '')) %}
+{% if not fertig and not praefix and (t.typ == 'zeichnen' or '/bild/' in (t.loesung_inhalt or '')) %}
 <div class="zeichnung" ondragover="event.preventDefault()" ondrop="event.preventDefault(); saku.zeichnung(event.dataTransfer.files[0])">
   <label class="zeichnung-feld">
     <input type="file" accept="image/*" onchange="saku.zeichnung(this.files[0])">

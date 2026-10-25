@@ -1,40 +1,44 @@
-/* einstellungen – Abschnitte links, gruppierte Karten mit Zeilen rechts; alles speichert beim Ändern */
+/* einstellungen – Sprungmarken links (saku.css), je Zeile links Name und Erklärung, rechts das Bedienelement in einer festen
+   Spalte, gleich breit für alle; ist die Karte schmal, steht es darunter. Alles speichert beim Ändern */
 
-.einstellungen { display: grid; grid-template-columns: 168px minmax(0, 760px); gap: 48px; }
-.einstellungen-nav { position: sticky; top: 24px; align-self: start; display: grid; gap: 2px; }
-.einstellungen-nav a { padding: 5px 10px; border-radius: 6px; font-size: 0.875rem; color: var(--sumi-mittel); text-decoration: none; }
-.einstellungen-nav a:hover { color: var(--sumi); background: var(--flaeche); }
-
-.einstellungen-gruppe { scroll-margin-top: 24px; }
-.einstellungen-gruppe + .einstellungen-gruppe { margin-top: 36px; }
+.einstellungen { max-width: calc(75rem + 2 * var(--rand)); }
+.einstellungen-gruppe + .einstellungen-gruppe { margin-top: 40px; }
 .einstellungen-gruppe h2 { font-family: var(--schrift-titel); font-weight: 600; font-size: 1.125rem; margin-bottom: 12px; }
 .einstellungen-gruppe h2 [lang="ja"] { color: var(--ai); }
-.einstellungen-karte { padding: 0; border-radius: 12px; }
+.einstellungen-karte { padding: 0; border-radius: 12px; container-type: inline-size; }
 
-.einstellung-zeile { display: flex; justify-content: space-between; align-items: center; gap: 32px; padding: 18px 22px; }
+.einstellung-zeile { display: grid; grid-template-columns: minmax(0, 1fr) 22rem; gap: 12px 40px; align-items: center; padding: 18px 22px; }
 .einstellung-zeile + .einstellung-zeile { border-top: 1px solid var(--linie); }
-.einstellung-zeile > div:first-child { display: grid; gap: 2px; max-width: 52ch; }
-.einstellung-zeile > :last-child:not(:first-child) { flex: none; }
-.einstellung-name { font-weight: 500; }
+.einstellung-text { display: grid; gap: 2px; max-width: 60ch; }
+.einstellung-name { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-weight: 500; }
 .einstellung-info { margin-top: 4px; color: var(--sumi); }
-.einstellung-zeile .input[type="date"] { width: 170px; }
-.einstellung-zahl { width: 76px; }
-.einstellung-wert { min-width: 3.5em; text-align: right; }
-.einstellung-modelle { display: grid; gap: 4px; justify-items: end; }
-.einstellung-befehle pre { margin-top: 8px; padding: 10px 14px; background: var(--flaeche); border-radius: 8px; font-size: 0.8125rem; }
-input[type="range"] { accent-color: var(--shu); width: 160px; }
 
-/* Segment-Schalter: Radios bleiben fokussierbar, nur unsichtbar */
-.segment { display: inline-flex; gap: 2px; padding: 3px; background: var(--flaeche); border-radius: 9px; }
-.segment label { position: relative; }
-.segment input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
-.segment > span, .segment label > span { display: block; padding: 5px 12px; border-radius: 7px; font-size: 0.875rem; color: var(--sumi-mittel); white-space: nowrap; }
-.segment > span.aktiv, .segment input:checked + span { background: var(--washi-hell); color: var(--sumi); box-shadow: 0 1px 2px rgb(0 0 0 / .15); }
-.segment input:focus-visible + span { outline: 2px solid var(--shu); outline-offset: 1px; }
-.segment[aria-disabled="true"] { opacity: .7; }
+/* die Steuerspalte: Felder, Auswahl, Knöpfe und Segmente füllen sie ganz */
+.einstellung-steuer { display: grid; gap: 8px; margin: 0; }
+.einstellung-steuer :is(.input, .select, .btn) { width: 100%; }
+.einstellung-steuer .segment { display: flex; flex-wrap: wrap; }
+.einstellung-steuer .segment label { flex: 1 1 auto; }
+.einstellung-steuer .segment label > span { text-align: center; }
+.einstellung-einheit { grid-template-columns: minmax(0, 1fr) 4.5rem; align-items: center; gap: 12px; }
+.einstellung-wert { text-align: right; }
+input[type="range"] { accent-color: var(--shu); width: 100%; }
+.einstellung-modelle { grid-template-columns: auto minmax(0, 1fr); gap: 4px 12px; }
+.einstellung-modelle dd { margin: 0; overflow-wrap: anywhere; }
+.einstellung-status { justify-self: start; gap: 8px; }
+.einstellung-status.status--neu { color: var(--sumi-mittel); }
 
-@media (max-width: 900px) {
-  .einstellungen { grid-template-columns: 1fr; gap: 24px; }
-  .einstellungen-nav { position: static; display: flex; flex-wrap: wrap; }
-  .einstellung-zeile { flex-direction: column; align-items: flex-start; gap: 12px; }
+/* Prüfungstermine: der gewählte Teil mit Strich in der Akzentfarbe, der andere zurückgenommen (gedämpft, aber lesbar und bedienbar) */
+.einstellung-zeile--aktiv { box-shadow: inset 2px 0 0 var(--shu); }
+.einstellung-zeile--ruhig { background: color-mix(in oklab, var(--flaeche) 45%, transparent); }
+.einstellung-zeile--ruhig :is(.einstellung-name, .einstellung-info) { color: var(--sumi-mittel); font-weight: 400; }
+.einstellungen-karte > .einstellung-zeile:first-child { border-radius: 12px 12px 0 0; }
+
+/* Befehle für das Terminal über die ganze Zeile, je einer mit Kopier-Knopf */
+.einstellung-befehle { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; }
+.befehl { display: flex; align-items: center; gap: 8px; padding: 4px 4px 4px 14px; background: var(--flaeche); border-radius: 8px; }
+.befehl code { flex: 1; min-width: 0; overflow-x: auto; white-space: pre; font-size: 0.8125rem; line-height: 1.75rem; }
+
+@container (max-width: 44rem) {
+  .einstellung-zeile { grid-template-columns: minmax(0, 1fr); }
+  .einstellung-steuer { max-width: 22rem; }
 }

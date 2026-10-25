@@ -6,6 +6,7 @@ from datetime import date, timedelta
 from itertools import groupby
 
 from saku.db import einstellung
+from saku.lernen import simulation
 from saku.lernen.karten import fahrschul, termin_schluessel
 
 # Bundeseinheitliche schriftliche Termine der IT-Berufe (Stand 22.10.2026; Quellen: Handelskammer Hamburg,
@@ -30,9 +31,9 @@ NEU_MINDESTENS = 10
 
 _HEUTE = "date(zeitpunkt, 'localtime') = date('now', 'localtime')"
 
-# Neue Teilaufgaben in der Reihenfolge des Lernpfads (frühe Station zuerst, ohne Station ans Ende)
+# Neue Teilaufgaben in der Reihenfolge des Lernpfads (frühe Station zuerst, ohne Station ans Ende), dazu ihre erste Station
 NEU_IM_PFAD_SQL = """
-SELECT v.teilaufgabe_id
+SELECT v.teilaufgabe_id, MIN(COALESCE(s.position, 1e9)) AS station_position, s.id AS station_id, s.titel AS station_titel
 FROM v_teilaufgabe v
 JOIN teilaufgabe t ON t.id = v.teilaufgabe_id
 LEFT JOIN v_zuordnung z    ON z.teilaufgabe_id = v.teilaufgabe_id
@@ -49,6 +50,17 @@ def tage_bis_pruefung(con: sqlite3.Connection, heute: date | None = None) -> int
     return (date.fromisoformat(termin) - (heute or date.today())).days if termin else None
 
 
+def lerntage(con: sqlite3.Connection, heute: date | None = None) -> int | None:
+    """Tage bis zur Prüfung − Puffer, mindestens 1; None ohne Termin."""
+    tage = tage_bis_pruefung(con, heute)
+    return None if tage is None else max(1, tage - int(einstellung(con, "puffer_tage", "7") or 0))
+
+
+def neu_am_tag(neue: int, lerntage: int | None) -> int:
+    """aufrunden(neue ÷ Lerntage), mindestens NEU_MINDESTENS, höchstens alle neuen."""
+    return min(max(NEU_MINDESTENS, math.ceil(neue / lerntage) if lerntage else 0), neue)
+
+
 def tagesziel(con: sqlite3.Connection, heute: date | None = None) -> dict:
     """Lerntage = Tage bis Prüfung − Puffer (mind. 1), Neu heute = aufrunden(neue ÷ Lerntage), mindestens NEU_MINDESTENS,
     Heute = Neu heute + fällige Wiederholungen. Gerechnet ab Tagesbeginn, damit das Ziel beim Lernen stehen bleibt."""
@@ -61,12 +73,7 @@ def tagesziel(con: sqlite3.Connection, heute: date | None = None) -> dict:
     wdh_erledigt = len(bewertet) - neu_erledigt
 
     neue = con.execute("SELECT COUNT(*) FROM v_teilaufgabe WHERE status = 'neu'").fetchone()[0]
-    tage = tage_bis_pruefung(con, heute)
-    neu_ziel = NEU_MINDESTENS
-    if tage is not None:
-        lerntage = max(1, tage - int(einstellung(con, "puffer_tage", "7") or 0))
-        neu_ziel = max(neu_ziel, math.ceil((neue + neu_erledigt) / lerntage))
-    neu_ziel = min(neu_ziel, neue + neu_erledigt)
+    neu_ziel = neu_am_tag(neue + neu_erledigt, lerntage(con, heute))
     neu_offen = min(neue, max(0, neu_ziel - neu_erledigt))
 
     wdh_offen = con.execute(
@@ -109,23 +116,28 @@ def naechste_aktion(con: sqlite3.Connection, ziel: dict) -> tuple[str, int] | No
     return None
 
 
-def heute_sicher(con: sqlite3.Connection) -> list[int]:
-    """Teilaufgaben, die heute sicher geworden sind: jetzt grün, vor heute laut Verlauf noch nicht."""
+def sicher_geworden(con: sqlite3.Connection, von: date, bis: date) -> list[int]:
+    """Teilaufgaben, die zwischen von und bis (Ortszeit, beide Tage mit) sicher geworden sind: am Ende grün, davor nicht."""
     verlauf = con.execute(
-        f"SELECT b.teilaufgabe_id, b.ergebnis, {_HEUTE.replace('zeitpunkt', 'b.zeitpunkt')} AS heute "
-        "FROM bewertung b JOIN karte k ON k.teilaufgabe_id = b.teilaufgabe_id "
-        f"WHERE k.status = 'gruen' AND b.teilaufgabe_id IN (SELECT teilaufgabe_id FROM bewertung WHERE {_HEUTE}) "
-        "ORDER BY b.teilaufgabe_id, b.zeitpunkt, b.id").fetchall()
+        "SELECT teilaufgabe_id, ergebnis, date(zeitpunkt, 'localtime') >= ?1 AS drin FROM bewertung "
+        "WHERE date(zeitpunkt, 'localtime') <= ?2 AND teilaufgabe_id IN "
+        "(SELECT teilaufgabe_id FROM bewertung WHERE date(zeitpunkt, 'localtime') BETWEEN ?1 AND ?2) "
+        "ORDER BY teilaufgabe_id, zeitpunkt, id", (von.isoformat(), bis.isoformat())).fetchall()
     ids = []
     for t_id, zeilen in groupby(verlauf, key=lambda z: z["teilaufgabe_id"]):
-        status, serie = "neu", 0
+        status, serie, vorher = "neu", 0, "neu"
         for z in zeilen:
-            if z["heute"]:
-                break
             status, serie = fahrschul(serie, z["ergebnis"])
-        if status != "gruen":
+            if not z["drin"]:
+                vorher = status
+        if status == "gruen" and vorher != "gruen":
             ids.append(t_id)
     return ids
+
+
+def heute_sicher(con: sqlite3.Connection) -> list[int]:
+    """Teilaufgaben, die heute sicher geworden sind."""
+    return sicher_geworden(con, date.today(), date.today())
 
 
 def lernserie(con: sqlite3.Connection, heute: date | None = None) -> int:
@@ -141,9 +153,10 @@ def lernserie(con: sqlite3.Connection, heute: date | None = None) -> int:
 
 
 def pruefungsreife(con: sqlite3.Connection) -> tuple[float, bool]:
-    """(Prozent, mankai): volle Blüte ab 80 % und wenn die letzten zwei Simulationen bestanden sind."""
+    """(Prozent, mankai): volle Blüte ab 80 % und wenn die letzten zwei Simulationen bestanden sind (ohne WiSo-Schnelltest)."""
     prozent = con.execute("SELECT prozent FROM v_pruefungsreife").fetchone()[0] or 0
     letzte = [z[0] for z in con.execute(
-        "SELECT bestanden FROM simulation WHERE note IS NOT NULL ORDER BY gestartet_am DESC, id DESC LIMIT 2"
+        "SELECT bestanden FROM simulation WHERE note IS NOT NULL AND bereich <> ? ORDER BY gestartet_am DESC, id DESC LIMIT 2",
+        (simulation.SCHNELLTEST,)
     )]
     return prozent, prozent >= 80 and letzte == [1, 1]

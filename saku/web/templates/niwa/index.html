@@ -4,7 +4,7 @@
 {% if not daten.knoten %}
 {{ m.kopf('willkommen', '庭', 'Themen', 'Wissensgraph') }}
 <div class="seite weit">
-  <p class="leer">Noch ist der Garten leer. Lege deine Prüfungen in <code>data/quellen</code> und starte die Analyse.</p>
+  <p class="leer">Noch ist der Garten leer. Lege deine Prüfungen in <code>data/pdfs</code> und starte die Analyse.</p>
 </div>
 {% else %}
 {{ m.kopf('niwa', '庭', 'Themen', 'Wissensgraph', schmal=True) }}
@@ -21,7 +21,7 @@
         {% endfor %}
       </div>
       <button type="button" id="graph-alles" class="btn graph-alles" data-variant="outline" data-size="sm"
-              title="Ganzen Graphen zeigen (auch Rechtsklick auf die Fläche)">{{ m.icon('maximize') }} Alles zeigen</button>
+              title="Ganzen Graphen zeigen (auch Rechtsklick auf die Fläche)">{{ m.icon('maximize') }} <span class="graph-alles-text">Alles zeigen</span></button>
     </div>
 
     <ul class="graph-legende klein" aria-label="Legende">
@@ -47,7 +47,7 @@
               onclick="document.getElementById('notiz').hidden = false">
         <span class="lehrplan-nummer">LF{{ lf.nummer }}</span>
         <span class="lehrplan-titel">{{ lf.titel }}</span>
-        <span class="klein gedaempft">{{ lf.jahr }}. Jahr · {{ lf.themen|length }} Themen · {{ lf.teilaufgaben }} Teilaufgaben</span>
+        <span class="klein gedaempft">{{ lf.jahr }}. Jahr · {{ lf.themen|length }} {{ 'Thema' if lf.themen|length == 1 else 'Themen' }} · {{ lf.teilaufgaben }} {{ 'Teilaufgabe' if lf.teilaufgaben == 1 else 'Teilaufgaben' }}</span>
       </button>
       {% endfor %}
     </div>

@@ -49,11 +49,20 @@
     {% else %}
     <p class="gedaempft">Zu dieser Station gibt es noch keine Teilaufgaben.</p>
     {% endif %}
+    {% if rechentraining %}
+    <div class="michi-rechnen" role="group" aria-label="Rechentraining">
+      {% for r in rechentraining %}
+      <p class="klein rechnen-link"><span lang="ja" aria-hidden="true">算</span> Rechentraining: <strong>{{ r.art.titel }}</strong> ·
+        {% if r.letzte %}<span class="zahl">{{ r.letzte|sum }} von {{ r.letzte|length }}</span> zuletzt richtig{% else %}noch nicht gerechnet{% endif %}
+        · <a href="{{ url_for('rechnen.aufgabe', art=r.art.slug) }}">üben →</a></p>
+      {% endfor %}
+    </div>
+    {% endif %}
   </section>
 
   <section class="abschnitt michi-test" aria-labelledby="test-titel">
     <h2 class="ueberschrift" id="test-titel">Mini-Test</h2>
-    <p>Fünf Teilaufgaben aus dieser Station. Ab {{ (100 * schwelle)|round|int }} % der Punkte ist die Station geschafft{% if not station.bestanden %}, und die nächste wird frei{% endif %}.</p>
+    <p>Bis zu fünf Teilaufgaben aus dieser Station. Ab {{ (100 * schwelle)|round|int }} % der Punkte ist die Station geschafft{% if not station.bestanden %}, und die nächste wird frei{% endif %}.</p>
     {% if letzter %}
     <p class="klein gedaempft zahl">Zuletzt: {{ k.punkte(letzter.punkte_erreicht) }} von {{ k.punkte(letzter.punkte_moeglich) }} Punkten · {{ 'bestanden' if letzter.bestanden else 'noch nicht bestanden' }}</p>
     {% endif %}

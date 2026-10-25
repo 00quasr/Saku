@@ -10,8 +10,9 @@
 :root {
   --washi: #F6F4EF;  --washi-hell: #FBFAF7;  --flaeche: #EDE9E1;
   --sumi: #1F1D1A;   --sumi-mittel: #6B665D; --linie: #E4DFD5;
-  --shu: #C2452D;    --ai: #2F4A63;          --beni: #A63A3A;
-  --yamabuki: #A97A22; --matcha: #5E7F4F;
+  --shu: #B8422B;    --ai: #2F4A63;          --beni: #A63A3A;
+  --yamabuki: #A97A22; --matcha: #547147;
+  --yamabuki-text: #88621B;  /* Gelb als Schrift: 4,5 : 1 auf jeder Fläche; als Füllung (Punkte, Balken) bleibt es heller */
 
   --schrift: "Inter", ui-sans-serif, system-ui, sans-serif;
   --schrift-titel: "Shippori Mincho", "Hiragino Mincho ProN", "Yu Mincho", serif;
@@ -37,8 +38,9 @@
 .dark {
   --washi: #141412;  --washi-hell: #1C1B18;  --flaeche: #24221F;
   --sumi: #ECE8DF;   --sumi-mittel: #A39E92; --linie: #2E2B27;
-  --shu: #E0603F;    --ai: #8FA9C4;          --beni: #D46A5E;
+  --shu: #E06241;    --ai: #8FA9C4;          --beni: #D46A5E;
   --yamabuki: #D9AE4F; --matcha: #8DAA7A;
+  --yamabuki-text: #D9AE4F;
 }
 
 /* Tuschestufen für die Heatmap */
@@ -62,6 +64,8 @@ body {
 code, pre, kbd, samp { font-family: var(--schrift-code); }
 pre { font-size: 0.875rem; line-height: 1.375rem; }
 a:not(.btn) { color: inherit; text-underline-offset: 3px; }
+/* Links im Fließtext unterstrichen; Basecoat nimmt Links die Unterstreichung, sonst sähen sie wie Text aus */
+:is(.hinweis, .gedaempft, .woche-themen) > a:not(.btn) { text-decoration-line: underline; }
 :focus-visible { outline: 2px solid var(--shu); outline-offset: 2px; }
 ::selection { background: color-mix(in oklab, var(--shu) 30%, transparent); }
 .defs { position: absolute; }
@@ -83,7 +87,7 @@ a:not(.btn) { color: inherit; text-underline-offset: 3px; }
 .prosa h1, .prosa h2, .prosa h3 { font-family: var(--schrift-titel); font-weight: 600; margin-top: 1.25em; }
 .prosa ul { list-style: disc; padding-left: 1.25em; }
 .prosa ol { list-style: decimal; padding-left: 1.25em; }
-.prosa code { font-size: 0.875em; background: var(--flaeche); padding: 0.1em 0.3em; border-radius: 4px; }
+.prosa code { font-size: 0.875em; background: var(--flaeche); padding: 0.1em 0.3em; border-radius: 4px; overflow-wrap: break-word; }  /* lange IPv6-Adressen im Satz brechen um */
 .prosa pre { background: var(--flaeche); padding: 12px 16px; border-radius: var(--radius); overflow-x: auto; }
 .prosa pre code { background: none; padding: 0; }
 .prosa table { border-collapse: collapse; }
@@ -141,23 +145,116 @@ a:not(.btn) { color: inherit; text-underline-offset: 3px; }
   transition: color var(--kurz) ease-out, background var(--kurz) ease-out;
 }
 :is(.nav, .seitenleiste-fuss) > :is(a, button):hover { color: var(--sumi); background: var(--flaeche); }
-:is(.nav, .seitenleiste-fuss) > [aria-current="page"] { color: var(--sumi); background: var(--flaeche); font-weight: 500; }
+:is(.nav, .seitenleiste-fuss) > [aria-current] { color: var(--sumi); background: var(--flaeche); font-weight: 500; }
 .nav-zeichen { display: grid; place-items: center; width: 28px; height: 28px; flex: none; border-radius: 7px; font-size: 1rem; }
 .nav .nav-zeichen { background: var(--washi); border: 1px solid var(--linie); }
-.nav [aria-current="page"] .nav-zeichen { background: var(--shu); border-color: var(--shu); color: #FBFAF7; }
+.nav > [aria-current] .nav-zeichen { background: var(--shu); border-color: var(--shu); color: #FBFAF7; }
 .nav-zahl { margin-left: auto; min-width: 20px; padding: 0 6px; border-radius: 10px; background: var(--flaeche); color: var(--sumi); font-size: 0.6875rem; line-height: 20px; text-align: center; font-variant-numeric: tabular-nums; }
 .seitenleiste-fuss .taste { margin-left: auto; }
+/* Unterseiten des aktiven Bereichs, eingerückt an einer Linie unter dem Zeichen */
+.nav-unter { display: grid; gap: 1px; margin: 2px 0 6px 23px; padding-left: 12px; border-left: 1px solid var(--linie); }
+.nav-unter > a {
+  padding: 4px 10px; border-radius: 6px; font-size: 0.8125rem; color: var(--sumi-mittel); text-decoration: none;
+  transition: color var(--kurz) ease-out, background var(--kurz) ease-out;
+}
+.nav-unter > a:hover { color: var(--sumi); background: var(--flaeche); }
+.nav-unter > [aria-current="page"] { position: relative; color: var(--sumi); font-weight: 500; }
+.nav-unter > [aria-current="page"]::before { content: ""; position: absolute; left: -13px; top: 4px; bottom: 4px; border-left: 2px solid var(--shu); }  /* auf der Linie */
+.nav > .nav-mehr { display: none; }  /* nur mobil */
 
-/* Schmal: nur noch die Zeichen, Beschriftung als Tooltip */
+/* Schmal: nur noch die Zeichen, Beschriftung als Tooltip; Unterseiten über „Alle Seiten“ */
 @media (max-width: 1100px) {
-  :root { --leiste-breite: 64px; --rand: 24px; }
-  .seitenleiste { padding-inline: 10px; align-items: center; }
-  .seitenleiste-text, .seitenleiste .taste, .nav-zahl { display: none; }
+  :root { --leiste-breite: calc(64px + env(safe-area-inset-left)); --rand: max(24px, env(safe-area-inset-right)); }
+  .seitenleiste { padding-inline: calc(10px + env(safe-area-inset-left)) 10px; align-items: center; }
+  .seitenleiste-text, .seitenleiste .taste, .nav-zahl, .nav .nav-unter { display: none; }
   .logo { padding: 0; }
   .umfang > summary { padding: 6px 4px; justify-content: center; border: 0; background: none; }
   .umfang-menue { right: auto; }
   :is(.nav, .seitenleiste-fuss) > :is(a, button) { padding: 4px; justify-content: center; }
 }
+
+/* Handy: Tab-Leiste unten mit vier Bereichen und „Mehr“, das Blatt zeigt alles Übrige */
+@media (max-width: 720px) {
+  :root { --leiste-breite: 0px; --rand: 16px; --tab-hoehe: 56px; }
+  html { scroll-padding-bottom: calc(var(--tab-hoehe) + env(safe-area-inset-bottom)); }
+  .app { grid-template-columns: minmax(0, 1fr); }
+  /* clip: was noch zu breit ist, darf die Seite nicht seitlich verschieben (Chrome zoomt sonst heraus) */
+  .app > main { overflow-x: clip; }
+  .seitenleiste ~ main { padding-bottom: calc(var(--tab-hoehe) + env(safe-area-inset-bottom)); }  /* die Einführung hat keine Leiste */
+  .seite { padding: 24px var(--rand) 48px; }
+  .seitenleiste {
+    position: fixed; inset: auto 0 0; height: auto; overflow: visible; display: block;
+    padding: 0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    border-right: 0; border-top: 1px solid var(--linie);
+  }
+  .seitenleiste > :not(.nav, .mehr), .nav > :is(.nav-neben, .nav-unter) { display: none; }
+  .nav { grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 0; }
+  .nav > .nav-mehr { display: flex; }
+  .nav > :is(a, button) {
+    position: relative; flex-direction: column; justify-content: center; gap: 2px; height: var(--tab-hoehe); padding: 0;
+    border-radius: 0; font-size: 0.6875rem; line-height: 1rem; background: none !important;
+  }
+  .nav .seitenleiste-text { display: inline; }
+  .nav .nav-zahl { display: block; position: absolute; top: 4px; left: calc(50% + 8px); min-width: 18px; padding: 0 5px; line-height: 18px; background: var(--shu); color: #FBFAF7; }
+  .nav-mehr--aktiv .nav-zeichen { background: var(--shu); border-color: var(--shu); color: #FBFAF7; }
+  .nav-mehr--aktiv { color: var(--sumi); font-weight: 500; }
+  .toast { right: 16px; bottom: calc(var(--tab-hoehe) + env(safe-area-inset-bottom) + 12px); }
+  /* Markdown-Tabellen (Aufgaben, Rechenwege, Merkblätter) scrollen in sich statt über den Rand */
+  .prosa table { display: block; max-width: 100%; overflow-x: auto; }
+  /* Zellen mit data-titel nennen ihren Spaltenkopf selbst, wo eine Tabelle zu Zeilen umbricht und der Kopf nur noch vorgelesen wird */
+  [data-titel]::before { content: attr(data-titel) " "; color: var(--sumi-mittel); }
+  .kopf-vorgelesen { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+}
+
+/* Touch und Handy: Tippflächen mindestens 44 px; Eingaben in 16 px, sonst zoomt iOS beim Antippen ins Feld (Basecoat setzt 14 px,
+   Bereiche teils 15 px, daher !important) */
+@media (max-width: 720px), (pointer: coarse) {
+  .btn, .input, .select, details:is(.kontext, .operatoren) > summary, .tabelle-eingabe input, input[type="range"] { min-height: 44px; }
+  .btn[data-size^="icon"] { min-width: 44px; }
+  .segment > :is(span, a, button), .segment label > span { display: flex; align-items: center; min-height: 44px; }
+  .sprungmarken a { display: flex; align-items: center; min-height: 44px; }
+  input, select, textarea, .code-zeilen { font-size: max(1rem, 16px) !important; }
+}
+
+/* Breite Tabellen, Diagramme und Code scrollen waagrecht in ihrem Kasten; wo dahinter noch etwas kommt, blendet der Rand aus
+   (saku.quer setzt die Klassen) */
+.quer--rechts { mask-image: linear-gradient(to left, transparent, #000 40px); }
+.quer--links { mask-image: linear-gradient(to right, transparent, #000 40px); }
+.quer--links.quer--rechts { mask-image: linear-gradient(to right, transparent, #000 40px, #000 calc(100% - 40px), transparent); }
+
+/* Blatt „Mehr“: gleitet von unten herein */
+.mehr {
+  inset: auto 0 0; width: 100%; max-width: none; max-height: 88dvh; margin: 0; padding: 0 0 calc(16px + env(safe-area-inset-bottom));
+  overflow-y: auto; overscroll-behavior: contain; color: var(--sumi); background: var(--washi-hell);
+  border: 1px solid var(--linie); border-bottom: 0; border-radius: 16px 16px 0 0; box-shadow: 0 -24px 64px -24px rgb(0 0 0 / .45);
+}
+.mehr[open] { animation: blatt-ein var(--mittel) ease-out; }
+@keyframes blatt-ein { from { translate: 0 24px; opacity: 0; } }
+.mehr::backdrop { background: rgb(10 10 9 / .45); }
+.mehr-kopf {
+  position: sticky; top: 0; z-index: 1; display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 8px 8px 16px; background: var(--washi-hell);
+}
+.mehr-werkzeuge { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; padding: 0 16px; }
+.mehr-werkzeuge > * {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 60px; padding: 4px;
+  border: 1px solid var(--linie); border-radius: 10px; font-size: 0.8125rem; text-decoration: none;
+}
+.mehr-werkzeuge [lang="ja"] { color: var(--ai); }
+.mehr-umfang { display: grid; gap: 8px; padding: 16px 16px 4px; }
+.mehr-umfang .segment { display: flex; }
+.mehr-umfang .segment > button { flex: 1 1 0; min-width: 0; min-height: 40px; padding-inline: 6px; font-size: 0.8125rem; overflow: hidden; text-overflow: ellipsis; }
+.mehr-nav { display: grid; padding: 8px 8px 0; }
+.mehr-nav > a { display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 0 8px; border-radius: 10px; font-weight: 500; text-decoration: none; }
+.mehr-nav > [aria-current] { background: var(--flaeche); }
+.mehr-nav .nav-zeichen { background: var(--washi); border: 1px solid var(--linie); }
+.mehr-nav > [aria-current] .nav-zeichen { background: var(--shu); border-color: var(--shu); color: #FBFAF7; }
+.mehr-nav :is(.seitenleiste-text, .nav-zahl) { display: inline; }  /* unter 1100 px sonst ausgeblendet */
+.mehr-nav .nav-zahl { margin-left: auto; }
+.mehr-nav .nav-unter { grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 0 0 8px 22px; }
+.mehr-nav .nav-unter > a { display: flex; align-items: center; min-height: 44px; font-size: 0.875rem; }
+.mehr-nav .nav-unter > [aria-current]::before { display: none; }  /* zweispaltig liegt die Linie nicht daneben */
+.mehr-nav .nav-unter > [aria-current] { background: var(--flaeche); }
 
 /* --- Bildband über dem Inhalt ---------------------------------------------- */
 .kopf {
@@ -177,6 +274,18 @@ a:not(.btn) { color: inherit; text-underline-offset: 3px; }
 .kopf--schmal { height: 64px; align-items: center; }
 .kopf--schmal .kopf-inhalt { padding-bottom: 0; display: flex; align-items: baseline; gap: 16px; }
 .kopf--schmal .titel { margin-top: 0; font-size: 1.25rem; line-height: 1.75rem; }
+/* einzeilig: in schmalen Fenstern liefe ein langer Titel (Prüfungsbereich, Themen) aus dem Band; ganz steht er im Tooltip */
+.kopf--schmal .kopf-inhalt > * { white-space: nowrap; }
+.kopf--schmal .titel { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 720px) {
+  /* wächst mit dem Inhalt (Kennzahlen im Fahrplan, zweizeilige Titel) */
+  .kopf { height: auto; min-height: 112px; padding-top: 16px; margin-top: 12px; border-radius: 10px; }
+  .kopf-inhalt { padding: 0 16px 14px; }
+  .kopf-inhalt .titel { font-size: 1.375rem; line-height: 1.75rem; }
+  .kopf--schmal { height: 52px; min-height: 0; padding-top: 0; }
+  .kopf--schmal .kopf-inhalt { padding-bottom: 0; gap: 10px; }
+  .kopf--schmal .titel { font-size: 1.125rem; }
+}
 
 /* --- Bausteine ------------------------------------------------------------ */
 /* Karten: nur Linie, keine Schatten */
@@ -189,6 +298,10 @@ a:not(.btn) { color: inherit; text-underline-offset: 3px; }
   padding: 0 0.4em; font-size: 0.6875rem; line-height: 1; color: var(--sumi-mittel);
   border: 1px solid var(--linie); border-bottom-width: 2px; border-radius: 4px; background: var(--washi-hell);
 }
+/* Touch ohne Tastatur: keine Tastenhinweise, .nur-tastatur nimmt ganze Sätze über Tasten mit; die Hilfe (?) bleibt */
+@media (hover: none) and (pointer: coarse) {
+  .taste:not(.tasten-tabelle .taste), .nur-tastatur { display: none; }
+}
 
 /* Icons */
 .icon { width: 18px; height: 18px; stroke: currentColor; stroke-width: 1.5; fill: none; flex: none; }
@@ -196,6 +309,7 @@ a:not(.btn) { color: inherit; text-underline-offset: 3px; }
 /* Fahrschul-Status: nie nur Farbe, immer mit Symbol */
 .status { display: inline-flex; align-items: center; gap: 6px; font-size: 0.8125rem; white-space: nowrap; }
 .status-punkt { width: 8px; height: 8px; border-radius: 50%; background: var(--status-farbe); flex: none; }
+.status-punkt + span { width: 1em; text-align: center; }  /* ✓ ◐ ✕ ○ gleich breit: Text in Listen und Legenden steht bündig */
 .status--neu   { --status-farbe: var(--linie); color: var(--sumi-mittel); }
 .status--rot   { --status-farbe: var(--beni); }
 .status--gelb  { --status-farbe: var(--yamabuki); }
@@ -231,6 +345,64 @@ a:not(.btn) { color: inherit; text-underline-offset: 3px; }
 .tusche { animation: tusche .45s ease-out backwards; }  /* nicht "both": eine anhaltende Animation isoliert den Blend-Modus der Ausschnitte */
 @keyframes tusche { from { opacity: 0; filter: blur(6px); } }
 
+/* Geteilte Bausteine mehrerer Bereiche (Namen von dort, wo sie zuerst gebraucht wurden) */
+/* Segment-Schalter: Radios bleiben fokussierbar, nur unsichtbar */
+.segment { display: inline-flex; gap: 2px; padding: 3px; background: var(--flaeche); border-radius: 9px; }
+.segment label { position: relative; }
+.segment input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.segment > span, .segment > a, .segment > button, .segment label > span { display: block; padding: 5px 12px; border-radius: 7px; font-size: 0.875rem; color: var(--sumi-mittel); white-space: nowrap; }
+.segment > span.aktiv, .segment > a[aria-current], .segment > button[aria-pressed="true"], .segment input:checked + span { background: var(--washi-hell); color: var(--sumi); box-shadow: 0 1px 2px rgb(0 0 0 / .15); }
+.segment > a { display: inline-flex; align-items: center; gap: 6px; text-decoration: none; }
+.segment > a:hover { color: var(--sumi); }
+.segment input:focus-visible + span { outline: 2px solid var(--shu); outline-offset: 1px; }
+.segment[aria-disabled="true"] { opacity: .7; }
+/* Reiter (Basecoat): 60 % Tusche schafft auf der Fläche nur 4,2 : 1, 65 % reichen für 4,5 : 1 */
+.tabs > [role="tablist"] > [role="tab"] { color: color-mix(in oklab, var(--foreground) 65%, transparent); }
+/* Nur für Screenreader */
+.bunseki-versteckt {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip-path: inset(50%); white-space: nowrap;
+}
+/* Eigene Antwort und automatische Bewertung: Simulation, Mini-Test, Üben */
+.shiken-antwort {
+  white-space: pre-wrap; padding: 12px 16px; background: var(--washi-hell);
+  border: 1px solid var(--linie); border-radius: var(--radius);
+}
+.shiken-auto { display: inline-flex; align-items: center; gap: 6px; }
+.shiken-auto .icon { width: 14px; height: 14px; color: var(--matcha); }
+.shiken-auto--fehler .icon { color: var(--beni); }
+/* Dezenter Hinweis auf der Üben-Karte und in der Themen-Notiz */
+.rechnen-link { color: var(--sumi-mittel); }
+.rechnen-link a { color: var(--shu); text-decoration: none; }
+.rechnen-link a:hover { text-decoration: underline; }
+/* Sprungmarken (Einstellungen, Formelsammlung): links mitlaufend, markiert den Abschnitt oben im Fenster (saku.sprungmarken);
+   schmal eine Reihe Chips, die oben klebt */
+.mit-sprungmarken { display: grid; grid-template-columns: 11rem minmax(0, 1fr); gap: 48px; align-items: start; }
+.mit-sprungmarken [id] { scroll-margin-top: calc(var(--leiste) + 24px); }
+.sprungmarken { position: sticky; top: calc(var(--leiste) + 24px); display: grid; gap: 2px; }
+.sprungmarken a {
+  padding: 5px 10px; border-radius: 6px; font-size: 0.875rem; color: var(--sumi-mittel); text-decoration: none;
+  transition: color var(--kurz) ease-out, background var(--kurz) ease-out;
+}
+.sprungmarken a:hover { color: var(--sumi); background: var(--flaeche); }
+.sprungmarken a[aria-current] { color: var(--sumi); background: var(--flaeche); font-weight: 500; box-shadow: inset 2px 0 0 var(--shu); }
+.sprungmarken-suche { margin-bottom: 10px; }
+@media (max-width: 900px) {
+  .mit-sprungmarken { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  .mit-sprungmarken [id] { scroll-margin-top: calc(var(--leiste) + 72px); }
+  .sprungmarken {
+    top: var(--leiste); z-index: 20; display: flex; align-items: center; gap: 6px; overflow-x: auto; scrollbar-width: none;
+    margin: 0 calc(-1 * var(--rand)); padding: 10px var(--rand); background: var(--washi); border-bottom: 1px solid var(--linie);
+  }
+  .sprungmarken a { flex: none; padding: 4px 12px; border: 1px solid var(--linie); border-radius: 999px; white-space: nowrap; }
+  .sprungmarken a[aria-current] { box-shadow: none; border-color: var(--sumi-mittel); }
+  .sprungmarken-suche { flex: none; width: 10rem; margin: 0; }
+}
+/* Makro m.verlauf. Die letzten zehn Versuche: gefüllt richtig, hohl falsch (nicht nur Farbe) */
+.verlauf { display: inline-flex; gap: 3px; }
+.verlauf-punkt { width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid var(--beni); }
+.verlauf-punkt--richtig { background: var(--matcha); border-color: var(--matcha); }
+
 /* Ensō */
 .enso { overflow: visible; }
 .enso-spur { fill: none; stroke: var(--linie); stroke-width: 6; }
@@ -265,6 +437,11 @@ a:not(.btn) { color: inherit; text-underline-offset: 3px; }
 dialog.dialog > div { background: var(--washi-hell); border: 1px solid var(--linie); box-shadow: 0 24px 64px -24px rgb(0 0 0 / .45); }
 .tasten-tabelle td { padding: 6px 8px; vertical-align: middle; }
 .tasten-tabelle td:first-child { white-space: nowrap; }
+.tasten-tabelle th { padding: 16px 8px 4px; text-align: left; }
+.tasten-tabelle tbody:first-child th { padding-top: 0; }
+#hilfe-dialog > div { max-width: min(44rem, calc(100% - 2rem)); }
+#hilfe-dialog section { overflow-y: auto; }
+.tasten-tabelle td:last-child { white-space: normal; }
 
 /* --- Bewegung ------------------------------------------------------------- */
 /* Bereichswechsel: der neue Inhalt blendet kurz ein, nur Deckkraft (keine View Transitions: in WebKit ruckeln die Bilder) */
@@ -290,5 +467,6 @@ dialog.dialog > div { background: var(--washi-hell); border: 1px solid var(--lin
   border: 1px solid color-mix(in oklab, currentColor 30%, transparent); background: transparent; color: inherit; opacity: .85;
 }
 .termin-chip:hover { opacity: 1; border-color: currentColor; }
-.einstellung-termin { display: grid; justify-items: end; }
-.einstellung-termin .termin-vorschlaege { justify-content: flex-end; max-width: 300px; }
+
+/* Fokusziel nach einem htmx-Tausch (tabindex="-1"): der Screenreader liest es vor; kein Rahmen, weil man es nicht bedient */
+.fokus-ziel:focus { outline: none; }

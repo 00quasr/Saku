@@ -1,0 +1,21 @@
+{# Wochenrückblick (Heute und Verlauf): w aus lernen/rueckblick.woche #}
+{% set w = rueckblick %}
+<section class="flaeche woche" id="woche" aria-labelledby="woche-titel">
+  <header class="karte-kopf"><p class="etikett" id="woche-titel"><span lang="ja" aria-hidden="true">週</span> Diese Woche</p>
+    <span class="klein gedaempft">letzte 7 Tage</span></header>
+  <ul class="woche-zahlen">
+    <li><span class="zahl">{{ w.n }}</span> {{ 'Bewertung' if w.n == 1 else 'Bewertungen' }}
+      <span class="klein gedaempft"><span aria-hidden="true">{{ '↑' if w.n > w.davor else '↓' if w.n < w.davor else '=' }}</span> Vorwoche {{ w.davor }}</span></li>
+    <li><span class="zahl">{{ w.sicher }}</span> sicher geworden</li>
+    <li><span class="zahl">{{ (100 * w.quote)|round|int }} %</span> gewusst ✓</li>
+    {% if w.rechnen[0] %}<li><span class="zahl">{{ w.rechnen[0] }}</span> gerechnet <span class="klein gedaempft">{{ (100 * w.rechnen[1] / w.rechnen[0])|round|int }} % richtig</span></li>{% endif %}
+  </ul>
+  {% if w.staerkstes %}
+  <p class="klein woche-themen">
+    Stärkstes Thema: <a href="{{ url_for('keiko.index', thema=w.staerkstes.id) }}">{{ w.staerkstes.name }}</a>
+    <span class="gedaempft zahl">{{ (100 * w.staerkstes.quote)|round|int }} % ✓</span>
+    {% if w.schwaechstes %}· Schwächstes: <a href="{{ url_for('keiko.index', thema=w.schwaechstes.id) }}">{{ w.schwaechstes.name }}</a>
+    <span class="gedaempft zahl">{{ (100 * w.schwaechstes.quote)|round|int }} % ✓</span>{% endif %}
+  </p>
+  {% endif %}
+</section>

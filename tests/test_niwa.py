@@ -64,9 +64,23 @@ def test_routen_und_notizen(client, con):
     assert f"""getElementById("graph"), "b{fremd}")'""" in client.get(f"/niwa/?begriff={fremd}").get_data(as_text=True)
     assert client.get("/niwa/thema/9999", headers={"HX-Request": "true"}).status_code == 404
 
-    notiz = client.get(f"/niwa/begriff/{fremd}").get_data(as_text=True)
+    notiz = client.get(f"/niwa/begriff/{fremd}", headers={"HX-Request": "true"}).get_data(as_text=True)
     assert "Fremdschlüssel" in notiz and "2 Fundstellen" in notiz and f'data-knoten="b{fremd - 1}"' in notiz
     con.execute("UPDATE begriff SET erklaerung = 'Verweist auf einen **Primärschlüssel**.' WHERE id = ?", (fremd,))
     con.commit()
     assert "<strong>Primärschlüssel</strong>" in client.post(f"/niwa/begriff/{fremd}/erklaeren").get_data(as_text=True)
-    assert client.get("/niwa/begriff/9999").status_code == 404
+    assert client.get("/niwa/begriff/9999", headers={"HX-Request": "true"}).status_code == 404
+    # als ganze Seite (Lesezeichen, neuer Tab): der Graph mit gewähltem Knoten, nicht das Fragment ohne Rahmen und Viewport
+    assert client.get(f"/niwa/begriff/{fremd}").location.endswith(f"/niwa/?begriff={fremd}")
+
+
+def test_lernfeld_ohne_stunden_und_einzahl(client, con):
+    """Ohne Stundenzahl entfällt die Angabe (kein „None Unterrichtsstunden“); ein Thema heißt „1 Thema“."""
+    lf = con.execute("INSERT INTO lernfeld (nummer, titel, jahr) VALUES ('5', 'Daten verwalten', 2)").lastrowid
+    con.execute("INSERT INTO thema_lernfeld (thema_id, lernfeld_id) VALUES (?, ?)", (thema_id(con, "Datenbanken"), lf))
+    con.commit()
+    notiz = client.get(f"/niwa/lernfeld/{lf}", headers={"HX-Request": "true"}).get_data(as_text=True)
+    assert "Unterrichtsstunden" not in notiz and "None" not in notiz and "4 Teilaufgaben in den Prüfungen" in notiz
+    assert "2. Jahr · 1 Thema · 4 Teilaufgaben" in client.get("/niwa/").get_data(as_text=True)
+    assert client.get(f"/niwa/lernfeld/{lf}").location.endswith(f"/niwa/?lernfeld={lf}")
+    assert f"""getElementById("graph"), "lf{lf}")'""" in client.get(f"/niwa/?lernfeld={lf}").get_data(as_text=True)

@@ -1,0 +1,15 @@
+{# Einmal für alle, die Saku schon nutzen: was neu ist. „Verstanden“ speichert neu_gesehen und nimmt die Karte weg #}
+<section class="flaeche heute-neu" id="neu-in-saku" aria-labelledby="neu-titel">
+  <header class="karte-kopf">
+    <p class="etikett" id="neu-titel"><span lang="ja" aria-hidden="true">新</span> Neu in Saku</p>
+    <button type="button" class="btn" data-variant="ghost" data-size="sm" hx-post="{{ url_for('kern.speichern', schluessel='neu_gesehen') }}"
+            hx-vals='{"neu_gesehen": "{{ neu }}"}' hx-target="#neu-in-saku" hx-swap="outerHTML">Verstanden</button>
+  </header>
+  <ul class="heute-neu-liste">
+    <li><a href="{{ url_for('rechnen.probe') }}">Probeprüfung</a>: eine ganze Prüfung aus den Rechenarten deines Umfangs, 90 Minuten, sofort ausgewertet mit Note, beliebig oft neu.</li>
+    <li><a href="{{ url_for('rechnen.aufgabe', art='algorithmus') }}">Algorithmus schreiben</a>: eigener Pseudocode, den Saku ausführt und gegen Testfälle prüft, mit Struktogramm als Musterlösung.</li>
+    <li>Neu in <a href="{{ url_for('rechnen.index') }}"><span lang="ja" aria-hidden="true">算</span> Rechnen</a>: SQL schreiben und ausführen, ER-Modell, IT-Sicherheit, Recht &amp; Verträge, UML-Diagramme lesen, Ports und OSI-Modell.</li>
+    <li>Den <a href="{{ url_for('heute.fahrplan') }}">Fahrplan</a> nimmst du als Kalenderdatei mit, auf Wunsch mit täglichem Lern-Termin.</li>
+    <li>Der Wissensgraph unter <a href="{{ url_for('niwa.index') }}">Themen</a> steht ruhig, statt beim Öffnen herumzuspringen.</li>
+  </ul>
+</section>

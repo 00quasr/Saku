@@ -1,0 +1,21 @@
+# Nie ins Image: private Daten (Urheberrecht), Geheimnisse, lokale Umgebung. **/ auch in Unterordnern: anders als in
+# .gitignore gilt *.pdf hier nur im Wurzelordner
+**/.env*
+data/
+**/*.pdf
+**/*.db
+**/*.db-wal
+**/*.db-shm
+**/saku-paket*.tar.gz
+.venv/
+venv/
+.git/
+**/__pycache__/
+.pytest_cache/
+AUFTRAG.md
+tests/
+docs/
+# baut python -m saku assets im Image neu
+saku/web/static/vendor/
+saku/web/static/fonts/*.woff2
+saku/web/static/fonts/LICENSE-*

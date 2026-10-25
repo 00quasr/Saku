@@ -24,11 +24,12 @@ Die Palette stammt aus traditionellen japanischen Farben: Papier, Tusche und ein
 | `--sumi` | `#1F1D1A` | 墨 Tusche | Text, primäre Knöpfe |
 | `--sumi-mittel` | `#6B665D` | | Sekundärtext |
 | `--linie` | `#E4DFD5` | | Linien, Rahmen |
-| `--shu` | `#C2452D` | 朱 Zinnoberrot | **die** Akzentfarbe: Fokus, Stempel, aktuelle Station, Logo |
+| `--shu` | `#B8422B` | 朱 Zinnoberrot | **die** Akzentfarbe: Fokus, Stempel, aktuelle Station, Logo |
 | `--ai` | `#2F4A63` | 藍 Indigo | alles von Sensei |
 | `--beni` | `#A63A3A` | 紅 Karmin | Status „wackelig“, Fehler |
-| `--yamabuki` | `#A97A22` | 山吹 Goldgelb | Status „im Aufbau“ |
-| `--matcha` | `#5E7F4F` | 抹茶 Matcha | Status „sicher“ |
+| `--yamabuki` | `#A97A22` | 山吹 Goldgelb | Status „im Aufbau“ (Füllung: Punkte, Balken) |
+| `--yamabuki-text` | `#88621B` | | dasselbe Gelb als Schrift (4,5 : 1) |
+| `--matcha` | `#547147` | 抹茶 Matcha | Status „sicher“ |
 
 ### Dunkel: Sumi (Tusche)
 
@@ -39,7 +40,7 @@ Die Palette stammt aus traditionellen japanischen Farben: Papier, Tusche und ein
 | `--sumi` (Text) | `#ECE8DF` |
 | `--sumi-mittel` | `#A39E92` |
 | `--linie` | `#2E2B27` |
-| `--shu` | `#E0603F` |
+| `--shu` | `#E06241` |
 | `--ai` | `#8FA9C4` |
 | `--beni` | `#D46A5E` |
 | `--yamabuki` | `#D9AE4F` |
@@ -148,12 +149,13 @@ Makro: `{{ m.kopf('heute', '今日', 'Heute', 'Titel') }}` in `templates/_makros
 
 ## Layout und Abstände
 
-- **Zwei Breiten:** Lesebreite 680 px (Keiko, Michi, Texte von Sensei) und weite Breite 1040 px (Heute, Bunseki, Niwa), jeweils zentriert
-- **Navigation:** eine schmale Leiste oben (56 px) mit Logo, den Bereichen als Kanji und Wort und ⌘K rechts. In Keiko schrumpft sie auf eine dünne Fortschrittslinie.
+- **Zwei Breiten:** Lesebreite 47,5 rem (Keiko, Michi, Verlauf, Texte von Sensei) und weit bis 110 rem, so breit wie das Bildband (Heute, Bunseki, Niwa), jeweils linksbündig neben der Seitenleiste; beide wachsen mit der Schrift
+- **Navigation:** eine Seitenleiste links (232 px) mit Logo, dem Schalter für Beruf und Prüfungsteil, den Bereichen als Kanji und Wort und unten Sensei, Suche, Alle Seiten, Einstellungen und Tastenkürzel. Unter dem aktiven Bereich stehen seine Unterseiten eingerückt an einer Linie (z. B. Rechnen: Sprint, Probeprüfung, Formelsammlung), die aktuelle mit einem Strich in Zinnoberrot. Die Liste steht einmal in `SEITEN` (`saku/web/__init__.py`) und speist Seitenleiste, „Alle Seiten“ (`/seiten`, je Seite ein Satz) und ⌘K. Unter 1100 px bleiben nur die Zeichen (64 px), die Beschriftung steht im Tooltip, Unterseiten über „Alle Seiten“.
+- **Handy (unter 720 px):** statt der Seitenleiste eine Tab-Leiste unten mit Heute, Üben, Rechnen, Prüfung und „Mehr“. „Mehr“ öffnet ein Blatt von unten mit allen Bereichen und Unterseiten, Sensei, Suche, Einstellungen und dem Umfang; Esc, daneben tippen und Zurück schließen es. Tippflächen mindestens 44 px, die Leiste hält Abstand zu `env(safe-area-inset-*)`, das Bildband ist niedriger. Auf Touch-Geräten ohne Maus verschwinden Tastenhinweise (`.taste`, ganze Sätze mit `.nur-tastatur`). Ein Satz verliert dabei nie Wörter: Tastenteile stehen in `.nur-tastatur`, nie im Platzhalter. Auf Touch und schmal sind Knöpfe und Felder 44 px hoch und Eingaben mindestens 16 px groß (sonst zoomt iOS). Tabellen mit Verlauf und Ergebnissen brechen schmal zu Zeilen um (Kopf nur vorgelesen, mehrdeutige Zellen nennen ihn per `data-titel`); die Notiz im Wissensgraph kommt als Blatt von unten.
 - **Sensei:** ein Seitenpanel rechts (400 px), das über den Inhalt gleitet
 - **Abstände:** nur aus der Reihe 4 · 8 · 12 · 16 · 24 · 32 · 48 · 64 · 96 px
 - **Flächen:** 1 px Linien in `--linie`, Ecken mit 6 px Radius, keine Schatten. Einzige Ausnahme sind schwebende Ebenen wie Suche und Sensei-Panel mit einem sehr weichen Schatten.
-- **Zielgröße:** ein Desktop-Fenster ab 1024 px Breite. Bis 360 px bleibt alles bedienbar, optimiert wird dafür aber nicht.
+- **Zielgröße:** ein Desktop-Fenster ab 1024 px Breite und das Handy ab 360 px. Jede Seite passt ohne seitliches Scrollen; was breiter sein muss (Aufgaben-Tabellen, Diagramme, Code, die Reiter der Analyse), scrollt in seinem Kasten, und der Rand blendet aus, hinter dem noch etwas kommt (`saku.quer`). Dass der Rahmen mobil seitlich abschneidet, ist nur ein Sicherheitsnetz.
 
 ## Komponenten
 
@@ -171,6 +173,8 @@ Makro: `{{ m.kopf('heute', '今日', 'Heute', 'Titel') }}` in `templates/_makros
 | Bildausschnitt | Aufgabe aus dem PDF, passt sich dem Farbschema an |
 | Sensei-Sprechblase | 2 px Linie links in Indigo (`--ai`), Etikett 先生 |
 | Tastenhinweis | `<kbd>` in Klein, dezent umrandet |
+| Formel | LaTeX in `$…$` (abgesetzt `$$…$$`) in Merkblättern und Rechenwegen, im Browser mit KaTeX gesetzt; Wörter darin in Inter, Zahlen deutsch (`3{,}47`, Einheiten in `\text{}`) |
+| Sprungmarken | Abschnitte links, mitlaufend, der sichtbare markiert; schmal eine Reihe Chips oben (Einstellungen, Formelsammlung) |
 
 **Bildausschnitte im Farbschema:** PDF-Ausschnitte haben einen weißen Hintergrund. Im hellen Schema verschmilzt er per `mix-blend-mode: multiply` mit dem Papier. Im dunklen Schema wird invertiert, sodass die Aufgabe hell auf Tusche erscheint. Ein Klick zeigt bei Bedarf das Original.
 
@@ -212,7 +216,7 @@ Skizzen der drei wichtigsten Ansichten. Alle Inhalte sind Beispiele.
 
    ┌──────────────────────────────────────────────────────────────────┐
    │                                                                  │
-   │          Bildausschnitt der Teilaufgabe aus dem Original-PDF     │
+   │   Aufgabe als Text, aus den PDF-Ausschnitten neu aufgebaut       │
    │                                                                  │
    └──────────────────────────────────────────────────────────────────┘
 
@@ -222,7 +226,7 @@ Skizzen der drei wichtigsten Ansichten. Alle Inhalte sind Beispiele.
 
    Lösungshinweis
    ┌──────────────────────────────────────────────────────────────────┐
-   │          Bildausschnitt des Lösungshinweises                     │
+   │   Lösungshinweis als Text, das Original einen Klick entfernt    │
    └──────────────────────────────────────────────────────────────────┘
 
    Wie lief's?      1 Nicht gewusst      2 Teilweise      3 Gewusst
@@ -340,7 +344,7 @@ Ist das Tagesziel erreicht, zeigt Saku eine ruhige Abschlussseite: was heute sic
 | Stempel | 350 ms | leicht federnd |
 | Ensō | 1,4 s | ease-in-out |
 
-- Seitenwechsel nutzen View-Transitions (`hx-swap="… transition:true"`).
+- Bereichswechsel blenden den neuen Inhalt 150 ms ein, nur über die Deckkraft. Keine View-Transitions: In WebKit ruckeln dabei die Bilder.
 - Bewegung nur mit Bedeutung: Sie zeigt, dass etwas erscheint, sich ändert oder geschafft ist.
 - Bei `prefers-reduced-motion: reduce` sind alle Animationen aus:
 
@@ -357,15 +361,19 @@ Ist das Tagesziel erreicht, zeigt Saku eine ruhige Abschlussseite: was heute sic
 | `Strg K` / `⌘K` | überall | Suche öffnen |
 | `S` | überall | Sensei öffnen oder schließen |
 | `?` | überall | alle Tastenkürzel anzeigen |
-| `Esc` | überall | schließen, zurück |
-| `Enter` | Heute | Weiterlernen |
-| `Leertaste` | Keiko | Lösung zeigen |
-| `1` `2` `3` | Keiko | Nicht gewusst, Teilweise, Gewusst |
+| `Esc` | überall | schließen; in einem Eingabefeld: Feld verlassen |
+| `Enter` | überall | der Knopf mit ↵: Los geht's, Prüfen, Übernehmen, Weiter, Nächste Aufgabe |
+| `Leertaste` | Keiko, Grundwissen | Lösung zeigen, Definition aufdecken |
+| `1` `2` `3` | Keiko, Grundwissen | Nicht gewusst, Teilweise, Gewusst; vor dem Prüfen wählen Ziffern die Antwort |
 | `T` `E` `P` `V` | Keiko | Sensei: Tipp, Erklären, Prüfen, Variante |
 | `M` | Keiko | markieren |
-| `→` | Keiko | überspringen |
+| `←` `→` | Keiko | zurück (Bewertung wird zurückgenommen), überspringen |
+| `⌘↵` / `Strg ↵` | Keiko, SQL-Editor | SQL in der Sandbox ausführen |
+| `U`, `1` – `4` | Grundwissen | Richtung umkehren; umgekehrt den Begriff wählen |
+| `Leertaste` | Rechnen | Rechenweg zeigen |
+| `0` – `3` | Verlauf | nach Ergebnis filtern |
 
-In Eingabefeldern sind die Einzeltasten abgeschaltet.
+Bedienelemente tragen ihre Taste als `data-taste`; `saku.js` klickt bei der passenden Taste das sichtbare Element. Die Hilfe (`?`) in `base.html` nennt alle Kürzel, ein Test gleicht sie mit den Templates ab. In Eingabefeldern sind die Einzeltasten abgeschaltet.
 
 ## Sprache und Ton
 

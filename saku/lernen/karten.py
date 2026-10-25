@@ -1,12 +1,14 @@
 """Fahrschul-Regeln und FSRS: eine Bewertung aktualisiert Status, Serie und Wiederholungstermin."""
 
 import json
+import re
 import sqlite3
 from datetime import date, datetime, timezone
 
 from fsrs import Card, Rating, Scheduler
 
 from saku.db import einstellung, liste
+from saku.sensei import vektoren
 
 # Eine Teilaufgabe samt Aufgabe, Prüfung und Lernstand – für Keiko, Mini-Test und Simulation
 TEILAUFGABE_SQL = """
@@ -15,7 +17,8 @@ SELECT v.teilaufgabe_id, v.teilaufgabe_id AS id, v.kennung, v.punkte, v.aufgabe_
        t.text, t.bilder, t.loesung_text, t.loesung_bilder, t.inhalt, t.antwort, t.loesung_inhalt,
        a.titel AS aufgabe_titel, a.einleitung, a.einleitung_bilder, a.einleitung_inhalt,
        p.ausgangssituation, p.ausgangssituation_bilder, p.ausgangssituation_inhalt,
-       COALESCE(k.markiert, 0) AS markiert
+       COALESCE(k.markiert, 0) AS markiert, t.loesung_sql,
+       EXISTS (SELECT 1 FROM sql_sandbox s WHERE s.aufgabe_id = v.aufgabe_id) AS sandbox
 FROM v_teilaufgabe v
 JOIN teilaufgabe t ON t.id = v.teilaufgabe_id
 JOIN aufgabe a     ON a.id = v.aufgabe_id
@@ -141,6 +144,36 @@ def begriffe(con: sqlite3.Connection, ohne: list[int]) -> dict:
         "ORDER BY status = 'neu', faellig_am, n DESC, name").fetchall() if z["id"] not in ohne]
     return {"karte": zeilen[0] if zeilen else None, "faellig": sum(z["status"] != "neu" for z in zeilen),
             "neu": sum(z["status"] == "neu" for z in zeilen)}
+
+
+# Begriffe, die in Teilaufgaben mit denselben Themen vorkommen, meiste gemeinsame Themen zuerst
+_GLEICHE_THEMEN_SQL = """
+SELECT tb2.begriff_id FROM teilaufgabe_begriff tb1
+JOIN teilaufgabe_thema tt1 ON tt1.teilaufgabe_id = tb1.teilaufgabe_id
+JOIN teilaufgabe_thema tt2 ON tt2.thema_id = tt1.thema_id
+JOIN teilaufgabe_begriff tb2 ON tb2.teilaufgabe_id = tt2.teilaufgabe_id
+WHERE tb1.begriff_id = ?1 AND tb2.begriff_id <> ?1
+GROUP BY tb2.begriff_id ORDER BY COUNT(DISTINCT tt1.thema_id) DESC, tb2.begriff_id
+"""
+
+
+def ablenker(con: sqlite3.Connection, begriff_id: int, anzahl: int = 3) -> list[int]:
+    """Falsche Antworten für „Definition → Begriff“, möglichst ähnlich: nach Vektor-Ähnlichkeit, sonst aus denselben
+    Themen, sonst zufällig; nur Begriffe im Umfang."""
+    umfang = {z[0] for z in con.execute(
+        "SELECT DISTINCT tb.begriff_id FROM teilaufgabe_begriff tb JOIN v_teilaufgabe v ON v.teilaufgabe_id = tb.teilaufgabe_id "
+        "WHERE tb.begriff_id <> ?", (begriff_id,))}
+    themen = [z[0] for z in con.execute(_GLEICHE_THEMEN_SQL, (begriff_id,)) if z[0] in umfang]
+    zufall = [z[0] for z in con.execute("SELECT id FROM begriff ORDER BY random()") if z[0] in umfang]
+    return list(dict.fromkeys(vektoren.nachbarn(con, "begriff", begriff_id, umfang) + themen + zufall))[:anzahl]
+
+
+def auswahl(con: sqlite3.Connection, karte) -> dict:
+    """„Definition → Begriff“: die Definition ohne den gesuchten Namen und bis zu vier Begriffe zur Wahl, alphabetisch."""
+    ids = [karte["id"], *ablenker(con, karte["id"])]
+    optionen = con.execute(f"SELECT id, name FROM begriff WHERE id IN ({','.join('?' * len(ids))}) ORDER BY name COLLATE NOCASE",
+                           ids).fetchall()
+    return {"optionen": optionen, "definition": re.sub(re.escape(karte["name"]), "…", karte["erklaerung"], flags=re.I)}
 
 
 def begriff_bewerten(con: sqlite3.Connection, begriff_id: int, ergebnis: int, jetzt: datetime | None = None) -> str:

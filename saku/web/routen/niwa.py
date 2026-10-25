@@ -3,6 +3,7 @@
 from flask import Blueprint, abort, current_app, redirect, render_template, request, url_for
 
 from saku import niwa
+from saku.lernen import rechnen
 from saku.sensei import client
 from saku.web import db, ist_fragment
 
@@ -24,6 +25,7 @@ def _thema(thema_id: int) -> dict:
     return {
         "thema": lernstand, "teilaufgaben": teilaufgaben, "stufen": niwa.STUFEN,
         "wissen": con.execute("SELECT beschreibung FROM thema WHERE id = ?", (thema_id,)).fetchone()[0],
+        "rechenart": rechnen.passend([lernstand["name"]]),
         "lernfelder": con.execute("SELECT lf.* FROM thema_lernfeld tl JOIN lernfeld lf ON lf.id = tl.lernfeld_id "
                                   "WHERE tl.thema_id = ? ORDER BY lf.id", (thema_id,)).fetchall(),
         "begriffe": con.execute(
@@ -40,9 +42,11 @@ def index():
     con = db()
     daten = niwa.graph(con)
     daten["pulsieren"] = niwa.aufgeblueht(con, daten)
-    thema_id, begriff_id = request.args.get("thema", type=int), request.args.get("begriff", type=int)
+    # ?thema=, ?begriff= oder ?lernfeld=: der Knoten ist gewählt und seine Notiz offen (Lesezeichen, Links aus anderen Bereichen)
+    auswahl = next((f"{art}{nr}" for art, name in (("t", "thema"), ("b", "begriff"), ("lf", "lernfeld"))
+                    if (nr := request.args.get(name, type=int))), None)
     return render_template("niwa/index.html", daten=daten, themen=niwa.themen(con), stufen=niwa.STUFEN, lehrplan=niwa.lehrplan(con),
-                           auswahl=f"t{thema_id}" if thema_id else f"b{begriff_id}" if begriff_id else None)
+                           auswahl=auswahl)
 
 
 @bp.get("/thema/<int:thema_id>")
@@ -54,6 +58,8 @@ def thema(thema_id):
 
 @bp.get("/begriff/<int:begriff_id>")
 def begriff(begriff_id):
+    if not ist_fragment():  # als ganze Seite: der Graph mit offener Notiz statt eines Fragments ohne Rahmen
+        return redirect(url_for("niwa.index", begriff=begriff_id))
     con = db()
     b = con.execute("SELECT * FROM begriff WHERE id = ?", (begriff_id,)).fetchone()
     if b is None:
@@ -106,6 +112,8 @@ def erklaeren(begriff_id):
 
 @bp.get("/lernfeld/<int:lernfeld_id>")
 def lernfeld(lernfeld_id):
+    if not ist_fragment():
+        return redirect(url_for("niwa.index", lernfeld=lernfeld_id))
     con = db()
     feld = next((f for f in niwa.lehrplan(con) if f["id"] == lernfeld_id), None)
     if feld is None:

@@ -5,7 +5,7 @@ from pathlib import Path
 
 from saku import config, db
 
-SCHRITTE = ["inventar", "segmente", "loesungen", "aufbereiten", "themen", "klassifikation", "statistik", "wissen", "vektoren", "lernpfad", "bericht"]
+SCHRITTE = ["inventar", "segmente", "loesungen", "aufbereiten", "sandbox", "themen", "klassifikation", "statistik", "wissen", "vektoren", "lernpfad", "bericht"]
 
 
 def ausfuehren(schritt: str | None = None, ohne_ki: bool = False, ki: str = "api", daten: Path | None = None) -> None:

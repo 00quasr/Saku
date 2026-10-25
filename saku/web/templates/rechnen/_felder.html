@@ -1,0 +1,92 @@
+{# Eingabefelder einer Rechenaufgabe, für die Karte und den Sprint.
+   a: Aufgabe · eingaben: {Feld: Text} · werte: {Feld: richtig?} oder None (noch nicht geprüft)
+   praefix: Formularname vor jedem Feld (Sprint: a1-, a2-, …) · fokus: erstes Feld bekommt autofocus
+   seed: auf der Karte und in der Probeprüfung, dann bekommt ein SQL-Feld „Ausführen“ und „Tabellen ansehen“, ein Pseudocode-Feld „Ausführen“ #}
+{% import "_makros.html" as m %}
+{% macro felder(a, eingaben, werte, praefix="feld-", fokus=True, seed=None) %}
+{% set fertig = werte is not none %}
+{% set erstes = a.felder[0].name if fokus and not fertig else None %}
+{% if a.tabelle %}
+{# Wertetabelle oder Array: Zellen sind Text oder Eingabefelder; nach dem Prüfen steht unter falschen Zellen der richtige Wert #}
+<div class="tabelle-rahmen rechnen-tabelle">
+  <table class="tabelle-eingabe">
+    <thead><tr>{% for k in a.tabelle[0] %}<th>{{ k }}</th>{% endfor %}</tr></thead>
+    <tbody>
+      {% for zeile in a.tabelle[1:] %}
+      <tr>{% for z in zeile %}{% if z is string %}<th scope="row">{{ z }}</th>{% else %}{% set ok = fertig and werte[z.name] %}
+        <td class="{{ ('rechnen-zelle--richtig' if ok else 'rechnen-zelle--falsch') if fertig }}">
+          <input name="{{ praefix }}{{ z.name }}" aria-label="{{ z.label }}" value="{{ eingaben.get(z.name, '') }}" autocomplete="off" spellcheck="false"
+                 {{ 'disabled' if fertig }} {{ 'autofocus' if z.name == erstes }} onkeydown="if (event.key === 'Escape') this.blur()">
+          {% if fertig and not ok %}<span class="rechnen-soll" title="richtig">{{ z.anzeige or 'leer' }}</span>{% endif %}
+        </td>{% endif %}{% endfor %}</tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+{% for f in a.felder if f.typ in ('sql', 'code') %}
+{# SQL und Pseudocode: Editor wie in Üben; geprüft wird in der Sandbox bzw. mit Testfällen, die Abweichung steht in der Auswertung.
+   Pseudocode bekommt Zeilennummern: die Meldungen nennen die Zeile #}
+{% set ok = fertig and werte[f.name] %}
+{% set werkzeuge = seed is not none and not fertig %}
+{% set code = f.typ == 'code' %}
+<div class="rechnen-sql{{ ' rechnen-code' if code }}{{ (' rechnen-sql--richtig' if ok else ' rechnen-sql--falsch') if fertig }}">
+  <label class="etikett" for="{{ praefix }}{{ f.name }}">{{ f.label }}<span class="nur-tastatur"> · Tab rückt ein, ⇧Tab aus{{ ', ⌘↵ führt aus' if werkzeuge }}, Esc verlässt das Feld</span></label>
+  {% if code %}<div class="code-editor"><pre class="code-zeilen" aria-hidden="true">{% for i in range(1, eingaben.get(f.name, '').split('\n')|length + 1) %}{{ i }}
+{% endfor %}</pre>{% endif %}
+  <textarea class="textarea editor" id="{{ praefix }}{{ f.name }}" name="{{ praefix }}{{ f.name }}" rows="{{ 12 if code else 8 }}" spellcheck="false" autocapitalize="off"
+            autocomplete="off" placeholder="{{ '// dein Pseudocode' if code else 'SELECT …' }}" onkeydown="saku.editorTaste(event)"
+            {% if code %}oninput="saku.zeilen(this)" onscroll="saku.zeilen(this)"{% endif %} {{ 'disabled' if fertig }} {{ 'autofocus' if f.name == erstes }}>{{ eingaben.get(f.name, '') }}</textarea>
+  {% if code %}</div>{% endif %}
+  {% if werkzeuge %}
+  <div class="zeile sql-werkzeuge">
+    <button type="button" class="btn" data-variant="outline" data-size="sm" data-sql-ausfuehren hx-vals='{"seed": "{{ seed }}", "praefix": "{{ praefix }}"}'
+            hx-post="{{ url_for('rechnen.code_ausfuehren' if code else 'rechnen.sql_ausfuehren', art=a.art) }}" hx-target="#{{ praefix }}sql-ergebnis">
+      {{ m.icon('play') }} Ausführen {{ m.taste('⌘↵') }}
+    </button>
+    {% if not code %}
+    <button type="button" class="btn" data-variant="ghost" data-size="sm"
+            hx-get="{{ url_for('rechnen.sql_tabellen', art=a.art, seed=seed) }}" hx-target="#{{ praefix }}sql-ergebnis">{{ m.icon('table') }} Tabellen ansehen</button>
+    {% endif %}
+  </div>
+  <div id="{{ praefix }}sql-ergebnis" class="sql-ergebnis" aria-live="polite"></div>
+  {% endif %}
+  {% if fertig %}<p class="rechnen-marke">{% if ok %}<span aria-label="richtig">✓</span>{% else %}<span aria-label="falsch">✕</span>{% endif %}</p>{% endif %}
+</div>
+{% endfor %}
+
+{% set uebrige = a.felder|rejectattr('name', 'in', a.tabellen_felder)|rejectattr('typ', 'in', ('sql', 'code'))|list %}
+{% if uebrige %}
+{% set hinweise = denkfehler(a, eingaben) if fertig else {} %}
+<div class="rechnen-felder" role="group" aria-label="Deine Ergebnisse">
+  {% for f in uebrige %}
+  {% set ok = fertig and werte[f.name] %}
+  {# gleiche Beschriftung, andere Einheit (Dauer in s und in min): vorgelesen wird beides #}
+  {% set name = f.label ~ (' in ' ~ f.einheit if f.einheit else '') %}
+  <div class="rechnen-feld rechnen-feld--{{ f.typ }}{{ (' rechnen-feld--richtig' if ok else ' rechnen-feld--falsch') if fertig }}">
+    <label for="{{ praefix }}{{ f.name }}">{{ f.label }}</label>
+    <span class="rechnen-eingabe">
+      {% if f.optionen %}
+      <select class="select" id="{{ praefix }}{{ f.name }}" name="{{ praefix }}{{ f.name }}" aria-label="{{ name }}" {{ 'disabled' if fertig }} {{ 'autofocus' if f.name == erstes }}>
+        <option value="">–</option>
+        {% for o in f.optionen %}<option {{ 'selected' if eingaben.get(f.name) == o }}>{{ o }}</option>{% endfor %}
+      </select>
+      {% else %}
+      <input class="input" id="{{ praefix }}{{ f.name }}" name="{{ praefix }}{{ f.name }}" aria-label="{{ name }}" value="{{ eingaben.get(f.name, '') }}"
+             inputmode="{{ 'decimal' if f.typ == 'zahl' else 'text' }}" autocomplete="off" autocapitalize="off" spellcheck="false"
+             {% if f.typ == 'datum' %}placeholder="TT.MM.JJJJ"{% endif %}
+             {{ 'disabled' if fertig }} {{ 'autofocus' if f.name == erstes }} onkeydown="if (event.key === 'Escape') this.blur()">
+      {% endif %}
+      {% if f.einheit %}<span class="gedaempft">{{ f.einheit }}</span>{% endif %}
+    </span>
+    <span class="rechnen-marke">
+      {% if ok %}<span aria-label="richtig">✓</span>
+      {% elif fertig %}<span aria-label="falsch">✕</span> <span class="gedaempft">richtig:</span> <strong class="zahl">{{ f.anzeige }}</strong> {{ f.einheit }}
+      {% if f.name in hinweise %}<span class="rechnen-denkfehler">{{ hinweise[f.name] }}</span>{% endif %}{% endif %}
+    </span>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endmacro %}

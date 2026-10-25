@@ -1,8 +1,10 @@
 """SQLite-Verbindung, Schema und Einstellungen."""
 
 import json
+import logging
 import sqlite3
 from contextlib import contextmanager
+from datetime import date
 from pathlib import Path
 
 from saku import config
@@ -29,6 +31,29 @@ MIGRATIONEN = {
         "fsrs TEXT, faellig_am TEXT, geaendert_am TEXT)",
         "ALTER TABLE teilaufgabe ADD COLUMN muster_id INTEGER REFERENCES muster(id) ON DELETE SET NULL",
     ],
+    5: [
+        "CREATE TABLE rechenuebung (id INTEGER PRIMARY KEY, art TEXT NOT NULL, seed INTEGER NOT NULL, "
+        "richtig INTEGER NOT NULL CHECK (richtig IN (0, 1)), felder_richtig INTEGER NOT NULL, felder_gesamt INTEGER NOT NULL, "
+        "dauer_s INTEGER, zeitpunkt TEXT NOT NULL DEFAULT (datetime('now')))",
+        "CREATE INDEX idx_rechenuebung_art ON rechenuebung(art, id)",
+    ],
+    7: [
+        "CREATE TABLE sql_sandbox (aufgabe_id INTEGER PRIMARY KEY REFERENCES aufgabe(id) ON DELETE CASCADE, "
+        "ddl TEXT NOT NULL, daten TEXT NOT NULL, erstellt TEXT DEFAULT (datetime('now')))",
+        "ALTER TABLE teilaufgabe ADD COLUMN loesung_sql TEXT",
+    ],
+    # Rechenübungen zählen als Lerntag (Lernserie und Kalender auf Heute)
+    9: [
+        "DROP VIEW IF EXISTS v_lerntage",
+        "CREATE VIEW v_lerntage AS SELECT tag, COUNT(*) AS bewertungen FROM ("
+        "SELECT date(zeitpunkt, 'localtime') AS tag FROM bewertung "
+        "UNION ALL SELECT date(zeitpunkt, 'localtime') FROM rechenuebung) GROUP BY tag",
+    ],
+    10: [
+        "CREATE TABLE probepruefung (id INTEGER PRIMARY KEY, pfad TEXT NOT NULL, aufgaben TEXT NOT NULL, eingaben TEXT, "
+        "gestartet_am TEXT NOT NULL DEFAULT (datetime('now')), dauer_min INTEGER NOT NULL, beendet_am TEXT, punkte REAL, "
+        "note INTEGER CHECK (note BETWEEN 1 AND 6))",
+    ],
 }
 
 
@@ -45,13 +70,55 @@ def init(pfad: Path | None = None) -> bool:
             return True
         for ziel, befehle in sorted(MIGRATIONEN.items()):
             if version < ziel:
-                for befehl in befehle:
-                    con.execute(befehl)
-                con.execute(f"PRAGMA user_version = {ziel}")
-                con.commit()
+                with con:  # eine Migration ganz oder gar nicht: SQLite kann auch CREATE und ALTER zurückrollen
+                    con.execute("BEGIN")
+                    for befehl in befehle:
+                        con.execute(befehl)
+                    con.execute(f"PRAGMA user_version = {ziel}")
         return False
     finally:
         con.close()
+
+
+def sichern(pfad: Path | None = None, erzwingen: bool = False, behalten: int = 7) -> Path | None:
+    """Sicherung nach backups/saku-JJJJ-MM-TT.db neben der Datenbank, über die Backup-API von SQLite (sicher bei WAL).
+    Eine je Tag (erzwingen überschreibt die von heute), die letzten `behalten` bleiben. None, wenn nichts zu tun war."""
+    pfad = Path(pfad or config.db_pfad())
+    ordner = pfad.parent / "backups"
+    ziel = ordner / f"saku-{date.today().isoformat()}.db"
+    if not pfad.exists() or (ziel.exists() and not erzwingen):
+        return None
+    ordner.mkdir(exist_ok=True)
+    teil = ziel.with_suffix(".teil")  # erst fertig schreiben, dann umbenennen: nie eine halbe Sicherung
+    teil.unlink(missing_ok=True)
+    kopieren(pfad, teil)
+    teil.replace(ziel)
+    for alt in sorted(ordner.glob("saku-????-??-??.db"))[:-behalten]:
+        alt.unlink()
+    return ziel
+
+
+def kopieren(quelle: Path | str, ziel: Path | str) -> None:
+    """Stimmige Kopie einer Datenbank über die Backup-API von SQLite, auch während Saku in sie schreibt (WAL)."""
+    von, nach = sqlite3.connect(quelle), sqlite3.connect(ziel)
+    try:
+        von.backup(nach)
+    finally:
+        nach.close()
+        von.close()
+
+
+def taeglich_sichern(pfad: Path | None = None) -> None:
+    """Beim Start und vor der Analyse; eine fehlgeschlagene Sicherung hält beides nicht auf."""
+    try:
+        sichern(pfad)
+    except Exception:  # bewusst breit: ohne Sicherung weiterarbeiten ist besser als gar nicht
+        logging.getLogger(__name__).exception("Sicherung der Datenbank fehlgeschlagen")
+
+
+def letzte_sicherung(pfad: Path | None = None) -> Path | None:
+    sicherungen = sorted((Path(pfad or config.db_pfad()).parent / "backups").glob("saku-????-??-??.db"))
+    return sicherungen[-1] if sicherungen else None
 
 
 def einstellung(con: sqlite3.Connection, schluessel: str, standard: str = "") -> str:

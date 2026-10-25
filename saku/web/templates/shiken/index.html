@@ -1,10 +1,25 @@
 {% extends "base.html" %}
 {% block titel %}Prüfung{% endblock %}
 {% block inhalt %}
+{# Die Probeprüfung braucht keine Prüfungen im Katalog: sie steht auch auf der leeren Seite #}
+{% set probe_karte %}
+      <li class="flaeche shiken-bereich" id="probepruefung">
+        <p class="etikett">Probeprüfung</p>
+        <p class="shiken-bereich-name">Probeprüfung aus Generatoren</p>
+        <p class="klein gedaempft zahl">{{ probe.anzahl }} Aufgaben · {{ probe.minuten }} Minuten · 100 Punkte · {{ umfang.teil }}</p>
+        <p class="klein gedaempft">Unbegrenzt neu aus den Rechenaufgaben deiner Prüfung, mit SQL und Pseudocode. Saku wertet sofort aus.
+          {%- if probe.letzte %} Zuletzt {{ ('%g' % probe.letzte.punkte)|replace('.', ',') }} Punkte, Note {{ probe.letzte.note }}.{% endif %}</p>
+        <form class="zeile" method="post" action="{{ url_for('rechnen.probe_neu') }}">
+          <button type="submit" class="btn">{{ 'Weiter' if probe.laufend else 'Starten' }}</button>
+          <a class="btn" data-variant="ghost" href="{{ url_for('rechnen.probe') }}">Verlauf</a>
+        </form>
+      </li>
+{% endset %}
 {% if not bereiche %}
 {{ m.kopf('willkommen', '試', 'Prüfung', 'Prüfungssimulation') }}
 <div class="seite weit">
   <p class="leer">Noch ist der Garten leer. Lege deine Prüfungen in <code>data/pdfs</code> und starte die Analyse.</p>
+  <ul class="shiken-bereiche">{{ probe_karte }}</ul>
 </div>
 {% else %}
 {% call m.kopf('shiken', '試', 'Prüfung', 'Prüfungssimulation') %}
@@ -39,6 +54,19 @@
         </form>
       </li>
       {% endfor %}
+      {% if schnelltest %}
+      <li class="flaeche shiken-bereich shiken-schnelltest" id="schnelltest">
+        <p class="etikett">Schnelltest</p>
+        <p class="shiken-bereich-name">WiSo gemischt</p>
+        <p class="klein gedaempft zahl">{{ schnelltest.anzahl }} {{ 'Teilaufgabe' if schnelltest.anzahl == 1 else 'Teilaufgaben' }} zum Anklicken · etwa {{ schnelltest.minuten }} {{ 'Minute' if schnelltest.minuten == 1 else 'Minuten' }} · aus {{ schnelltest.termine }} {{ 'Termin' if schnelltest.termine == 1 else 'Terminen' }}</p>
+        <p class="klein gedaempft">Zufällig quer durch alle Termine, Zeit wie in der Prüfung. Saku wertet sofort aus.</p>
+        <form method="post" action="{{ url_for('shiken.neu') }}">
+          <input type="hidden" name="bereich" value="{{ schnelltest.bereich }}">
+          <button type="submit" class="btn" {% if laufend %}disabled title="Es läuft schon eine Simulation"{% endif %}>Starten</button>
+        </form>
+      </li>
+      {% endif %}
+      {{ probe_karte }}
     </ul>
   </section>
 
@@ -46,14 +74,14 @@
     <h2 class="ueberschrift" id="verlauf-titel">Verlauf</h2>
     {% if verlauf %}
     <table class="table shiken-verlauf">
-      <thead><tr><th>Datum</th><th>Prüfungsbereich</th><th class="rechts">Punkte</th><th>Note</th><th>Ergebnis</th></tr></thead>
+      <thead class="kopf-vorgelesen"><tr><th>Datum</th><th>Prüfungsbereich</th><th class="rechts">Punkte</th><th>Note</th><th>Ergebnis</th></tr></thead>
       <tbody>
         {% for s in verlauf %}
         <tr>
           <td class="zahl">{{ s.datum }}</td>
           <td><a href="{{ url_for('shiken.auswertung' if s.beendet_am else 'shiken.simulation', sim_id=s.id) }}">{{ s.bereich }}</a></td>
           {% if s.note %}
-          <td class="zahl rechts">{{ s.punkte_100 }}</td>
+          <td class="zahl rechts" data-titel="Punkte">{{ s.punkte_100 }}</td>
           <td>{{ s.note }} · {{ noten[s.note] }}</td>
           <td class="{{ 'shiken-gokaku' if s.bestanden }}">{{ m.wort('合格', 'Bestanden') if s.bestanden else m.wort('再', 'Noch nicht') }}</td>
           {% elif s.beendet_am %}

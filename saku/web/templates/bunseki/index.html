@@ -23,22 +23,24 @@
     ('kontrolle', 'Kontrolle', kontrolle|length),
     ('ki', 'KI-Nutzung', none),
   ] %}
+  {# ?reiter=katalog öffnet einen Reiter direkt (Seitenleiste, „Alle Seiten“) #}
+  {% set aktiv = request.args.get('reiter') if request.args.get('reiter') in reiter|map('first') else 'ueberblick' %}
   <div class="tabs bunseki-tabs" id="bunseki">
     <nav role="tablist" aria-orientation="horizontal" aria-label="Auswertungen">
       {% for id, name, anzahl in reiter %}
-      <button type="button" role="tab" id="bunseki-tab-{{ id }}" aria-controls="bunseki-{{ id }}" aria-selected="{{ 'true' if loop.first else 'false' }}" tabindex="{{ 0 if loop.first else -1 }}">
+      <button type="button" role="tab" id="bunseki-tab-{{ id }}" aria-controls="bunseki-{{ id }}" aria-selected="{{ 'true' if id == aktiv else 'false' }}" tabindex="{{ 0 if id == aktiv else -1 }}">
         {{ name }}{% if anzahl is not none %} <span class="zahl gedaempft">{{ anzahl }}</span>{% endif %}
       </button>
       {% endfor %}
     </nav>
 
     {# Überblick: Kennzahlen und die Dauerbrenner als Balken #}
-    <div role="tabpanel" id="bunseki-ueberblick" aria-labelledby="bunseki-tab-ueberblick" tabindex="-1" class="bunseki-reiter">
+    <div role="tabpanel" id="bunseki-ueberblick" aria-labelledby="bunseki-tab-ueberblick" tabindex="-1" class="bunseki-reiter"{{ ' hidden' if aktiv != 'ueberblick' }}>
       <div class="bunseki-kennzahlen">
         <div class="flaeche"><span class="etikett">Prüfungen</span><span class="kennzahl zahl">{{ inventar|length }}</span><span class="klein gedaempft">aus {{ heatmap.termine|length }} Terminen</span></div>
         <div class="flaeche"><span class="etikett">Teilaufgaben</span><span class="kennzahl zahl">{{ teilaufgaben }}</span><span class="klein gedaempft">alle als Text aufbereitet</span></div>
         <div class="flaeche"><span class="etikett">Mit Lösungshinweis</span><span class="kennzahl zahl">{{ (100 * mit_loesung / teilaufgaben)|round|int if teilaufgaben else 0 }} %</span><span class="klein gedaempft">{{ mit_loesung }} von {{ teilaufgaben }}</span></div>
-        <div class="flaeche"><span class="etikett">Themen</span><span class="kennzahl zahl">{{ themen_gesamt }}</span><span class="klein gedaempft">{{ nie_geprueft|length }} weitere nie geprüft</span></div>
+        <div class="flaeche"><span class="etikett">Themen</span><span class="kennzahl zahl">{{ themen_zahlen.themen }}</span><span class="klein gedaempft">mit {{ themen_zahlen.unterthemen }} Unterthemen, {{ nie_geprueft|length }} nie geprüft</span></div>
       </div>
       <section class="flaeche bunseki-top">
         <header class="zeile zwischen"><p class="etikett">Die meisten Punkte über alle Termine</p><span class="klein gedaempft">Balken: in wie vielen Terminen das Thema drankam</span></header>
@@ -55,7 +57,7 @@
     </div>
 
     {# Katalog: die Themenliste aus den IHK-Prüfungskatalogen als Checkliste #}
-    <div role="tabpanel" id="bunseki-katalog" aria-labelledby="bunseki-tab-katalog" tabindex="-1" class="bunseki-reiter" hidden>
+    <div role="tabpanel" id="bunseki-katalog" aria-labelledby="bunseki-tab-katalog" tabindex="-1" class="bunseki-reiter"{{ ' hidden' if aktiv != 'katalog' }}>
       <p class="klein gedaempft">Alle Inhalte der IHK-Prüfungskataloge für deinen Prüfungsteil. Je Punkt: in wie vielen Terminen er drankam und wie gut er bei dir sitzt. „nie dran“ heißt nicht „nie prüfbar“.</p>
       {% for b in katalog %}
       <section class="katalog-bereich">
@@ -64,7 +66,7 @@
         <div class="katalog-themen">
           {% for t in b.themen %}
           <details class="katalog-thema" open>
-            <summary><span>{{ t.name }}</span><span class="klein gedaempft zahl">{{ t.termine }} Termine · {{ t.teilaufgaben }} Teilaufg.</span></summary>
+            <summary><span>{{ t.name }}</span><span class="klein gedaempft zahl">{{ t.termine }} {{ 'Termin' if t.termine == 1 else 'Termine' }} · {{ t.teilaufgaben }} Teilaufg.</span></summary>
             <ul>
               {% for u in t.unterthemen %}
               <li class="{{ 'nie' if not u.termine }}">
@@ -82,7 +84,7 @@
     </div>
 
     {# Inventar: Termine × Prüfungsbereiche #}
-    <div role="tabpanel" id="bunseki-inventar" aria-labelledby="bunseki-tab-inventar" tabindex="-1" class="bunseki-reiter" hidden>
+    <div role="tabpanel" id="bunseki-inventar" aria-labelledby="bunseki-tab-inventar" tabindex="-1" class="bunseki-reiter"{{ ' hidden' if aktiv != 'inventar' }}>
       <p class="klein gedaempft">Je Zelle die Teilaufgaben; ✓ alle mit Lösungshinweis, ◐ teilweise, ✕ keiner. Grau: Scan statt Text-PDF.</p>
       <div class="table-container">
         <table class="table bunseki-matrix">
@@ -104,7 +106,7 @@
     </div>
 
     {# Heatmap: Thema × Termin in Tuschestufen #}
-    <div role="tabpanel" id="bunseki-heatmap" aria-labelledby="bunseki-tab-heatmap" tabindex="-1" class="bunseki-reiter" hidden>
+    <div role="tabpanel" id="bunseki-heatmap" aria-labelledby="bunseki-tab-heatmap" tabindex="-1" class="bunseki-reiter"{{ ' hidden' if aktiv != 'heatmap' }}>
       <p class="klein gedaempft">Je kräftiger die Zelle, desto mehr Punkte brachte das Thema an diesem Termin.</p>
       <div class="table-container">
         <table class="bunseki-heatmap">
@@ -142,7 +144,7 @@
     </div>
 
     {# Dauerbrenner #}
-    <div role="tabpanel" id="bunseki-dauerbrenner" aria-labelledby="bunseki-tab-dauerbrenner" tabindex="-1" class="bunseki-reiter" hidden>
+    <div role="tabpanel" id="bunseki-dauerbrenner" aria-labelledby="bunseki-tab-dauerbrenner" tabindex="-1" class="bunseki-reiter"{{ ' hidden' if aktiv != 'dauerbrenner' }}>
       <p class="klein gedaempft">Themen, die in mindestens {{ grenzen.dauerbrenner }} % der Termine vorkamen. Sie lohnen sich fast immer.</p>
       {% if dauerbrenner %}
       <div class="table-container">
@@ -169,7 +171,7 @@
     </div>
 
     {# Lange nicht dran #}
-    <div role="tabpanel" id="bunseki-lange" aria-labelledby="bunseki-tab-lange" tabindex="-1" class="bunseki-reiter" hidden>
+    <div role="tabpanel" id="bunseki-lange" aria-labelledby="bunseki-tab-lange" tabindex="-1" class="bunseki-reiter"{{ ' hidden' if aktiv != 'lange' }}>
       <p class="hinweis klein">Themen, deren letzter Auftritt mehr als {{ grenzen.lange }} Termine zurückliegt. Das ist ein Hinweis, keine Vorhersage: Niemand weiß, was in der nächsten Prüfung drankommt.</p>
       {% if lange_nicht_dran %}
       <div class="table-container">
@@ -193,7 +195,7 @@
     </div>
 
     {# Nie geprüft #}
-    <div role="tabpanel" id="bunseki-nie" aria-labelledby="bunseki-tab-nie" tabindex="-1" class="bunseki-reiter" hidden>
+    <div role="tabpanel" id="bunseki-nie" aria-labelledby="bunseki-tab-nie" tabindex="-1" class="bunseki-reiter"{{ ' hidden' if aktiv != 'nie' }}>
       <p class="klein gedaempft">Themen aus der Themenliste ohne eine einzige Teilaufgabe.</p>
       {% if nie_geprueft %}
       <ul class="bunseki-liste">
@@ -205,7 +207,7 @@
     </div>
 
     {# Ohne Thema #}
-    <div role="tabpanel" id="bunseki-ohne" aria-labelledby="bunseki-tab-ohne" tabindex="-1" class="bunseki-reiter" hidden>
+    <div role="tabpanel" id="bunseki-ohne" aria-labelledby="bunseki-tab-ohne" tabindex="-1" class="bunseki-reiter"{{ ' hidden' if aktiv != 'ohne' }}>
       <p class="klein gedaempft">Teilaufgaben, die zu keinem Thema passen: ein Zeichen für Lücken in der Themenliste. Du kannst sie hier von Hand zuordnen.</p>
       {% if ohne_thema %}
       <div class="table-container">
@@ -220,7 +222,7 @@
     </div>
 
     {# Kontrolle #}
-    <div role="tabpanel" id="bunseki-kontrolle" aria-labelledby="bunseki-tab-kontrolle" tabindex="-1" class="bunseki-reiter" hidden>
+    <div role="tabpanel" id="bunseki-kontrolle" aria-labelledby="bunseki-tab-kontrolle" tabindex="-1" class="bunseki-reiter"{{ ' hidden' if aktiv != 'kontrolle' }}>
       <p class="klein gedaempft">Zuordnungen, bei denen sich die KI unsicher war (Sicherheit unter {{ '%g'|format(grenzen.kontrolle)|replace('.', ',') }}). Was du hier speicherst, gilt als manuell und bleibt bei jedem neuen Analyse-Lauf erhalten.</p>
       {% if kontrolle %}
       <div class="table-container">
@@ -235,7 +237,7 @@
     </div>
 
     {# KI-Nutzung #}
-    <div role="tabpanel" id="bunseki-ki" aria-labelledby="bunseki-tab-ki" tabindex="-1" class="bunseki-reiter" hidden>
+    <div role="tabpanel" id="bunseki-ki" aria-labelledby="bunseki-tab-ki" tabindex="-1" class="bunseki-reiter"{{ ' hidden' if aktiv != 'ki' }}>
       <p class="klein gedaempft">Alle Aufrufe der Claude-API, aus Pipeline und Sensei. Antworten aus dem Cache kosten nichts.</p>
       {% if ki_nutzung %}
       <div class="table-container">

@@ -5,7 +5,16 @@ window.saku = {
     const dialog = document.getElementById(id);
     if (!dialog || dialog.open) return;
     dialog.showModal();
-    dialog.querySelector("input, textarea")?.focus();
+    // ins Eingabefeld, sonst auf „Schließen“ (nicht auf die scrollbare Fläche, die der Browser sonst nimmt)
+    (dialog.querySelector("input, textarea") || dialog.querySelector("[aria-label='Schließen']"))?.focus();
+  },
+  // Mobil: Blatt „Mehr“ mit allen Bereichen; der Eintrag im Verlauf lässt Zurück (Wischgeste, Browser) es schließen
+  mehr() {
+    saku.oeffne("mehr");
+    // htmx stellt beim Zurück nur Einträge mit htmx-Zustand wieder her; den setzt es sonst beim Weitergehen, hier aber erst am
+    // Eintrag des Blatts. Ohne ihn bliebe nach Mehr → Seite → Zurück auf der ersten Seite nach dem Laden die neue stehen
+    history.replaceState({ htmx: true }, "");
+    history.pushState({ mehr: true }, "");
   },
   sensei() {
     document.body.classList.toggle("sensei-offen");
@@ -19,13 +28,37 @@ window.saku = {
     clearTimeout(toast.zeit);
     toast.zeit = setTimeout(() => toast.classList.remove("sichtbar"), 1600);
   },
-  // Code-Editor: Tab rückt um vier Leerzeichen ein, Esc verlässt das Feld
+  // Code-Editor: Tab rückt um vier Leerzeichen ein, Esc verlässt das Feld, ⌘↵/Strg+↵ führt SQL oder Pseudocode aus
   editorTaste(e) {
     const feld = e.target;
     if (e.key === "Escape") return feld.blur();
-    if (e.key !== "Tab" || e.shiftKey) return;
+    const ausfuehren = e.key === "Enter" && (e.metaKey || e.ctrlKey) && feld.closest(".keiko-antwort, .rechnen-sql")?.querySelector("[data-sql-ausfuehren]");
+    if (ausfuehren) {
+      e.preventDefault();
+      return ausfuehren.click();
+    }
+    // ↵ behält den Einzug der Zeile, nach DANN, SONST, FÜR … und SOLANGE … eine Stufe mehr
+    if (e.key === "Enter" && !(e.shiftKey || e.altKey || e.metaKey || e.ctrlKey)) {
+      const zeile = feld.value.slice(feld.value.lastIndexOf("\n", feld.selectionStart - 1) + 1, feld.selectionStart);
+      const einzug = zeile.match(/^\s*/)[0] + (/\b(dann|sonst)\s*$|^\s*(für|fuer|solange)\b/i.test(zeile) ? "    " : "");
+      if (!einzug) return;
+      e.preventDefault();
+      feld.setRangeText("\n" + einzug, feld.selectionStart, feld.selectionEnd, "end");
+      return feld.dispatchEvent(new Event("input", { bubbles: true }));  // Zeilennummern
+    }
+    if (e.key !== "Tab") return;
     e.preventDefault();
-    feld.setRangeText("    ", feld.selectionStart, feld.selectionEnd, "end");
+    if (!e.shiftKey) return feld.setRangeText("    ", feld.selectionStart, feld.selectionEnd, "end");
+    // ⇧Tab rückt die Zeile eine Stufe aus (z. B. vor ENDE WENN)
+    const anfang = feld.value.lastIndexOf("\n", feld.selectionStart - 1) + 1;
+    const weg = feld.value.slice(anfang).match(/^ {0,4}/)[0].length;
+    if (weg) feld.setRangeText("", anfang, anfang + weg, "preserve");
+  },
+  // Zeilennummern neben dem Pseudocode-Editor (die Meldungen nennen die Zeile), mitgescrollt
+  zeilen(feld) {
+    const rand = feld.previousElementSibling;
+    rand.textContent = Array.from({ length: feld.value.split("\n").length }, (_, i) => `${i + 1}\n`).join("");
+    rand.scrollTop = feld.scrollTop;
   },
   // Ausgefüllte Tabelle als Markdown ins versteckte Antwortfeld (für Sensei „Prüfen“)
   tabelleAlsText(tabelle) {
@@ -51,6 +84,17 @@ window.saku = {
       unterthema: 1.8 + 3 * Math.sqrt((k.wert || 0) / groesst.unterthema), begriff: 1.2 + 2.8 * Math.sqrt((k.wert || 0) / groesst.begriff) })[k.art];
     const abZoom = { bereich: 0, thema: 0.5, lernfeld: 1.1, unterthema: 1.4, begriff: 2.6 };  // ab hier steht der Name da
     const rang = { bereich: 5, thema: 4, lernfeld: 3, unterthema: 2, begriff: 1 };
+    // Farbe, Radius und Namensbreite einmal statt in jedem Bild: WebKit zeichnet sonst beim Zoomen sichtbar langsamer
+    const messen = document.createElement("canvas").getContext("2d");
+    const breiten = () => daten.knoten.forEach((k) => {
+      messen.font = `${rang[k.art] >= 4 ? 600 : 400} 100px Inter, sans-serif`;
+      k._breite = messen.measureText(k.name).width / 100;
+    });
+    daten.knoten.forEach((k) => { k._farbe = farbe(k); k._r = radius(k); });
+    breiten();
+    document.fonts.ready.then(breiten);  // Inter ist beim ersten Aufruf evtl. noch nicht geladen
+    const pulsieren = new Set(daten.pulsieren);
+    const finger = matchMedia("(pointer: coarse)").matches;
 
     const nachbarn = new Map(daten.knoten.map((k) => [k.id, new Set()]));
     daten.kanten.forEach((l) => { nachbarn.get(l.source)?.add(l.target); nachbarn.get(l.target)?.add(l.source); });
@@ -71,13 +115,12 @@ window.saku = {
       .backgroundColor("rgba(0,0,0,0)")  // zeichnet nur neu, solange die Physik läuft oder der Zeiger sich bewegt
       .graphData(sichtbar())
       .nodeCanvasObject((k, ctx, zoom) => {
-        const r = radius(k);
         ctx.globalAlpha = hell(k.id) ? 1 : 0.1;
         ctx.beginPath();
-        ctx.arc(k.x, k.y, r, 0, 2 * Math.PI);
-        ctx.fillStyle = farbe(k);
+        ctx.arc(k.x, k.y, k._r, 0, 2 * Math.PI);
+        ctx.fillStyle = k._farbe;
         ctx.fill();
-        if (k.id === auswahl || daten.pulsieren.includes(k.id)) {
+        if (k.id === auswahl || pulsieren.has(k.id)) {
           ctx.lineWidth = 2 / zoom;
           ctx.strokeStyle = f.shu;
           ctx.stroke();
@@ -87,17 +130,21 @@ window.saku = {
       // Namen nach den Knoten: wichtige zuerst, was einen schon gesetzten Namen verdecken würde, entfällt
       .onRenderFramePost((ctx, zoom) => {
         const nah = mitte_();
-        const kandidaten = g.graphData().nodes.filter((k) => (nah ? hell(k.id) && (k.id === nah || zoom >= abZoom[k.art] - 0.6 || rang[k.art] >= 2)
-          : k.id === auswahl || zoom >= abZoom[k.art]));
-        kandidaten.sort((a, b) => (b.id === nah) - (a.id === nah) || rang[b.art] - rang[a.art] || radius(b) - radius(a));
+        // nur Namen im sichtbaren Ausschnitt (mit Rand für lange Namen)
+        const [lo, ru] = [g.screen2GraphCoords(-150, -40), g.screen2GraphCoords(g.width() + 150, g.height() + 40)];
+        const kandidaten = g.graphData().nodes.filter((k) => k.x > lo.x && k.x < ru.x && k.y > lo.y && k.y < ru.y
+          && (nah ? hell(k.id) && (k.id === nah || zoom >= abZoom[k.art] - 0.6 || rang[k.art] >= 2) : k.id === auswahl || zoom >= abZoom[k.art]));
+        kandidaten.sort((a, b) => (b.id === nah) - (a.id === nah) || rang[b.art] - rang[a.art] || b._r - a._r);
         const belegt = [];
         ctx.textAlign = "center";
         ctx.textBaseline = "top";
         ctx.lineJoin = "round";
+        let schrift = "";
         for (const k of kandidaten) {
           const groesse = (k.art === "bereich" ? 13 : 11) / zoom;
-          ctx.font = `${rang[k.art] >= 4 ? 600 : 400} ${groesse}px Inter, sans-serif`;
-          const breite = ctx.measureText(k.name).width, y = k.y + radius(k) + 2 / zoom;
+          const neu = `${rang[k.art] >= 4 ? 600 : 400} ${groesse}px Inter, sans-serif`;
+          if (neu !== schrift) ctx.font = schrift = neu;  // nach Rang sortiert: die Schrift wechselt selten
+          const breite = k._breite * groesse, y = k.y + k._r + 2 / zoom;
           const box = [k.x - breite / 2 - 2 / zoom, y, k.x + breite / 2 + 2 / zoom, y + groesse * 1.2];
           if (belegt.some((b) => b[0] < box[2] && box[0] < b[2] && b[1] < box[3] && box[1] < b[3])) continue;
           belegt.push(box);
@@ -108,10 +155,10 @@ window.saku = {
           ctx.fillText(k.name, k.x, y);
         }
       })
-      .nodePointerAreaPaint((k, c, ctx) => {
+      .nodePointerAreaPaint((k, c, ctx, zoom) => {
         ctx.fillStyle = c;
         ctx.beginPath();
-        ctx.arc(k.x, k.y, radius(k) + 2, 0, 2 * Math.PI);
+        ctx.arc(k.x, k.y, k._r + 2 + (finger ? 8 / zoom : 0), 0, 2 * Math.PI);  // mit dem Finger 8 px mehr Trefferfläche
         ctx.fill();
       })
       .linkColor((l) => anFokus(l) ? f.shu : mitte_() ? f.linie + "40" : l.art === "voraussetzung" ? f["sumi-mittel"] : f.linie + "b0")
@@ -123,9 +170,10 @@ window.saku = {
       .onNodeClick((k) => waehlen(k))
       .onBackgroundClick(() => { auswahl = null; notiz.hidden = true; neuZeichnen(); })
       .onBackgroundRightClick(() => g.zoomToFit(400, 40))
-      .d3VelocityDecay(0.35)
-      .warmupTicks(40)  // die ersten Schritte ohne Zeichnen: kein Aufplatzen beim Öffnen
-      .cooldownTicks(160);
+      .d3VelocityDecay(0.5)  // gedämpft: die Knoten gleiten aus statt nachzuschwingen
+      // den Großteil der Physik vor dem ersten Bild rechnen: der Graph steht fast fertig da, statt lange aufzuplatzen
+      .warmupTicks(Math.min(300, Math.round(60000 / Math.max(1, daten.knoten.length))))
+      .cooldownTicks(120);
     g.d3Force("charge").strength((k) => (k.art === "begriff" ? -16 : k.art === "bereich" ? -260 : -70));
     // sanfte Schwerkraft zur Mitte: getrennte Teile (z. B. WiSo) treiben nicht davon
     const mitte = (alpha) => mitte.knoten.forEach((k) => { k.vx -= k.x * 0.04 * alpha; k.vy -= k.y * 0.04 * alpha; });
@@ -135,11 +183,13 @@ window.saku = {
       .strength((l) => (l.art === "lernfeld" ? 0.04 : 0.5));
 
     const pfad = { t: "thema", lf: "lernfeld", b: "begriff" };
-    let gezoomt = false;
-    // der gewählte Knoten in die Mitte der Fläche, die die Notiz frei lässt
+    let gezoomt = false, selbst = false;
+    // der gewählte Knoten in die Mitte der Fläche, die die Notiz frei lässt: rechts daneben, mobil darüber (Blatt von unten)
     const zeigeAuf = (k, zoom) => {
+      const blatt = !notiz.hidden && getComputedStyle(notiz).position === "fixed";
+      const unten = blatt ? Math.max(0, flaeche.getBoundingClientRect().bottom - notiz.getBoundingClientRect().top) : 0;
       g.zoom(zoom, 600);
-      g.centerAt(k.x + (notiz.hidden ? 0 : (notiz.offsetWidth + 12) / 2 / zoom), k.y, 600);
+      g.centerAt(k.x + (notiz.hidden || blatt ? 0 : (notiz.offsetWidth + 12) / 2 / zoom), k.y + unten / 2 / zoom, 600);
     };
     const waehlen = (k) => {
       auswahl = k.id;
@@ -151,12 +201,16 @@ window.saku = {
     };
     const finden = (kid) => g.graphData().nodes.find((k) => k.id === kid);
 
-    [700, 1800, 3200].forEach((ms) => setTimeout(() => gezoomt || g.zoomToFit(400, 40), ms));  // schon während die Physik arbeitet
+    // einmal sofort einpassen, am Ende sanft nachführen; wer selbst zoomt oder zieht, dem bewegt sich die Kamera nicht mehr weg
+    let eingepasst = false;
+    g.onEngineTick(() => { if (!eingepasst) { eingepasst = true; g.zoomToFit(0, 40); } });
+    ["wheel", "pointerdown"].forEach((t) => flaeche.addEventListener(t, () => { selbst = true; }, { capture: true, passive: true }));
     g.onEngineStop(() => {
       if (gezoomt) return;
       gezoomt = true;
       const k = auswahl && finden(auswahl);
-      k ? waehlen(k) : g.zoomToFit(500, 40);
+      if (k) waehlen(k);
+      else if (!selbst) g.zoomToFit(500, 40);
     });
 
     // Notizen und Listen verweisen mit data-knoten auf Knoten im Graphen
@@ -228,10 +282,118 @@ window.saku = {
     const farbe = getComputedStyle(document.documentElement).getPropertyValue("--washi").trim();
     window.pywebview?.api?.setze(farbe);
   },
+  // Formeln (LaTeX aus markdown_zu_html) mit KaTeX setzen: geladen erst, wenn eine Seite Formeln zeigt, gesetzt nur im neuen Teil
+  formeln(wurzel) {
+    const offen = [...(wurzel.querySelectorAll?.(".formel:not([data-gesetzt])") || [])];
+    if (!offen.length) return;
+    const laden = (tag, felder) => new Promise((fertig, fehler) => document.head.append(Object.assign(document.createElement(tag), felder, { onload: fertig, onerror: fehler })));
+    saku.katex ??= Promise.all([laden("link", { rel: "stylesheet", href: "/static/vendor/katex/katex.min.css" }),
+      laden("script", { src: "/static/vendor/katex/katex.min.js" })]);
+    saku.katex.then(() => offen.forEach((el) => {
+      el.dataset.gesetzt = "";
+      katex.render(el.textContent, el, { displayMode: el.classList.contains("formel--block"), throwOnError: false, strict: "ignore" });
+      // Klammer und Satzzeichen direkt an der Formel in ihren ersten bzw. letzten Block: um KaTeX' Inline-Blöcke bricht der Browser
+      // sonst auch zwischen „(“ und Formel oder vor dem Komma um
+      const zeichen = (text) => Object.assign(document.createElement("span"), { className: "formel-zeichen", textContent: text });
+      const [davor, danach] = [el.previousSibling, el.nextSibling];
+      if (davor?.nodeType === Node.TEXT_NODE && /[(„]$/.test(davor.data)) {
+        el.querySelector(".katex-base")?.prepend(zeichen(davor.data.at(-1)));
+        davor.deleteData(davor.length - 1, 1);
+      }
+      if (danach?.nodeType === Node.TEXT_NODE && /^[.,;:)“]/.test(danach.data)) {
+        el.querySelector(".katex-base:last-of-type")?.append(zeichen(danach.data[0]));
+        danach.deleteData(0, 1);
+      }
+    }), () => {});  // ohne KaTeX bleibt der LaTeX-Quelltext lesbar stehen
+  },
+  // Sprungmarken (Einstellungen, Formelsammlung): markiert den letzten Abschnitt, der oben ins Fenster gerückt ist, am Seitenende den letzten
+  sprungmarken(nav) {
+    const links = [...nav.querySelectorAll("a[href^='#']")];
+    const markieren = () => {
+      if (!nav.isConnected) return removeEventListener("scroll", markieren);
+      const sichtbar = links.filter((a) => !a.hidden);
+      const oben = (a) => document.getElementById(a.hash.slice(1)).getBoundingClientRect().top < innerHeight / 3;
+      const aktiv = innerHeight + scrollY >= document.documentElement.scrollHeight - 8 ? sichtbar.at(-1) : sichtbar.findLast(oben) || sichtbar[0];
+      links.forEach((a) => (a === aktiv ? a.setAttribute("aria-current", "true") : a.removeAttribute("aria-current")));
+      // schmal stehen die Marken als Chips nebeneinander: den aktiven ins Bild schieben
+      if (aktiv && nav.scrollWidth > nav.clientWidth && (aktiv.offsetLeft < nav.scrollLeft || aktiv.offsetLeft + aktiv.offsetWidth > nav.scrollLeft + nav.clientWidth)) {
+        nav.scrollLeft = aktiv.offsetLeft - 16;
+      }
+    };
+    addEventListener("scroll", markieren, { passive: true });
+    markieren();
+  },
+  // Befehl neben dem Knopf in die Zwischenablage; geht das nicht (eigenes App-Fenster), ist er markiert für ⌘C
+  async kopieren(knopf) {
+    const code = knopf.parentElement.querySelector("code");
+    try {
+      await navigator.clipboard.writeText(code.textContent);
+      saku.melden("Kopiert");
+    } catch {
+      getSelection().selectAllChildren(code);
+      saku.melden("Markiert, mit ⌘C kopieren");
+    }
+  },
+  // Waagrecht scrollende Kästen: quer--links/--rechts sagen, ob dort noch etwas kommt (der Rand blendet aus, siehe saku.css)
+  quer(wurzel) {
+    wurzel.querySelectorAll?.(".tabelle-rahmen, .table-container, .uml-bild, .saeulen-rahmen, .prosa table, .prosa pre, .formel--block, .bunseki-tabs > [role=tablist]").forEach((kasten) => {
+      const pruefen = () => {
+        kasten.classList.toggle("quer--links", kasten.scrollLeft > 1);
+        kasten.classList.toggle("quer--rechts", kasten.scrollLeft + kasten.clientWidth < kasten.scrollWidth - 1);
+      };
+      kasten.addEventListener("scroll", pruefen, { passive: true });
+      new ResizeObserver(pruefen).observe(kasten);
+      // Reiter per Adresse (Analyse ?reiter=ki): der gewählte steht im Bild, auch wenn die Zeile schmal scrollt
+      const gewaehlt = kasten.querySelector("[aria-selected='true']")?.getBoundingClientRect(), rand = kasten.getBoundingClientRect();
+      if (gewaehlt?.right > rand.right) kasten.scrollLeft += gewaehlt.left - rand.left - 16;
+    });
+  },
+  // Formelsammlung: Karten nach Text filtern; Gruppen ohne Treffer und ihre Sprungmarken verschwinden
+  formelSuche(text) {
+    const q = text.trim().toLowerCase();
+    document.querySelectorAll(".formel-gruppe").forEach((gruppe) => {
+      const karten = [...gruppe.querySelectorAll(".formel-art")];
+      karten.forEach((k) => { k.hidden = Boolean(q) && !k.textContent.toLowerCase().includes(q); });
+      gruppe.hidden = karten.every((k) => k.hidden);
+      document.querySelector(`.sprungmarken a[href="#${gruppe.id}"]`).hidden = gruppe.hidden;
+    });
+    document.getElementById("formel-leer").hidden = Boolean(document.querySelector(".formel-gruppe:not([hidden])"));
+    dispatchEvent(new Event("scroll"));  // Markierung neu setzen
+  },
 };
+
+// nach dem Laden und nach jedem htmx-Tausch (Prüfen, Rechenweg, Sprint, Probeprüfung, Bereichswechsel)
+document.addEventListener("htmx:load", (e) => {
+  saku.formeln(e.target);
+  saku.quer(e.target);
+  e.target.querySelectorAll?.("[data-sprungmarken]").forEach((nav) => saku.sprungmarken(nav));
+});
 
 // Antwort mit HX-Trigger: gespeichert
 document.addEventListener("gespeichert", () => saku.melden("Gespeichert"));
+
+// Blatt „Mehr“: Schließen (Esc, Knopf, daneben tippen) nimmt seinen Eintrag wieder aus dem Verlauf, Zurück schließt es.
+// htmx darf dabei nichts aus dem Verlauf neu aufbauen: dieser Listener läuft vor htmx' onpopstate (gesetzt erst beim Laden)
+let mehrZurueck = false;
+document.addEventListener("close", (e) => {
+  if (e.target.id !== "mehr" || !history.state?.mehr) return;
+  mehrZurueck = true;
+  history.back();
+}, true);
+addEventListener("popstate", (e) => {
+  const blatt = document.getElementById("mehr");
+  if (!mehrZurueck && !blatt?.open) return;
+  e.stopImmediatePropagation();
+  mehrZurueck = false;
+  blatt?.close();
+});
+// Ein Link oder Formular im Blatt: dessen Eintrag wird zur neuen Seite (hx-replace-url am Blatt), nicht zurückgenommen
+document.addEventListener("htmx:beforeRequest", (e) => {
+  const blatt = e.target.closest?.("#mehr");
+  if (!blatt?.open) return;
+  history.replaceState(null, "");
+  blatt.close();
+});
 
 // Bereichsbilder einmal vorab dekodieren, damit sie beim Wechsel nicht nachträglich aufploppen
 addEventListener("load", () => {
@@ -276,6 +438,9 @@ document.addEventListener("keydown", (e) => {
     ziel.click();
   }
 });
+
+// autofocus greift nicht in jedem Browser beim Laden (WebKit, Fenster ohne Fokus); Rechnen beginnt im ersten Feld
+addEventListener("DOMContentLoaded", () => document.querySelector("main [autofocus]")?.focus());
 
 // pywebview meldet sich erst nach dem Laden
 addEventListener("pywebviewready", () => saku.fensterfarbe());

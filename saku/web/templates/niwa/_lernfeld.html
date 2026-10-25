@@ -3,13 +3,13 @@
 <div class="notiz tusche">
   {% with art='Lernfeld ' ~ feld.nummer ~ ' · ' ~ feld.jahr ~ '. Ausbildungsjahr' %}{% include "niwa/_notiz_kopf.html" %}{% endwith %}
   <h2 class="ueberschrift">{{ feld.titel }}</h2>
-  <p class="klein gedaempft">{{ feld.stunden }} Unterrichtsstunden · {{ feld.teilaufgaben }} Teilaufgaben in den Prüfungen</p>
+  <p class="klein gedaempft">{% if feld.stunden %}{{ feld.stunden }} Unterrichtsstunden · {% endif %}{{ feld.teilaufgaben }} {{ 'Teilaufgabe' if feld.teilaufgaben == 1 else 'Teilaufgaben' }} in den Prüfungen</p>
   {% if feld.themen %}
   <ul class="niwa-teilaufgaben">
     {% for t in feld.themen %}
     <li><button type="button" class="notiz-zeile" data-knoten="t{{ t.id }}">
       <span>{{ t.name }}</span>
-      <span class="klein gedaempft zahl">{{ t.teilaufgaben }} Teilaufgaben · {{ t.termine }} Termine</span>
+      <span class="klein gedaempft zahl">{{ t.teilaufgaben }} {{ 'Teilaufgabe' if t.teilaufgaben == 1 else 'Teilaufgaben' }} · {{ t.termine }} {{ 'Termin' if t.termine == 1 else 'Termine' }}</span>
     </button></li>
     {% endfor %}
   </ul>

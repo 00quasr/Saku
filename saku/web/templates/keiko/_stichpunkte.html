@@ -1,0 +1,34 @@
+{# Stichpunkt-Abgleich ohne KI (saku/lernen/stichpunkte.py): welche Punkte der Musterlösung in der eigenen Antwort stehen.
+   Nur eine Hilfe, bewertet wird von Hand. block: Üben (der passende Knopf 1/2/3 wird hervorgehoben, keiko.css);
+   kompakt: Simulation und Mini-Test neben dem Punktefeld, aufklappbar, ohne die Punkte vorzubelegen #}
+
+{% macro liste(abgleich) %}
+<ul class="stichpunkte-liste klein">
+  {% for p in abgleich.punkte %}
+  <li class="{{ 'stichpunkt--erkannt' if p.erkannt }}">
+    <span class="stichpunkt-marke" aria-label="{{ 'erkannt' if p.erkannt else 'nicht erkannt' }}">{{ '✓' if p.erkannt else '·' }}</span>
+    <span>{% for stueck, getroffen in p.teile %}{% if getroffen %}<mark>{{ stueck }}</mark>{% else %}{{ stueck }}{% endif %}{% endfor %}</span>
+  </li>
+  {% endfor %}
+</ul>
+{% endmacro %}
+
+{% macro block(abgleich) %}
+{% set worte = {1: 'Nicht gewusst', 2: 'Teilweise', 3: 'Gewusst'} %}
+<div class="stichpunkte" data-stichpunkt-vorschlag="{{ abgleich.vorschlag }}" role="group" aria-labelledby="stichpunkte-titel">
+  <p class="etikett" id="stichpunkte-titel">Stichpunkte der Musterlösung: {{ abgleich.erkannt }} von {{ abgleich.ziel }} erkannt
+    {%- if abgleich.verlangt %} <span class="stichpunkte-hinweis">· verlangt waren {{ abgleich.verlangt }}</span>{% endif %}</p>
+  {{ liste(abgleich) }}
+  <p class="klein">Vorschlag: <strong>{{ worte[abgleich.vorschlag] }} ({{ abgleich.vorschlag }})</strong>
+    <span class="gedaempft">· reiner Wortabgleich ohne KI, du entscheidest selbst</span></p>
+</div>
+{% endmacro %}
+
+{% macro kompakt(abgleich, id) %}
+<details class="stichpunkte-kompakt" id="{{ id }}">
+  <summary class="klein">Stichpunkte: {{ abgleich.erkannt }} von {{ abgleich.ziel }} erkannt
+    {%- if abgleich.punkte_vorschlag is defined %} · Vorschlag {{ ('%g' % abgleich.punkte_vorschlag)|replace('.', ',') }} P.{% endif %}</summary>
+  {{ liste(abgleich) }}
+  <p class="klein gedaempft">Reiner Wortabgleich ohne KI, nur ein Hinweis: die Punkte vergibst du.</p>
+</details>
+{% endmacro %}

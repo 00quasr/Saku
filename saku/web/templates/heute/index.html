@@ -35,11 +35,11 @@
     {{ m.termin_vorschlaege(umfang.teil, 'heute-termin', absenden=True) }}
   </form>
   {% elif tage >= 0 %}
-  <div class="held-countdown">
+  <a class="held-countdown" href="{{ url_for('heute.fahrplan') }}" title="Fahrplan bis zur Prüfung">
     <span class="held-zahl zahl">{{ tage }}</span>
     <span class="held-einheit">{{ 'Tag' if tage == 1 else 'Tage' }} bis zur {{ umfang.teil }}</span>
-    <span class="held-datum">{{ termin_lang }}</span>
-  </div>
+    <span class="held-datum">{{ termin_lang }} · Fahrplan</span>
+  </a>
   {% else %}
   <p class="held-countdown"><span>Der Termin liegt hinter dir.</span> <a href="{{ url_for('kern.einstellungen') }}">Neuen eintragen</a></p>
   {% endif %}
@@ -47,6 +47,7 @@
 {% endcall %}
 
 <div class="seite weit heute">
+  {% if neu %}{% include "heute/_neu.html" %}{% endif %}
   {% if laufend %}
   <p class="hinweis heute-hinweis">Eine Simulation läuft noch. <a href="{{ url_for('shiken.simulation', sim_id=laufend.id) }}">Weiter zur Simulation</a></p>
   {% endif %}
@@ -65,9 +66,20 @@
         <span style="width: {{ [100, 100 * ziel.erledigt / ziel.ziel]|min if ziel.ziel else 100 }}%"></span>
       </div>
       <p class="klein gedaempft">Neue Teilaufgaben kommen in der Reihenfolge deines Lernpfads, fällige Wiederholungen zuerst.</p>
+      {# Rechnen hat ein eigenes kleines Ziel (Einstellungen, 0 = aus); das Tagesziel der Teilaufgaben bleibt, wie es ist #}
+      {% if rechnen_ziel %}
+      <a class="klein heute-rechnen" href="{{ url_for('rechnen.gemischt') }}"
+         title="{% if gerechnet[0] %}{{ gerechnet[1] }} von {{ gerechnet[0] }} richtig · {% endif %}Gemischt üben, fällige Arten zuerst">
+        <span lang="ja" aria-hidden="true">算</span> Rechnen <span class="zahl">{{ gerechnet[0] }} / {{ rechnen_ziel }}</span>
+        <span class="linie-fortschritt heute-rechnen-balken" aria-hidden="true"><span style="width: {{ [100, 100 * gerechnet[0] / rechnen_ziel]|min }}%"></span></span>
+        {{ '✓' if gerechnet[0] >= rechnen_ziel else '→' }}</a>
+      {% elif gerechnet[0] %}
+      <a class="klein heute-rechnen" href="{{ url_for('rechnen.index') }}" title="{{ gerechnet[1] }} von {{ gerechnet[0] }} richtig">
+        <span lang="ja" aria-hidden="true">算</span> Heute gerechnet: <span class="zahl">{{ gerechnet[0] }} · {{ (100 * gerechnet[1] / gerechnet[0])|round|int }} %</span> →</a>
+      {% endif %}
     </section>
 
-    <a class="flaeche heute-reife" href="{{ url_for('bunseki.index') }}" aria-labelledby="reife-titel">
+    <a class="flaeche heute-reife" href="{{ url_for('heute.fahrplan', _anchor='abdeckung') }}" aria-labelledby="reife-titel">
       <header class="karte-kopf"><p class="etikett" id="reife-titel">Prüfungsreife</p></header>
       <div class="reife-inhalt">
         <div class="heute-enso">
@@ -104,7 +116,7 @@
       <p class="kachel-zahl"><span class="zahl">{{ lernserie }}</span> {{ 'Tag' if lernserie == 1 else 'Tage' }} in Folge</p>
       <ol class="heute-woche" aria-label="Die letzten sieben Tage">
         {% for t in woche %}
-        <li class="{{ 'gelernt' if t.n }}{{ ' heute-tag' if loop.last }}" title="{{ t.tag.strftime('%d.%m.') }}: {{ t.n }} Bewertungen">
+        <li class="{{ 'gelernt' if t.n }}{{ ' heute-tag' if loop.last }}" title="{{ t.tag.strftime('%d.%m.') }}: {{ t.n }} {{ 'Übung' if t.n == 1 else 'Übungen' }}">
           <span aria-hidden="true">{{ 'MDMDFSS'[t.tag.weekday()] }}</span>
         </li>
         {% endfor %}
@@ -140,16 +152,21 @@
       </ul>
     </section>
     {% endif %}
+
+    {% if rueckblick %}{% include "heute/_woche.html" %}{% endif %}
   </div>
 
   <section class="flaeche heute-kalender" aria-labelledby="kalender-titel">
     <header class="karte-kopf"><p class="etikett" id="kalender-titel">Lernkalender · 20 Wochen</p>
-      <span class="kalender-legende klein gedaempft" aria-hidden="true">weniger {% for s in range(5) %}<span class="kalender-tag stufe-{{ s }}"></span>{% endfor %} mehr</span></header>
+      <span class="zeile kalender-rechts">
+        <span class="kalender-legende klein gedaempft" aria-hidden="true">weniger {% for s in range(5) %}<span class="kalender-tag stufe-{{ s }}"></span>{% endfor %} mehr</span>
+        <a class="klein" href="{{ url_for('keiko.verlauf') }}">Verlauf ansehen</a>
+      </span></header>
     <div class="kalender-monate klein gedaempft" aria-hidden="true">
       {% for w in kalender %}<span>{% if loop.first or w[0].tag.month != kalender[loop.index0 - 1][0].tag.month %}{{ ['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'][w[0].tag.month - 1] }}{% endif %}</span>{% endfor %}
     </div>
     <div class="kalender" role="img" aria-label="An {{ kalender|sum(start=[])|selectattr('n')|list|length }} von 140 Tagen gelernt">
-      {% for w in kalender %}{% for t in w %}<span class="kalender-tag stufe-{{ t.stufe }}{{ ' zukunft' if t.zukunft }}" title="{{ t.tag.strftime('%d.%m.%Y') }}: {{ t.n }}"></span>{% endfor %}{% endfor %}
+      {% for w in kalender %}{% for t in w %}<span class="kalender-tag stufe-{{ t.stufe }}{{ ' zukunft' if t.zukunft }}" title="{{ t.tag.strftime('%d.%m.%Y') }}: {{ t.n }} {{ 'Übung' if t.n == 1 else 'Übungen' }}"></span>{% endfor %}{% endfor %}
     </div>
   </section>
 </div>

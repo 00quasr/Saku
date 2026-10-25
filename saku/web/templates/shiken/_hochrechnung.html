@@ -1,10 +1,10 @@
 {# Hochrechnung der Abschlussprüfung nach AO 2020: Gewichtung, Noten und Bestehensregeln #}
 {% set h = hochrechnung %}
-<section class="flaeche hochrechnung" aria-labelledby="hochrechnung-titel">
+<section class="flaeche hochrechnung" id="hochrechnung" aria-labelledby="hochrechnung-titel">
   <header class="zeile zwischen">
     <div>
       <h2 class="ueberschrift" id="hochrechnung-titel">Hochrechnung deiner Abschlussprüfung</h2>
-      <p class="klein gedaempft">Gewichtung nach der Ausbildungsverordnung 2020. Die schriftlichen Bereiche schätzt Saku aus deiner letzten Simulation, sonst aus dem Lernstand. Eigene Werte überschreiben die Schätzung.</p>
+      <p class="klein gedaempft">Gewichtung nach der Ausbildungsverordnung 2020. Die schriftlichen Bereiche schätzt Saku aus deiner letzten Simulation, sonst aus dem Lernstand, die AP1 aus deinen Probeprüfungen. Eigene Werte überschreiben die Schätzung.</p>
     </div>
     {% if h.gesamt is not none %}
     <div class="hochrechnung-gesamt">
@@ -15,18 +15,19 @@
     {% endif %}
   </header>
   <table class="table hochrechnung-tabelle">
-    <thead><tr><th scope="col">Prüfungsbereich</th><th scope="col" class="rechts">Gewicht</th><th scope="col">Punkte (0–100)</th><th scope="col">Quelle</th><th scope="col" class="rechts">Note</th></tr></thead>
+    <thead class="kopf-vorgelesen"><tr><th scope="col">Prüfungsbereich</th><th scope="col" class="rechts">Gewicht</th><th scope="col">Punkte (0–100)</th><th scope="col">Quelle</th><th scope="col" class="rechts">Note</th></tr></thead>
     <tbody>
       {% for z in h.zeilen %}
       <tr>
         <td>{{ z.name }}</td>
-        <td class="rechts zahl">{{ (100 * z.gewicht)|int }} %</td>
+        <td class="rechts zahl" data-titel="Gewicht">{{ (100 * z.gewicht)|int }} %</td>
         <td><input class="input hochrechnung-eingabe" type="number" min="0" max="100" step="1" name="note_{{ z.schluessel }}"
                    value="{{ z.eigen|round|int if z.eigen is not none else '' }}" placeholder="{{ z.wert|round|int if z.wert is not none else '–' }}"
                    aria-label="Eigene Punkte für {{ z.name }}"
                    hx-post="{{ url_for('kern.speichern', schluessel='note_' ~ z.schluessel) }}" hx-trigger="change" hx-swap="none"></td>
-        <td class="klein gedaempft">{{ {'eingabe': 'deine Angabe', 'simulation': 'letzte Simulation', 'lernstand': 'Lernstand'}.get(z.quelle, 'fehlt noch') }}</td>
-        <td class="rechts zahl">{{ z.note or '–' }}</td>
+        <td class="klein gedaempft">{{ {'eingabe': 'deine Angabe', 'simulation': 'letzte Simulation', 'lernstand': 'Lernstand',
+                                        'probepruefung': 'Schätzung: Schnitt der letzten 3 Probeprüfungen'}.get(z.quelle, 'fehlt noch') }}</td>
+        <td class="rechts zahl" data-titel="Note">{{ z.note or '–' }}</td>
       </tr>
       {% endfor %}
     </tbody>

@@ -30,6 +30,17 @@ def test_reihenfolge_zuordnung_zahl():
     assert antwort.auswerten(n, {"zahl": "1240"})[0] == 3       # 1 % Toleranz
     assert antwort.auswerten(n, {"zahl": "1300"})[0] == 1
     assert antwort.auswerten(n, {"zahl": "viel"})[0] == 1
+    assert antwort.auswerten(a("zahl", ["1.125"]), {"zahl": "1,125"})[0] == 3  # Lösung mit Punkt als Dezimaltrenner
+
+
+def test_zahl_deutsch_geschrieben():
+    for text, wert in [("1,5", 1.5), ("1.024", 1024), ("1 024", 1024), ("1.234,5", 1234.5), ("1.234.567", 1234567),
+                       ("0.125", 0.125), ("3.5", 3.5), ("1,234.5", 1234.5), ("  42 MiB", 42), ("ca. 7,5 h", 7.5),
+                       ("−3", -3), ("-2,5 °C", -2.5), ("2^16", 65536), ("12.500 €", 12500), ("1\u202f000", 1000),
+                       ("2,18 · 10^14", 2.18e14), ("1.5*10^3", 1500), ("4 x 10^-2", 0.04), ("2,18e14", 2.18e14), ("6E+9", 6e9)]:
+        assert antwort.zahl(text) == wert, text
+    assert antwort.zahl("") is None and antwort.zahl("keine") is None and antwort.zahl(None) is None
+    assert antwort.zahl("999999^99") is None  # zu groß für float: kein Absturz
 
 
 def test_pruefbar_und_tabelle():

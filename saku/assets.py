@@ -28,7 +28,15 @@ DATEIEN = [
      f"{NPM}/@fontsource-variable/jetbrains-mono@5.3.0/files/jetbrains-mono-latin-wght-normal.woff2"),
     ("fonts/LICENSE-jetbrains-mono", f"{NPM}/@fontsource-variable/jetbrains-mono@5.3.0/LICENSE"),
     ("fonts/LICENSE-shippori-mincho.txt", f"{GFONTS}/OFL.txt"),
+    ("vendor/katex/katex.min.js", f"{NPM}/katex@0.19.0/dist/katex.min.js"),
+    ("vendor/katex/katex.min.css", f"{NPM}/katex@0.19.0/dist/katex.min.css"),
+    ("vendor/katex/LICENSE", f"{NPM}/katex@0.19.0/LICENSE"),
 ]
+# Formelsatz: katex.min.css lädt seine Schriften aus fonts/ daneben; der Browser nimmt woff2, die anderen Formate fehlen
+DATEIEN += [(f"vendor/katex/fonts/KaTeX_{s}.woff2", f"{NPM}/katex@0.19.0/dist/fonts/KaTeX_{s}.woff2") for s in (
+    "AMS-Regular", "Caligraphic-Bold", "Caligraphic-Regular", "Fraktur-Bold", "Fraktur-Regular", "Main-Bold", "Main-BoldItalic",
+    "Main-Italic", "Main-Regular", "Math-BoldItalic", "Math-Italic", "SansSerif-Bold", "SansSerif-Italic", "SansSerif-Regular",
+    "Script-Regular", "Size1-Regular", "Size2-Regular", "Size3-Regular", "Size4-Regular", "Typewriter-Regular")]
 
 # Shippori Mincho ist mehrere MB groß; Saku braucht nur die Zeichen aus zeichen.txt
 MINCHO = {600: "ShipporiMincho-SemiBold.ttf", 700: "ShipporiMincho-Bold.ttf"}

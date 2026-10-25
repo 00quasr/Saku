@@ -67,9 +67,18 @@ Für die Kurs-Demo reichen die Phasen 0 bis 3 plus die Startseite mit dem Ensō.
 - [x] Garten mit force-graph (vorher vis-network) und Notiz je Thema
 - [x] Simulation: Zusammenstellung, Timer, Antworten, Punkte, Note, Hanko-Stempel
 - [x] Animationen, Leerzustände, Tastaturhilfe, Abschlussseite お疲れ様
-- [x] Ausbaustufe: Rechenwerkzeuge für Sensei (Subnetting mit `ipaddress`)
+- [x] Ausbaustufe: Rechenwerkzeug für Sensei (Zahlensysteme, `sensei/werkzeuge.py`)
 
 **Fertig, wenn** eine komplette Simulation mit Auswertung durchläuft und der Garten den echten Lernstand zeigt.
+
+## Ausbau nach den Phasen
+
+- [x] 算 Rechnen: 27 Aufgabenarten in acht Gruppen, ohne KI und exakt geprüft, fällig nach Leitner, Tagesziel, Sprint mit Note, Formelsammlung
+- [x] SQL-Sandbox: Pipeline-Schritt `sandbox`, SQL in Üben ausführen und mit der Musterlösung vergleichen
+- [x] Automatische Auswertung in Simulation und Mini-Test (anklickbar und SQL), Stichpunkt-Abgleich bei freien Antworten
+- [x] Fahrplan bis zur Prüfung, Verlauf mit Wochenrückblick, Grundwissen umgekehrt
+- [x] Tägliche Sicherung, Lernstand-Export und -Import, Migrationen in Transaktionen
+- [x] Link-Crawler als Regressionstest, CSRF-Schutz, Tastatur und Screenreader auf den neuen Seiten
 
 ## Stand
 

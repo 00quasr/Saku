@@ -1,0 +1,104 @@
+{# Eine Rechenaufgabe; nach dem Prüfen (werte gesetzt) dieselbe Karte mit richtig/falsch, Lösung und Rechenweg #}
+{% import "_makros.html" as m %}
+{% import "rechnen/_felder.html" as r %}
+{% import "keiko/_bausteine.html" as k %}
+{% set a = aufgabe %}
+{% set fertig = werte is not none %}
+<form id="karte" class="karte rechnen-karte" aria-label="{{ art.titel }}: {{ a.titel }}"
+      {% if not fertig %}hx-post="{{ url_for('rechnen.pruefen', art=art.slug) }}" hx-target="this" hx-swap="outerHTML"{% endif %}>
+  <input type="hidden" name="seed" value="{{ seed }}">
+  <input type="hidden" name="start" value="{{ start }}">
+  {% if gemischt %}<input type="hidden" name="gemischt" value="1">{% endif %}
+
+  <header class="rechnen-kopf">
+    <p class="etikett">{{ art.gruppe }} › {{ art.titel }}{% if gemischt %} · gemischt{% endif %}</p>
+    <div class="zeile zwischen">
+      <h2 class="ueberschrift">{{ a.titel }}</h2>
+      <div class="zeile rechnen-werkzeuge">
+        {% if stand.letzte %}{{ m.verlauf(stand.letzte) }}{% endif %}
+        <a class="btn" data-variant="ghost" data-size="sm" href="{{ url_for('rechnen.index') }}">Übersicht</a>
+      </div>
+    </div>
+  </header>
+
+  <div class="prosa aufgabe-inhalt rechnen-frage">{{ a.frage|markdown }}</div>
+  {{ a.struktogramm }}
+
+  {{ r.felder(a, eingaben, werte, seed=seed) }}
+
+  {% if not fertig %}
+  {% if leer %}<p class="hinweis hinweis--fehler klein" role="status">Noch nichts eingetragen. Rechne erst, oder hol dir den Rechenweg<span class="nur-tastatur"> mit {{ m.taste('Esc') }} und {{ m.taste('␣') }}</span>.</p>{% endif %}
+  {% if sql_fehler %}<p class="hinweis hinweis--fehler klein sql-fehler" role="status">{{ sql_fehler }} Korrigier die Anweisung oder hol dir die Musterlösung<span class="nur-tastatur"> mit {{ m.taste('Esc') }} und {{ m.taste('␣') }}</span>.</p>{% endif %}
+  {% if code_fehler %}<p class="hinweis hinweis--fehler klein sql-fehler" role="status">{{ code_fehler }} Korrigier den Pseudocode oder hol dir die Musterlösung<span class="nur-tastatur"> mit {{ m.taste('Esc') }} und {{ m.taste('␣') }}</span>.</p>{% endif %}
+  <div class="zeile rechnen-aktionen">
+    <button type="submit" class="btn" data-taste="Enter">Prüfen {{ m.taste('↵') }}</button>
+    <button type="button" class="btn" data-variant="ghost" data-taste=" " title="Zählt als nicht gelöst"
+            hx-post="{{ url_for('rechnen.pruefen', art=art.slug) }}" hx-vals='{"aufgeben": "1"}' hx-target="#karte" hx-swap="outerHTML">
+      Rechenweg zeigen {{ m.taste('␣') }}</button>
+    <span class="klein gedaempft">{% if a.sandbox or a.testfaelle %}<span class="nur-tastatur">Esc verlässt den Editor, danach prüft {{ m.taste('↵') }}</span>{% else %}<span class="nur-tastatur">Tab: nächstes Feld · </span>Komma oder Punkt, die Einheit darf dahinter stehen{% endif %}</span>
+  </div>
+  {% if a.testfaelle and art.formeln %}
+  <details class="kontext rechnen-formeln">
+    <summary>Merkblatt: Pseudocode und Struktogramm</summary>
+    <div class="prosa formel-text">{{ art.formeln|markdown(formeln=True) }}</div>
+  </details>
+  {% endif %}
+  {% else %}
+  {% set n = werte.values()|select|list|length %}
+  {# Pseudocode: Teilpunkte nach Testfällen (Stufe 2, wenn einige bestehen), wie die Stufen bei SQL #}
+  {% set faelle = vergleich.faelle if vergleich and vergleich.faelle else [] %}
+  {# SQL knapp daneben (richtige Zeilen, falsche Reihenfolge o. ä.): zählt nicht als gelöst, heißt aber nicht „falsch“ #}
+  {% set teilweise = vergleich and vergleich.ergebnis == 2 and not faelle %}
+  {% set stufe = vergleich.ergebnis if faelle else 3 if n == werte|length else 2 if n or teilweise else 1 %}
+  <section class="tusche rechnen-ergebnis" aria-label="Auswertung">
+    <p class="keiko-urteil{{ '' if aufgegeben else ' keiko-urteil--' ~ stufe }}" id="rechnen-urteil" role="status">
+      {% if aufgegeben %}Hier ist der Rechenweg.{% elif n == werte|length %}Richtig.{% elif faelle %}{{ faelle|selectattr('ok')|list|length }} von {{ faelle|length }} Testfällen bestanden.{% elif n %}{{ n }} von {{ werte|length }} richtig.{% elif teilweise %}Fast richtig.{% else %}Leider falsch.{% endif %}
+      {% if aufgegeben %}<span class="klein gedaempft">Zählt als nicht gelöst. Rechne die nächste selbst.</span>{% endif %}
+    </p>
+    {% if faelle and n < werte|length %}
+    {# Pseudocode: je Testfall erwartet und erhalten, ein Abbruch mit seiner Meldung #}
+    <div class="tabelle-rahmen code-faelle">
+      <table class="table">
+        <thead><tr><th scope="col">Eingaben</th><th scope="col">Erwartet</th><th scope="col">Dein Programm</th></tr></thead>
+        <tbody>
+          {% for f in faelle %}
+          <tr class="code-fall--{{ 'richtig' if f.ok else 'falsch' }}">
+            <td><code>{{ f.eingaben }}</code></td>
+            <td><code>{{ f.erwartet or '(keine Ausgabe)' }}</code></td>
+            <td><span class="rechnen-marke" aria-label="{{ 'richtig' if f.ok else 'falsch' }}">{{ '✓' if f.ok else '✕' }}</span>
+              {% if f.abbruch %}<span class="code-abbruch">{{ f.erhalten }}</span>{% else %}<code>{{ f.erhalten or '(keine Ausgabe)' }}</code>{% endif %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% elif vergleich and not faelle %}
+    {# SQL: was abweicht und beide Ergebnisse; aufgegeben das Ergebnis der Musterlösung #}
+    <div class="stapel rechnen-sql-vergleich">
+      {% if vergleich.hinweise %}<ul class="sql-hinweise">{% for h in vergleich.hinweise %}<li>{{ h }}</li>{% endfor %}</ul>{% endif %}
+      {% if n < werte|length %}{% for erwartet, eigenes in vergleich.tabellen %}
+      <div class="sql-vergleich">{% for t in (erwartet, eigenes) if t %}{{ k.sql_tabelle(t) }}{% endfor %}</div>
+      {% endfor %}{% endif %}
+      {% if vergleich.muster %}<p class="etikett">Ergebnis der Musterlösung</p>{% for t in vergleich.muster %}{{ k.sql_tabelle(t) }}{% endfor %}{% endif %}
+    </div>
+    {% endif %}
+    <p class="etikett">Rechenweg</p>
+    <div class="prosa aufgabe-inhalt rechnen-weg">{{ a.rechenweg|markdown(formeln=True) }}</div>
+    {{ a.weg_struktogramm }}
+    {% if in_pruefungen %}{% with p = in_pruefungen %}{% include "rechnen/_in_pruefungen.html" %}{% endwith %}{% endif %}
+    {% if art.formeln %}
+    <details class="kontext rechnen-formeln">
+      <summary>Formeln: {{ art.titel }}</summary>
+      <div class="prosa formel-text">{{ art.formeln|markdown(formeln=True) }}</div>
+      <p class="klein"><a href="{{ url_for('rechnen.formeln') }}#{{ art.slug }}">Ganze Formelsammlung</a></p>
+    </details>
+    {% endif %}
+    <nav class="zeile rechnen-weiter" aria-label="Weiter">
+      <button type="button" class="btn" data-taste="Enter" autofocus aria-describedby="rechnen-urteil"
+              hx-get="{{ naechste }}" hx-target="#karte" hx-swap="outerHTML show:window:top">
+        Nächste Aufgabe {{ m.taste('↵') }}</button>
+      <a class="btn" data-variant="outline" href="{{ url_for('rechnen.index') }}">Übersicht</a>
+    </nav>
+  </section>
+  {% endif %}
+</form>

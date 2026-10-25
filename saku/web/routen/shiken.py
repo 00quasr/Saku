@@ -1,6 +1,8 @@
 """Shiken 試験: Prüfungssimulation mit Timer, Selbstbewertung, Note und Stempel."""
 
+import json
 import math
+import re
 import uuid
 from datetime import datetime
 from itertools import groupby
@@ -8,9 +10,10 @@ from pathlib import Path
 
 import pymupdf
 from flask import Blueprint, abort, current_app, redirect, render_template, request, url_for
+from werkzeug.datastructures import MultiDict
 
-from saku.lernen import hochrechnung, karten, simulation
-from saku.web import db
+from saku.lernen import antwort, hochrechnung, karten, probepruefung, simulation, stichpunkte
+from saku.web import db, ganzzahl
 
 bp = Blueprint("shiken", __name__, url_prefix="/shiken")
 
@@ -29,18 +32,47 @@ def _teilaufgaben(con, sim_id: int) -> list[dict]:
     zeilen = con.execute("SELECT teilaufgabe_id, antwort, punkte_erreicht FROM simulation_teilaufgabe "
                          "WHERE simulation_id = ? ORDER BY position", (sim_id,)).fetchall()
     eigenes = {z["teilaufgabe_id"]: dict(z) for z in zeilen}
-    return [t | {"eigene": eigenes[t["id"]]["antwort"], "erreicht": eigenes[t["id"]]["punkte_erreicht"]}
+    return [t | {"eigene": eigenes[t["id"]]["antwort"], "erreicht": eigenes[t["id"]]["punkte_erreicht"],
+                 "eingabe": _eingabe(t["antwort"], eigenes[t["id"]]["antwort"])}
             for t in karten.lade(con, list(eigenes))]
 
 
+def _mit_vorschlag(con, sim_id: int) -> list[dict]:
+    """Teilaufgaben mit dem, was Saku selbst prüft: anklickbare und SQL mit Sandbox (auto, Punkte stehen dann schon im Feld),
+    bei Freitext nur ein Hinweis aus dem Stichpunkt-Abgleich; die Punkte vergibt dort der Nutzer."""
+    teilaufgaben = _teilaufgaben(con, sim_id)
+    for t in teilaufgaben:
+        t["auto"] = antwort.vorschlag(con, t, t["eingabe"], t["eigene"])
+        t["stichpunkte"] = None if t["auto"] else stichpunkte.fuer_teilaufgabe(t, t["eigene"])
+    return teilaufgaben
+
+
+def _eingabe(format_: dict | None, eigene: str | None) -> dict | None:
+    """Gespeicherte Eingabe einer automatisch prüfbaren Teilaufgabe (JSON aus antwort.eingabe).
+    None bei freien Antworten, auch bei einem Freitext von früher, damit er sichtbar bleibt."""
+    if not antwort.pruefbar(format_):
+        return None
+    if not eigene:
+        return antwort.eingabe(MultiDict())
+    try:
+        wert = json.loads(eigene)
+    except ValueError:
+        return None
+    return wert if isinstance(wert, dict) else None
+
+
 def _antworten_speichern(con, sim) -> None:
-    """Antworten bleiben änderbar, bis die Simulation ausgewertet ist (auch kurz nach Ablauf der Zeit)."""
+    """Antworten bleiben änderbar, bis die Simulation ausgewertet ist (auch kurz nach Ablauf der Zeit).
+    Anklickbare Teilaufgaben melden sich mit antwort-<id>-art (leere Auswahl schickt sonst nichts) und
+    werden als JSON gespeichert, damit die Auswertung sie prüfen kann."""
     if sim["note"] is not None:
         return
-    con.executemany(
-        "UPDATE simulation_teilaufgabe SET antwort = ? WHERE simulation_id = ? AND teilaufgabe_id = ?",
-        [(wert if wert.strip() else None, sim["id"], int(name[8:]))  # Einrückung bleibt (Pseudocode)
-         for name, wert in request.form.items() if name.startswith("antwort-") and name[8:].isdigit()])
+    werte = [(wert if wert.strip() else None, sim["id"], t_id)  # Einrückung bleibt (Pseudocode)
+             for name, wert in request.form.items() if name.startswith("antwort-") and (t_id := ganzzahl(name[8:])) is not None]
+    for name in request.form:
+        if (treffer := re.fullmatch(r"antwort-(\d+)-art", name)) and (t_id := ganzzahl(treffer[1])) is not None:
+            werte.append((json.dumps(antwort.eingabe(request.form, f"antwort-{treffer[1]}-")), sim["id"], t_id))
+    con.executemany("UPDATE simulation_teilaufgabe SET antwort = ? WHERE simulation_id = ? AND teilaufgabe_id = ?", werte)
     con.commit()
 
 
@@ -56,8 +88,16 @@ def index():
     verlauf = [dict(s) | {"punkte_100": simulation.umrechnen(s["punkte_erreicht"] or 0, s["punkte_moeglich"] or 0)}
                for s in con.execute("SELECT *, strftime('%d.%m.%Y', gestartet_am, 'localtime') AS datum "
                                     "FROM simulation ORDER BY id DESC").fetchall()]
-    return render_template("shiken/index.html", bereiche=bereiche, verlauf=verlauf, laufend=laufend,
-                           noten=simulation.NOTEN, hochrechnung=hochrechnung.stand(con))
+    kandidaten = simulation.schnelltest_kandidaten(con)
+    gewaehlt = min(simulation.SCHNELLTEST_ANZAHL, len(kandidaten))
+    schnelltest = {"bereich": simulation.SCHNELLTEST, "anzahl": gewaehlt, "termine": len({k["termin_index"] for k in kandidaten}),
+                   "minuten": max(1, round(gewaehlt * sum(k["punkte"] for k in kandidaten) / len(kandidaten)  # im Schnitt der Punkte
+                                           * simulation.minuten_je_punkt(con, simulation.WISO)))} if kandidaten else None
+    probe = {"anzahl": probepruefung.ANZAHL, "minuten": probepruefung.MINUTEN, "laufend": probepruefung.laufende(con),
+             "letzte": con.execute("SELECT punkte, note FROM probepruefung WHERE note IS NOT NULL "
+                                   "ORDER BY gestartet_am DESC, id DESC LIMIT 1").fetchone()}
+    return render_template("shiken/index.html", bereiche=bereiche, verlauf=verlauf, laufend=laufend, schnelltest=schnelltest,
+                           probe=probe, noten=simulation.NOTEN, hochrechnung=hochrechnung.stand(con))
 
 
 @bp.post("/neu")
@@ -65,8 +105,9 @@ def neu():
     con = db()
     if laufend := simulation.laufende(con):
         return redirect(url_for("shiken.simulation", sim_id=laufend["id"]))
+    bereich = request.form.get("bereich", "")
     try:
-        sim_id = simulation.zusammenstellen(con, request.form.get("bereich", ""))
+        sim_id = simulation.schnelltest(con) if bereich == simulation.SCHNELLTEST else simulation.zusammenstellen(con, bereich)
     except ValueError:
         abort(400)
     return redirect(url_for("shiken.simulation", sim_id=sim_id))
@@ -82,7 +123,7 @@ def ansehen(sim_id):
         "SELECT CAST((julianday(gestartet_am, '+' || dauer_min || ' minutes') - julianday('now')) * 86400 AS INTEGER) "
         "FROM simulation WHERE id = ?", (sim_id,)).fetchone()[0]
     teilaufgaben = _teilaufgaben(con, sim_id)
-    return render_template("shiken/simulation.html", sim=sim, rest=max(0, rest),
+    return render_template("shiken/simulation.html", sim=sim, rest=max(0, rest), schnelltest=sim["bereich"] == simulation.SCHNELLTEST,
                            aufgaben=[list(g) for _, g in groupby(teilaufgaben, key=lambda t: t["aufgabe_id"])])
 
 
@@ -96,9 +137,12 @@ def speichern(sim_id):
 @bp.post("/<int:sim_id>/abgeben")
 def abgeben(sim_id):
     con = db()
-    _antworten_speichern(con, _simulation_oder_404(con, sim_id))
+    sim = _simulation_oder_404(con, sim_id)
+    _antworten_speichern(con, sim)
     con.execute("UPDATE simulation SET beendet_am = COALESCE(beendet_am, datetime('now')) WHERE id = ?", (sim_id,))
     con.commit()
+    if sim["bereich"] == simulation.SCHNELLTEST and sim["note"] is None:  # nur Anklickbares: Saku wertet gleich selbst aus
+        simulation.auswerten(con, sim_id, {t["id"]: t["auto"]["punkte"] for t in _mit_vorschlag(con, sim_id) if t["auto"]})
     return redirect(url_for("shiken.auswertung", sim_id=sim_id))
 
 
@@ -124,7 +168,7 @@ def auswertung(sim_id):
 
     punkte_100 = simulation.umrechnen(sim["punkte_erreicht"] or 0, sim["punkte_moeglich"] or 0)
     return render_template(
-        "shiken/auswertung.html", sim=sim, teilaufgaben=_teilaufgaben(con, sim_id), punkte_100=punkte_100,
+        "shiken/auswertung.html", sim=sim, teilaufgaben=_mit_vorschlag(con, sim_id), punkte_100=punkte_100,
         noten=simulation.NOTEN, kosten=simulation.kosten(con, sim_id) if sim["note"] is not None else [])
 
 

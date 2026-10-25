@@ -17,6 +17,9 @@ KONTROLLE = 0.6        # Sicherheit der Klassifikation
 
 # Blätter der Themenliste: Unterthemen, oder Themen ohne Unterthemen
 _BLATT = "s.ebene > 1 AND NOT EXISTS (SELECT 1 FROM thema k WHERE k.eltern_id = s.thema_id)"
+# Überall gleich gezählt: Themen sind Ebene 2 der Themenliste, Unterthemen Ebene 3, jeweils nur geprüfte im Umfang
+THEMEN_ZAHLEN = """(SELECT COUNT(*) FROM v_themen_statistik WHERE ebene = 2 AND teilaufgaben > 0) AS themen,
+        (SELECT COUNT(*) FROM v_themen_statistik WHERE ebene = 3 AND teilaufgaben > 0) AS unterthemen"""
 
 
 def termin_name(index: int, ap1: bool = False) -> str:
@@ -188,7 +191,7 @@ def index():
     return render_template(
         "bunseki/index.html", leer=False, inventar=(inv := inventar(con)), matrix=matrix(inv), heatmap=heatmap(con),
         top=_statistik(con, "teilaufgaben > 0", "punkte DESC, name")[:10], katalog=katalog(con),
-        themen_gesamt=con.execute("SELECT COUNT(*) FROM v_themen_statistik WHERE ebene > 1 AND teilaufgaben > 0").fetchone()[0],
+        themen_zahlen=con.execute(f"SELECT {THEMEN_ZAHLEN}").fetchone(),
         dauerbrenner=dauerbrenner(con), lange_nicht_dran=lange_nicht_dran(con), nie_geprueft=nie_geprueft(con),
         ohne_thema=ohne_thema(con), kontrolle=kontrolle(con), themenwahl=themenwahl(con),
         ki_nutzung=nutzung, ki_summe={k: sum(z[k] or 0 for z in nutzung) for k in ("aufrufe", "aus_cache", "tokens_ein", "tokens_aus")},

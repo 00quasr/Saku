@@ -1,0 +1,31 @@
+<!doctype html>
+{# Eigene Seite ohne Seitenleiste: vor der Anmeldung zeigt Saku nichts aus dem Katalog #}
+<html lang="de" class="{{ 'dark' if farbschema == 'dunkel' }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="{{ 'dark' if farbschema == 'dunkel' else 'light' if farbschema == 'hell' else 'light dark' }}">
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%23C2452D'/%3E%3Ctext x='32' y='44' font-size='34' text-anchor='middle' fill='%23F6F4EF' font-family='serif'%3E%E5%92%B2%3C/text%3E%3C/svg%3E">
+  <title>Anmelden · 咲く</title>
+  {% if farbschema == 'system' %}<script>document.documentElement.classList.toggle("dark", matchMedia("(prefers-color-scheme: dark)").matches)</script>{% endif %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='vendor/basecoat.cdn.min.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/saku.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/bereiche/anmelden.css') }}">
+</head>
+<body class="anmelden">
+  <main class="flaeche anmelden-karte">
+    <p class="anmelden-logo"><span lang="ja" aria-hidden="true">咲</span> Saku</p>
+    <form method="post" action="{{ url_for('anmeldung.anmelden') }}">
+      {% if weiter %}<input type="hidden" name="weiter" value="{{ weiter }}">{% endif %}
+      {# Passwort-Manager (iCloud-Schlüsselbund) speichern ein Passwort nur zu einem Namen #}
+      <input type="text" name="benutzer" value="Saku" autocomplete="username" hidden>
+      <label class="einstellung-name" for="passwort">Passwort</label>
+      <input class="input" type="password" id="passwort" name="passwort" autocomplete="current-password" required autofocus
+             {% if fehler %}aria-invalid="true" aria-describedby="anmelden-fehler"{% endif %}>
+      {% if fehler %}<p class="hinweis hinweis--fehler klein" id="anmelden-fehler" role="alert">{{ fehler }}</p>{% endif %}
+      <button class="btn" type="submit">Anmelden</button>
+    </form>
+  </main>
+</body>
+</html>

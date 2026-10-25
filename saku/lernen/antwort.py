@@ -1,7 +1,10 @@
-"""Anklickbare Aufgaben: automatisch prüfen, was sich prüfen lässt (Auswahl, Reihenfolge, Zuordnung, Zahl).
+"""Anklickbare Aufgaben: automatisch prüfen, was sich prüfen lässt (Auswahl, Reihenfolge, Zuordnung, Zahl; mit Sandbox auch SQL).
 antwort ist das JSON aus dem Schritt aufbereiten: {art, optionen, ziele, richtig, einheit, vorlage}."""
 
 import re
+import sqlite3
+
+from saku.lernen import sql
 
 AUTOMATISCH = ("einfach", "mehrfach", "reihenfolge", "zuordnung", "zahl")
 
@@ -10,12 +13,29 @@ def pruefbar(antwort: dict | None) -> bool:
     return bool(antwort) and antwort["art"] in AUTOMATISCH and bool(antwort["richtig"])
 
 
-def _zahl(text: str) -> float | None:
-    text = re.sub(r"[^\d,.\-]", "", text or "")
-    if "," in text:  # deutsch: 1.234,56
-        text = text.replace(".", "").replace(",", ".")
+def zahl(text: str | None) -> float | None:
+    """Eingetippte Zahl, deutsch geschrieben: „1,5“, „1.024“ (= 1024), „1 024“, „1.234,5“, „2^16“, „2,18 · 10^14“, „2,18e14“;
+    Einheit dahinter egal."""
+    text = (text or "").replace("\u2212", "-").replace("\xa0", " ").replace("\u202f", " ")
+    if mal_zehn := re.match(r"\s*(-?\d+(?:[.,]\d+)?)(?:\s*[·*×xX]\s*10\s*\^\s*|[eE])([+-]?\d{1,2})\b", text):
+        return float(f"{mal_zehn[1].replace(',', '.')}e{mal_zehn[2]}")
+    if potenz := re.match(r"\s*(\d{1,6})\s*\^\s*(\d{1,2})\b", text):
+        try:
+            return float(int(potenz[1]) ** int(potenz[2]))
+        except OverflowError:  # z. B. 999999^99 passt in kein float
+            return None
+    treffer = re.search(r"-?\d[\d.,\s]*", text)
+    if not treffer:
+        return None
+    t = re.sub(r"\s", "", treffer.group()).rstrip(".,")
+    if "," in t and "." in t and t.rfind(".") > t.rfind(","):  # englisch: 1,234.5
+        t = t.replace(",", "")
+    elif "," in t:
+        t = t.replace(".", "").replace(",", ".")
+    elif re.fullmatch(r"-?[1-9]\d{0,2}(\.\d{3})+", t):  # nur Tausenderpunkte
+        t = t.replace(".", "")
     try:
-        return float(text)
+        return float(t)
     except ValueError:
         return None
 
@@ -45,10 +65,51 @@ def auswerten(antwort: dict, eingabe: dict) -> tuple[int, dict[str, bool]]:
         werte = {w: eingabe.get("ziel", {}).get(w, "").strip() == z.strip() for w, z in soll.items()}
         return _stufe(sum(werte.values()) / max(1, len(werte))), werte
     if art == "zahl":
-        ist, soll = _zahl(eingabe.get("zahl", "")), _zahl(richtig[0])
+        ist = zahl(eingabe.get("zahl", ""))
+        try:  # die Lösung steht mit Punkt als Dezimaltrenner da („1.125“ heißt 1,125)
+            soll = float(richtig[0])
+        except ValueError:
+            soll = zahl(richtig[0])
         ok = ist is not None and soll is not None and abs(ist - soll) <= max(0.01, abs(soll) * 0.01)
         return (3 if ok else 1), {"zahl": ok}
     raise ValueError(f"nicht automatisch prüfbar: {art}")
+
+
+def eingabe(form, praefix: str = "") -> dict:
+    """Eingabe für auswerten aus einem Formular (MultiDict); praefix trennt mehrere Felder auf einer Seite (Simulation)."""
+    def felder(art: str) -> dict:
+        return {k.removeprefix(praefix + art): v for k, v in form.items() if k.startswith(praefix + art)}
+    return {"wahl": form.getlist(praefix + "wahl"), "zahl": form.get(praefix + "zahl", ""),
+            "position": felder("position-"), "ziel": felder("ziel-")}
+
+
+def zusammenfassung(eingabe: dict) -> str:
+    """„Gewählt: A, C“ für Verlauf und Sensei; leer, wenn nichts eingegeben ist."""
+    text = ", ".join(eingabe["wahl"]) or eingabe["zahl"] or ", ".join(
+        f"{k}={v}" for k, v in (eingabe["position"] | eingabe["ziel"]).items() if v)
+    return f"Gewählt: {text}" if text else ""
+
+
+def punkte(ergebnis: int, moeglich: float) -> float:
+    """Punkte für ein automatisches Ergebnis, auf halbe Punkte gerundet: alles, die Hälfte oder nichts."""
+    return round(moeglich * {3: 1, 2: 0.5, 1: 0}[ergebnis] * 2) / 2
+
+
+def vorschlag(con: sqlite3.Connection, t: dict, eingabe: dict | None, eigene: str | None) -> dict | None:
+    """Automatische Bewertung als Vorschlag für die Punkte (Simulation, Mini-Test): {punkte, werte, hinweise, fehler}.
+    Anklickbar: eingabe aus eingabe(). SQL mit Sandbox: eigene Anweisung gegen die Musterlösung; läuft sie nicht,
+    0 Punkte mit der Meldung. None, wenn Saku nicht selbst prüfen kann; dann bleibt die Selbstbewertung."""
+    moeglich = t["punkte"] or 0
+    if eingabe is not None and pruefbar(t["antwort"]):
+        ergebnis, werte = auswerten(t["antwort"], eingabe)
+        return {"punkte": punkte(ergebnis, moeglich), "werte": werte, "hinweise": [], "fehler": False}
+    if not (t["loesung_sql"] and (sandbox := sql.laden(con, t["aufgabe_id"]))):
+        return None
+    try:
+        v = sql.pruefen(*sandbox, t["loesung_sql"], eigene or "")
+    except sql.SqlFehler as fehler:
+        return {"punkte": 0, "werte": None, "hinweise": [str(fehler)], "fehler": True}
+    return {"punkte": punkte(v["ergebnis"], moeglich), "werte": None, "hinweise": v["hinweise"], "fehler": False}
 
 
 def als_text(antwort: dict | None) -> str:

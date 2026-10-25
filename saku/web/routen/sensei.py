@@ -10,7 +10,7 @@ from flask import Blueprint, Response, abort, current_app, render_template, requ
 from saku.db import liste, verbinden
 from saku.lernen import operatoren, simulation
 from saku.sensei import client, prompts, suche, werkzeuge
-from saku.web import db, markdown_zu_html
+from saku.web import db, ganzzahl, markdown_zu_html
 
 bp = Blueprint("sensei", __name__, url_prefix="/sensei")
 
@@ -55,8 +55,7 @@ def panel_kontext():
 
 
 def _id(name: str) -> int | None:
-    wert = request.values.get(name, "").strip()
-    return int(wert) if wert.isdigit() else None
+    return ganzzahl(request.values.get(name, "").strip())
 
 
 def _meldung(text: str, fehler: bool = False):

@@ -2,7 +2,6 @@
 
 .heute-befehl { display: inline-block; margin-top: 16px; padding: 8px 16px; background: var(--flaeche); border-radius: var(--radius); color: var(--sumi); }
 .heute-hinweis { margin-bottom: 20px; max-width: 68ch; }
-.heute-hinweis a { text-decoration: underline; }
 
 /* Bildband: groß, Begrüßung und Start links, Countdown rechts */
 .kopf--gross { height: clamp(260px, 34vh, 340px); }
@@ -46,8 +45,13 @@ a.flaeche:hover { border-color: var(--sumi-mittel); }
 .plan-zahl { font-weight: 300; font-size: 2.5rem; line-height: 1; letter-spacing: -0.02em; }
 .plan-balken { height: 4px; }
 .plan-balken > span { background: var(--shu); }
+.heute-rechnen { justify-self: start; display: inline-flex; align-items: center; gap: 8px; color: var(--sumi-mittel); text-decoration: none; }
+.heute-rechnen-balken { width: 72px; }
+.heute-rechnen-balken > span { background: var(--shu); }
+.heute-rechnen:hover { color: var(--sumi); }
+.heute-rechnen [lang="ja"] { color: var(--shu); margin-right: 2px; }
 
-.reife-inhalt { display: flex; align-items: center; gap: 22px; }
+.reife-inhalt { display: flex; flex-wrap: wrap; align-items: center; gap: 22px; }  /* schmal: die Liste rutscht unter das Ensō statt aus der Karte */
 .heute-enso { display: grid; place-items: center; flex: none; }
 .heute-enso > * { grid-area: 1 / 1; }
 .heute-enso-zahl { font-weight: 300; font-size: 1.75rem; line-height: 1; letter-spacing: -0.02em; }
@@ -90,10 +94,10 @@ a.flaeche:hover { border-color: var(--sumi-mittel); }
 .luecke-beispiel { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
 /* Mini-Trittsteine: geschafft in Tusche, aktuell in Zinnoberrot, gesperrt nur umrandet */
-.mini-steine { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; margin: 2px 0; }
+.mini-steine { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; margin: 2px 0; }  /* sieben Steine passen auch bei 1024 px in eine Zeile */
 .mini-stein { position: relative; width: 14px; height: 14px; flex: none; border: 1.5px solid var(--sumi-mittel); }
 .mini-stein + .mini-stein::before {
-  content: ""; position: absolute; top: 50%; right: calc(100% + 4px); width: 16px; border-top: 1px dotted var(--sumi-mittel);
+  content: ""; position: absolute; top: 50%; right: calc(100% + 4px); width: 12px; border-top: 1px dotted var(--sumi-mittel);
 }
 .mini-stein--fertig { background: var(--sumi); border-color: var(--sumi); }
 .mini-stein--fertig + .mini-stein::before { border-top: 1px solid var(--sumi-mittel); }
@@ -112,10 +116,11 @@ a.flaeche:hover { border-color: var(--sumi-mittel); }
 .kalender-tag.stufe-4 { background: var(--shu); }
 .kalender-tag.zukunft { visibility: hidden; }
 .kalender-legende { display: inline-flex; align-items: center; gap: 4px; }
+.kalender-rechts { gap: 16px; }
 .kalender-legende .kalender-tag { width: 10px; height: 10px; }
 
 /* Tastenhinweis auf dunklem Primärknopf (Lernbereiche) */
-:is(.bereich-heute, .bereich-keiko, .bereich-michi, .bereich-shiken) .btn:not([data-variant]) .taste { background: transparent; color: inherit; border-color: color-mix(in oklab, currentColor 35%, transparent); }
+:is(.bereich-heute, .bereich-keiko, .bereich-rechnen, .bereich-michi, .bereich-shiken) .btn:not([data-variant]) .taste { background: transparent; color: inherit; border-color: color-mix(in oklab, currentColor 35%, transparent); }
 
 @media (max-width: 1000px) {
   .heute-raster { grid-template-columns: 1fr; }
@@ -123,3 +128,97 @@ a.flaeche:hover { border-color: var(--sumi-mittel); }
   .plan-zahlen { grid-template-columns: repeat(2, 1fr); }
   .plan-zahlen > div + div { padding-left: 0; border-left: 0; }
 }
+
+/* Handy: das Bildband wächst mit seinem Inhalt, der Lernkalender passt in die Breite (20 Wochen à 11 + 3 px) */
+@media (max-width: 720px) {
+  .kopf--gross { height: auto; padding-top: 32px; }
+  .kopf--gross .kopf-inhalt { padding: 0 16px 20px; }
+  .held { gap: 20px; }
+  .held-titel { font-size: 1.75rem; }
+  .held-countdown { justify-items: start; text-align: left; }
+  .heute .flaeche { padding: 18px 16px; }
+  .kalender-monate, .kalender { grid-auto-columns: 11px; gap: 3px; }
+  .kalender { grid-template-rows: repeat(7, 11px); }
+  .karte-kopf { flex-wrap: wrap; }
+  .heute-rechnen, .kalender-rechts a, .fahrplan-umschalter a { min-height: 44px; display: inline-flex; align-items: center; }
+}
+
+/* Fahrplan: Kennzahlen im Bildband, Säulen der Prognose, gestapelte Balken der Abdeckung, was am meisten bringt */
+.fahrplan-kennzahlen { display: flex; flex-wrap: wrap; gap: 12px 36px; }
+.fahrplan-kennzahlen > div { display: grid; justify-items: end; text-align: right; }
+.fahrplan-zahl { font-weight: 200; font-size: clamp(2.25rem, 4vw, 3.25rem); line-height: 1; letter-spacing: -0.03em; }
+.fahrplan-kennzahlen .klein { opacity: .7; }
+@media (max-width: 720px) {
+  .fahrplan-kennzahlen { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; width: 100%; }
+  .fahrplan-kennzahlen > div { justify-items: start; text-align: left; align-content: start; }
+}
+.fahrplan-versteckt { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+.fahrplan-umschalter { display: flex; gap: 4px; }
+.fahrplan-umschalter a { padding: 2px 10px; border-radius: 999px; text-decoration: none; color: var(--sumi-mittel); border: 1px solid transparent; }
+.fahrplan-umschalter a:hover { color: var(--sumi); }
+.fahrplan-umschalter a[aria-current] { color: var(--sumi); border-color: var(--linie); background: var(--flaeche); }
+
+/* Säulen: Wiederholungen unten, neue darüber, der Wert obenauf; heute in Zinnoberrot */
+.saeulen-rahmen { overflow-x: auto; }
+.saeulen { display: grid; grid-template-columns: repeat(var(--spalten), minmax(0, 1fr)); gap: 4px; min-width: calc(var(--spalten) * 20px); }
+.saeulen li { position: relative; display: grid; justify-items: center; gap: 6px; }
+.saeule { display: flex; flex-direction: column-reverse; justify-content: flex-start; align-items: stretch; width: 100%; max-width: 30px; height: 168px; padding-top: 20px; }  /* oben Platz für den Wert über der höchsten Säule */
+.saeule > span { flex: none; }
+.saeule-wdh { background: var(--tusche-4); border-radius: 0 0 3px 3px; }
+.saeule-neu { background: var(--tusche-2); border-radius: 3px 3px 0 0; }
+.saeule-wert { display: grid; place-items: center; height: 18px; font-size: 0.6875rem; color: var(--sumi-mittel); }
+.saeule-wert .icon { width: 14px; height: 14px; color: var(--shu); }
+.saeule-tag { font-size: 0.6875rem; line-height: 1.2; text-align: center; color: var(--sumi-mittel); }
+.saeule-heute .saeule-wdh { background: var(--shu); }
+.saeule-heute .saeule-neu { background: color-mix(in oklab, var(--shu) 40%, var(--washi)); }
+.saeule-heute :is(.saeule-wert, .saeule-tag) { color: var(--shu); font-weight: 600; }
+.saeule-pruefung .saeule-tag { color: var(--shu); }
+.fahrplan-legende { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; }
+.legende-punkt { display: inline-block; width: 10px; height: 10px; margin-right: 6px; border-radius: 2px; vertical-align: -1px; }
+
+.fahrplan-satz { font-size: 0.9375rem; }
+.fahrplan-balken--gross { height: 10px; border-radius: 5px; }
+.fahrplan .heute-raster { align-items: start; }  /* Karten nur so hoch wie ihr Inhalt */
+.fahrplan-bereiche { display: grid; }
+.fahrplan-bereich { border-top: 1px solid var(--linie); }
+.fahrplan-bereich > summary { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; padding: 10px 0; cursor: pointer; list-style: none; }  /* minmax: lange Namen kürzen statt die Karte zu sprengen */
+.fahrplan-bereich > summary::-webkit-details-marker { display: none; }
+.fahrplan-pfeil { display: inline-block; width: 14px; height: 14px; vertical-align: -2px; color: var(--sumi-mittel); transition: rotate var(--kurz) ease-out; }
+.fahrplan-bereich[open] .fahrplan-pfeil { rotate: 90deg; }
+.fahrplan-bereich .heute-themen { padding: 0 0 12px 22px; }
+
+.fahrplan-gewinn { display: grid; gap: 2px; margin-inline: -8px; }
+.fahrplan-gewinn li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 12px; padding: 6px 8px; border-radius: 8px; }
+.fahrplan-gewinn li:hover { background: var(--flaeche); }
+.fahrplan-gewinn-text { display: grid; grid-template-columns: minmax(0, 1fr); }
+.fahrplan-gewinn-name { font-weight: 500; line-height: 1.35; text-wrap: pretty; hyphens: auto; overflow-wrap: break-word; }  /* Themennamen sind lang: umbrechen statt abschneiden, in der schmalen Spalte auch im Wort */
+.fahrplan-gewinn-punkte { font-size: 0.875rem; color: var(--shu); }
+
+/* Fahrplan als Kalenderdatei: über die ganze Breite, Text links, Formular rechts (schmal untereinander) */
+.fahrplan-kalender { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 32px; }
+.fahrplan-kalender-text { display: grid; gap: 4px; flex: 1 1 22rem; max-width: 60ch; }
+.fahrplan-kalender-form { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.fahrplan-kalender-lernen { display: inline-flex; align-items: center; gap: 8px; font-size: 0.875rem; }
+.fahrplan-kalender-lernen input[type="checkbox"] { accent-color: var(--shu); }
+.fahrplan-uhrzeit { width: 7rem; }
+.fahrplan-dauer { width: 4.5rem; }
+
+/* Heute: Countdown führt zum Fahrplan */
+a.held-countdown { text-decoration: none; }
+a.held-countdown:hover .held-einheit { text-decoration: underline; text-underline-offset: 3px; }
+
+/* Wochenrückblick (Heute und Verlauf): eine kompakte Zeile mit Zahlen, darunter die Themen */
+.woche { grid-column: 1 / -1; display: grid; gap: 12px; }
+.verlauf-seite .woche { margin: 24px 0 16px; border-radius: 14px; padding: 18px 22px; }
+.woche-zahlen { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 32px; }
+.woche-zahlen li { display: flex; align-items: baseline; gap: 6px; }
+.woche-zahlen .zahl { font-weight: 300; font-size: 1.75rem; line-height: 1; letter-spacing: -0.02em; }
+.woche-themen a { text-underline-offset: 3px; }
+
+/* Neu in Saku: einmal, über allem, bis „Verstanden“ */
+.heute-neu { margin-bottom: 16px; }
+.heute-neu-liste { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 8px 32px; font-size: 0.9375rem; }
+.heute-neu-liste a { text-decoration: underline; text-decoration-color: var(--sumi-mittel); text-underline-offset: 3px; }
+.heute-neu-liste a:hover { text-decoration-color: var(--shu); }
+.heute-neu-liste [lang="ja"] { color: var(--shu); margin-right: 4px; }

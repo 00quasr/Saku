@@ -21,13 +21,14 @@ Der Name kommt von 咲く (*saku*), „erblühen“. Wissen wächst in Saku wie 
 
 | | | |
 |---|---|---|
-| 今 | **Heute** | Cockpit: Tagesplan, Countdown, Prüfungsreife als Ensō, Lernkalender |
-| 道 | **Lernpfad** | Stationen, jede mit Einführung, Übungen und Mini-Test |
-| 稽 | **Üben** | Fokusmodus: Aufgabe als echter Text, anklickbare Antworten, Lösung per Leertaste, Bewertung mit 1, 2, 3; nach einem Fehler kommt eine ähnliche Aufgabe aus einem anderen Jahrgang; Grundwissen als Begriffs-Karten |
-| 試 | **Prüfung** | Simulation mit Timer, Note und Hanko-Stempel |
+| 今 | **Heute** | Tagesplan, Countdown, Prüfungsreife als Ensō, Lernserie und Lernkalender, Wochenrückblick; dazu der **Fahrplan**: Wiederholungen der nächsten Tage, Tempo bis zur Prüfung, Abdeckung nach Prüfungsgewicht, was jetzt am meisten bringt |
+| 道 | **Lernpfad** | Stationen, jede mit Einführung, Übungen, passendem Rechentraining und Mini-Test |
+| 稽 | **Üben** | Fokusmodus: Aufgabe als echter Text, anklickbare Antworten, SQL in einer Sandbox ausführen und prüfen, Stichpunkt-Abgleich bei freien Antworten, Lösung per Leertaste, Bewertung mit 1, 2, 3; nach einem Fehler eine ähnliche Aufgabe aus einem anderen Jahrgang; **Verlauf** aller Bewertungen; **Grundwissen** als Begriffs-Karten, auch umgekehrt (Definition → Begriff) |
+| 算 | **Rechnen** | Rechentrainer ohne KI, 27 Aufgabenarten in acht Gruppen: Netzwerk (Subnetting, VLSM, Routing-Tabelle, IPv6, EUI-64, Übertragungszeit), Daten & Medien (Datenmenge, Speichereinheiten, Zahlensysteme, Datensicherung), Strom & Hardware (Energie und USV, RAID, Verfügbarkeit, Monitor und Druck, Bus- und Speicherbandbreite), Wirtschaft (Kalkulation, Kauf/Leasing/Miete, Nutzwertanalyse), WiSo (Kündigungsfristen, Urlaub), Projekt (Netzplan), Programmieren (Schreibtischtest), Algorithmen (Sortieren, binäre Suche, Hashing, Suchbaum, Stack und Queue). ↵ prüft, danach steht der Rechenweg da; fällige Arten, Tagesziel, Sprint mit Note, Formelsammlung zum Drucken |
+| 試 | **Prüfung** | Simulation mit Timer, Note und Hanko-Stempel; Anklickbares und SQL wertet Saku selbst aus; Hochrechnung der Gesamtnote; Fachgespräch üben |
 | 庭 | **Themen** | Wissensgraph aus Themen, Lernfeldern und Fachbegriffen; je Thema eine Wissensseite (was du können musst, so wird gefragt, Fallen) |
 | 先 | **Sensei** | KI-Tutor: Tipps, Erklärungen, Antworten prüfen, Übungsvarianten, Chat mit Quellen |
-| 析 | **Analyse** | alle Prüfungen: Heatmap, Dauerbrenner, Lücken |
+| 析 | **Analyse** | alle Prüfungen: Inventar, Heatmap, Dauerbrenner, lange nicht dran, Katalog als Checkliste, Zuordnung korrigieren |
 | ⌘K | **Suche** | Befehlspalette und Suche nach Wort und Bedeutung über alle Prüfungen |
 
 ## So sieht Saku aus
@@ -36,16 +37,24 @@ Alle Bilder zeigen die erfundenen Demo-Daten, keine echten Prüfungsaufgaben.
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/bilder/ueben.png" alt="Üben: Multiple-Choice-Aufgabe, richtig beantwortet, mit Lösungshinweis"><br><b>稽 Üben.</b> Aufgabe als Text, Antwort per Zifferntaste, ↵ prüft sofort. Bei freien Antworten schlägt Sensei Punkte nach dem IHK-Schlüssel vor.</td>
-    <td width="50%"><img src="docs/bilder/themen.png" alt="Themen: Wissensgraph mit geöffneter Wissensseite zu Normalisierung"><br><b>庭 Themen.</b> Wissensgraph aus Themen, Lernfeldern und Fachbegriffen. Jede Notiz hat eine Wissensseite mit Verweisen auf echte Aufgaben.</td>
+    <td width="50%"><img src="docs/bilder/ueben.png" alt="Üben: freie Antwort mit Stichpunkt-Abgleich gegen die Musterlösung"><br><b>稽 Üben.</b> Aufgabe als Text; anklickbare Antworten prüft ↵ sofort. Bei freien Antworten zeigt der Stichpunkt-Abgleich, welche Punkte der Musterlösung drin sind, Sensei schlägt Punkte nach dem IHK-Schlüssel vor.</td>
+    <td width="50%"><img src="docs/bilder/themen.png" alt="Themen: Wissensgraph aus Prüfungsbereichen, Themen und Begriffen, Farbe nach Lernstand"><br><b>庭 Themen.</b> Wissensgraph aus Themen, Lernfeldern und Fachbegriffen. Jede Notiz hat eine Wissensseite mit Verweisen auf echte Aufgaben.</td>
   </tr>
   <tr>
     <td><img src="docs/bilder/pruefung.png" alt="Prüfung: Hochrechnung der Abschlussnote nach Ausbildungsverordnung"><br><b>試 Prüfung.</b> Simulation im Heft-Layout und Hochrechnung der Gesamtnote samt Bestehensregeln der AO 2020.</td>
     <td><img src="docs/bilder/analyse.png" alt="Analyse: Kennzahlen und die Themen mit den meisten Punkten"><br><b>析 Analyse.</b> Was wie oft drankam, Heatmap, Dauerbrenner, Themen, die lange nicht dran waren, und der Katalog als Checkliste.</td>
   </tr>
   <tr>
-    <td><img src="docs/bilder/suche.png" alt="Befehlspalette mit Befehl, Thema und Teilaufgaben"><br><b>⌘K.</b> Befehle (Simulation, Termin, AP1/AP2, AE/SI, Farbschema) und Suche nach Wort und Bedeutung.</td>
+    <td><img src="docs/bilder/suche.png" alt="Befehlspalette: Rechnen-Befehle, ein Thema und eine Teilaufgabe zur Suche „netz“"><br><b>⌘K.</b> Befehle (Simulation, Termin, AP1/AP2, AE/SI, Farbschema) und Suche nach Wort und Bedeutung.</td>
     <td><img src="docs/bilder/grundwissen.png" alt="Grundwissen: Begriffs-Karte mit aufgedeckter Definition"><br><b>Grundwissen.</b> Fachbegriffe als Lernkarten mit eigener Wiederholungsplanung.</td>
+  </tr>
+  <tr>
+    <td><img src="docs/bilder/rechnen.png" alt="Rechnen: Subnetting-Aufgabe geprüft, 2 von 3 richtig, mit Rechenweg"><br><b>算 Rechnen.</b> Unbegrenzt neue Rechenaufgaben, ↵ prüft sofort, danach steht der Rechenweg da.</td>
+    <td><img src="docs/bilder/fahrplan.png" alt="Fahrplan: Säulen der nächsten Wiederholungen, Tempo und Abdeckung"><br><b>Fahrplan.</b> Was auf dich zukommt, ob dein Tempo bis zur Prüfung reicht und wo die Punkte liegen.</td>
+  </tr>
+  <tr>
+    <td><img src="docs/bilder/verlauf.png" alt="Verlauf: Wochenrückblick und Bewertungen nach Tagen"><br><b>Verlauf.</b> Jede Bewertung nach Tagen, oben der Rückblick auf die Woche.</td>
+    <td><img src="docs/bilder/sql.png" alt="Üben: SQL-Anweisung geprüft, eine Zeile fehlt, erwartetes und eigenes Ergebnis nebeneinander"><br><b>SQL in Üben.</b> Anweisungen auf erfundenen Beispieldaten ausführen und mit der Musterlösung vergleichen.</td>
   </tr>
 </table>
 
@@ -73,13 +82,14 @@ flowchart TD
     A["1 Inventar<br>Deckblatt, Prüfungsteil, Text oder Scan"] --> B["2 Segmente<br>Aufgaben und Teilaufgaben, Ausschnitte"]
     B --> C["3 Lösungen<br>Lösungshinweise zuordnen"]
     C --> D["4 Aufbereiten ✦<br>Aufgabe als Markdown, Antwortart, Fachbegriffe"]
-    D --> E["5 Themen<br>themen.md und Lernfelder"]
-    E --> F["6 Klassifikation ✦<br>Teilaufgabe → Unterthemen"]
-    F --> G["7 Statistik<br>Suchindex, Häufigkeiten"]
-    G --> H["8 Wissen ✦<br>Wissensseiten, Begriffs-Definitionen"]
-    H --> I["9 Vektoren<br>lokal: Ähnlichkeit, Aufgabenmuster"]
-    I --> J["10 Lernpfad ✦<br>Voraussetzungen, Stationen, Einführungen"]
-    J --> K["11 Bericht"]
+    D --> S["5 Sandbox ✦<br>SQL: Tabellen, Beispieldaten, Lösungen in SQLite"]
+    S --> E["6 Themen<br>themen.md und Lernfelder"]
+    E --> F["7 Klassifikation ✦<br>Teilaufgabe → Unterthemen"]
+    F --> G["8 Statistik<br>Suchindex, Häufigkeiten"]
+    G --> H["9 Wissen ✦<br>Wissensseiten, Begriffs-Definitionen"]
+    H --> I["10 Vektoren<br>lokal: Ähnlichkeit, Aufgabenmuster"]
+    I --> J["11 Lernpfad ✦<br>Voraussetzungen, Stationen, Einführungen"]
+    J --> K["12 Bericht"]
 ```
 
 ✦ = Claude. Der Erstlauf geht über Claude Code (`--ki claude-code`), Vektoren rechnet [fastembed](https://github.com/qdrant/fastembed) lokal und kostenlos.
@@ -123,7 +133,7 @@ sequenceDiagram
 
 ## Stand
 
-Alle Phasen der [Roadmap](docs/ROADMAP.md) sind umgesetzt, 131 Tests laufen grün. Saku deckt **Fachinformatiker/-in Anwendungsentwicklung (1201) und Systemintegration (1202)** ab, jeweils **AP1 und AP2** samt WiSo; umgeschaltet wird oben in der Seitenleiste. Die Aufgaben baut Claude einmalig aus den PDF-Ausschnitten als echten Text neu auf (Tabellen, Code, anklickbare Antworten). Standard ist das dunkle Farbschema.
+Alle Phasen der [Roadmap](docs/ROADMAP.md) sind umgesetzt, dazu Rechnen, Fahrplan, Verlauf, SQL-Sandbox und automatische Auswertung; 290 Tests laufen grün. Saku deckt **Fachinformatiker/-in Anwendungsentwicklung (1201) und Systemintegration (1202)** ab, jeweils **AP1 und AP2** samt WiSo; umgeschaltet wird oben in der Seitenleiste. Die Aufgaben baut Claude einmalig aus den PDF-Ausschnitten als echten Text neu auf (Tabellen, Code, anklickbare Antworten). Standard ist das dunkle Farbschema.
 
 ## Schnellstart
 
@@ -139,12 +149,10 @@ python -m saku.pipeline.sammeln       # AE, SI, AP1 und WiSo nach data/pdfs/ kop
 python -m saku init                    # Datenbank anlegen
 python -m saku assets                  # Oberflächen-Dateien und Schriften laden (einmalig)
 python -m saku analyse --ki claude-code  # Erstlauf: KI-Schritte über das lokale Claude Code
-python -m saku start                   # App im eigenen Fenster öffnen (--browser: im Browser)
+python -m saku start                   # App im eigenen Fenster öffnen
 ```
 
 Beim ersten Start führt eine kurze Tour durch Saku: was die Analyse gefunden hat, Prüfungstermin, Lernweg, Tastatur und Sensei. Später erreichbar über die Einstellungen oder die Tastaturhilfe (`?`).
-
-Die einmaligen KI-Schritte der Analyse (Deckblätter, Aufgaben neu aufbauen, Klassifikation, Wissensseiten und Begriffe, Lernpfad, Einführungen) laufen beim Erstlauf über das lokal installierte [Claude Code](https://code.claude.com) (`claude -p`, eigenes Login, kein API-Schlüssel nötig). Spätere Läufe und Sensei nutzen die Claude-API. Beide Wege teilen sich denselben Cache, eine schon beantwortete Anfrage kostet also nichts mehr. `python -m saku analyse --ohne-ki` läuft komplett lokal.
 
 Ohne Prüfungs-PDFs lässt sich Saku mit erfundenen Demo-Daten ausprobieren:
 
@@ -152,6 +160,30 @@ Ohne Prüfungs-PDFs lässt sich Saku mit erfundenen Demo-Daten ausprobieren:
 python -m tests.demo_daten /tmp/saku-demo
 SAKU_DATENORDNER=/tmp/saku-demo python -m saku start --browser
 ```
+
+## Befehle
+
+| Befehl | Was er tut |
+|---|---|
+| `python -m saku start` | App im eigenen Fenster öffnen; `--browser` öffnet sie im Standardbrowser |
+| `python -m saku init` | Datenbank anlegen oder auf den neuesten Stand bringen |
+| `python -m saku assets` | Basecoat, htmx, force-graph, Lucide, KaTeX und Schriften einmalig laden |
+| `python -m saku analyse` | alle Schritte der Pipeline; `--schritt NAME` nur einen, `--ohne-ki` nur die lokalen, `--ki claude-code` KI über Claude Code statt API |
+| `python -m saku analyse --schritt sandbox --ki claude-code` | nur die SQL-Sandboxen bauen; bearbeitet nur Aufgaben, die noch keine haben |
+| `python -m saku lernstand export DATEI` | Lernstand als JSON-Datei mitnehmen (auch in den Einstellungen unter Daten) |
+| `python -m saku lernstand import DATEI` | Lernstand übernehmen; mehrfach importieren ändert nichts |
+| `python -m saku.pipeline.sammeln` | Prüfungen aus `data/quellen/` (auch ZIPs) nach `data/pdfs/` kopieren |
+| `python -m saku paket [DATEI]` | Datenbank und benötigte Bilder als Archiv für Saku im Netz, sonst nach `data/saku-paket.tar.gz` ([Deploy](docs/DEPLOY.md)) |
+| `python -m saku server` | Saku im Netz betreiben (gunicorn, nur mit `SAKU_PASSWORT`), z. B. auf Railway ([Deploy](docs/DEPLOY.md)) |
+
+Die KI-Schritte der Analyse (Deckblätter, Aufgaben neu aufbauen, SQL-Sandboxen, Klassifikation, Wissensseiten und Begriffe, Lernpfad, Einführungen) laufen beim Erstlauf über das lokal installierte [Claude Code](https://code.claude.com) (`claude -p`, eigenes Login, kein API-Schlüssel nötig). Spätere Läufe und Sensei nutzen die Claude-API. Beide Wege teilen sich denselben Cache, eine schon beantwortete Anfrage kostet also nichts mehr. `python -m saku analyse --ohne-ki` läuft komplett lokal.
+
+## Datensicherheit
+
+- **Tägliche Sicherung:** Vor `start`, `init`, `analyse` und `lernstand import` sichert Saku die Datenbank einmal am Tag nach `data/backups/saku-JJJJ-MM-TT.db`; die letzten sieben bleiben. In den Einstellungen unter Daten gibt es außerdem „Jetzt sichern“.
+- **Lernstand als Datei:** Der Export hängt nicht an internen IDs und übersteht einen Neuaufbau der Datenbank. Der Import übernimmt alles oder nichts; Zeilen und Einstellungen, die Saku nicht versteht, überspringt er.
+- **Migrationen:** Ein neues Schema bringt `python -m saku init` (oder der nächste Start) auf die vorhandene Datenbank, nach der Sicherung und jede Migration in einer eigenen Transaktion.
+- **Nur lokal:** Die App lauscht nur auf `127.0.0.1`, und schreibende Anfragen nimmt sie nur von sich selbst an (Schutz gegen fremde Webseiten im Browser). Im Netz (`python -m saku server`) nur hinter einem Passwort, siehe [Deploy](docs/DEPLOY.md).
 
 ## Dokumentation
 
@@ -162,6 +194,7 @@ SAKU_DATENORDNER=/tmp/saku-demo python -m saku start --browser
 | [Design](docs/DESIGN.md) | Prinzipien, Farben, Typografie, Signature-Momente |
 | [Sensei](docs/SENSEI.md) | KI-Tutor: Modi, Prompts, Chat mit Quellen, Kosten |
 | [Roadmap](docs/ROADMAP.md) | Phasen, Demo-Ablauf, Risiken |
+| [Deploy](docs/DEPLOY.md) | Saku privat im Netz (Railway): Login, Paket hochladen, Lernstand, Kosten |
 | [Schema](db/schema.sql) | SQLite-Datenbank mit Sichten und Volltextsuche |
 
 ## Technik

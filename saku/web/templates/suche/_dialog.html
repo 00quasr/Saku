@@ -7,11 +7,12 @@
              placeholder="Suchen oder Befehl: Prüfung, Termin, AP1, dunkel …" aria-label="Suchen" aria-controls="suche-treffer"
              hx-get="{{ url_for('suche.index') }}" hx-trigger="input changed delay:150ms" hx-target="#suche-treffer" hx-swap="innerHTML">
       {{ m.taste('Esc') }}
+      <button type="button" class="btn suche-zu" data-variant="ghost" data-size="icon" aria-label="Suche schließen" onclick="this.closest('dialog').close()">{{ m.icon('x') }}</button>
     </header>
     <section id="suche-treffer" class="suche-treffer" hx-boost="true">
-      {% with q='', befehle=befehle_start, bereiche=BEREICHE, themen=[], treffer=[] %}{% include "suche/_treffer.html" %}{% endwith %}
+      {% with q='', befehle=befehle_start, seiten=seiten_start, themen=[], treffer=[] %}{% include "suche/_treffer.html" %}{% endwith %}
     </section>
-    <footer class="suche-fuss klein gedaempft">{{ m.taste('↑') }} {{ m.taste('↓') }} wählen · {{ m.taste('↵') }} öffnen</footer>
+    <footer class="suche-fuss klein gedaempft nur-tastatur">{{ m.taste('↑') }} {{ m.taste('↓') }} wählen · {{ m.taste('↵') }} öffnen</footer>
   </div>
 </dialog>
 <script>

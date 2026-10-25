@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block titel %}Rechnen{% endblock %}
+{% block inhalt %}
+{% call m.kopf('keiko', '算', 'Rechnen', 'Rechentrainer') %}
+<p class="klein">Unbegrenzt neue Aufgaben wie in der Prüfung, sofort geprüft, mit Rechenweg.{% if heute[0] %} Heute {{ heute[1] }} von {{ heute[0] }} richtig.{% endif %}</p>
+{% endcall %}
+
+<div class="seite weit rechnen">
+  <div class="zeile rechnen-start">
+    <a class="btn" href="{{ url_for('rechnen.gemischt') }}" data-taste="Enter">Gemischt üben{% if faellige_arten %} · {{ faellige_arten|length }} fällig{% endif %} {{ m.taste('↵') }}</a>
+    <a class="btn" data-variant="outline" href="{{ url_for('rechnen.sprint') }}">{{ m.icon('timer') }} Sprint: 5 Aufgaben, 15 Minuten</a>
+    <a class="btn" data-variant="outline" href="{{ url_for('rechnen.probe') }}">{{ m.icon('clipboard-check') }} Probeprüfung: 90 Minuten</a>
+    <a class="btn" data-variant="outline" href="{{ url_for('rechnen.formeln') }}">{{ m.icon('sigma') }} Formelsammlung</a>
+    {% if ziel %}
+    <span class="klein rechnen-ziel" title="Rechenaufgaben am Tag, einstellbar unter Einstellungen › Lernen">
+      Heute <span class="zahl">{{ heute[0] }} / {{ ziel }}</span>
+      <span class="linie-fortschritt" aria-hidden="true"><span style="width: {{ [100, 100 * heute[0] / ziel]|min }}%"></span></span>
+      {{ '✓' if heute[0] >= ziel }}</span>
+    {% endif %}
+    <p class="klein gedaempft">Fällig ist, was zu deiner Prüfung gehört und noch nie, zuletzt unsicher oder seit über einer Woche nicht gerechnet wurde; „Gemischt“ nimmt das zuerst.</p>
+  </div>
+
+  {% for gruppe, arten in gruppen %}
+  <section class="rechnen-gruppe" aria-labelledby="gruppe-{{ loop.index }}">
+    <h2 class="etikett" id="gruppe-{{ loop.index }}">{{ gruppe }}</h2>
+    <ul class="rechnen-arten">
+      {% for a in arten %}{% set s = stand[a.slug] %}
+      <li>
+        <a class="rechnen-art" href="{{ url_for('rechnen.aufgabe', art=a.slug) }}">
+          <span class="rechnen-art-titel">{{ a.titel }}{% if a.slug in faellige_arten %} <span class="rechnen-faellig">fällig</span>{% endif %}</span>
+          <span class="klein gedaempft">{{ a.beschreibung }}</span>
+          <span class="rechnen-art-stand klein">
+            {% if s.anzahl %}{{ m.verlauf(s.letzte) }}
+            <span class="gedaempft zahl">{{ s.letzte|sum }} von {{ s.letzte|length }} zuletzt · {{ s.anzahl }} gerechnet</span>
+            {% else %}<span class="gedaempft">Noch nicht gerechnet</span>{% endif %}
+          </span>
+        </a>
+        {% if a.slug in in_pruefungen %}{% with p = in_pruefungen[a.slug], art = a %}{% include "rechnen/_in_pruefungen.html" %}{% endwith %}{% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endfor %}
+</div>
+{% endblock %}

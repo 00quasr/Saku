@@ -3,7 +3,6 @@
 .michi-stand { margin-top: 6px; }
 .michi-stand [lang="ja"] { margin-right: 2px; }
 .michi-fuss { margin-top: 48px; }
-.michi-fuss a, .michi-station .hinweis a { text-decoration: underline; }
 
 /* Der Pfad: Stein, Nummer, Titel, Stand; darunter die Zahlen */
 .pfad-station {
@@ -35,8 +34,17 @@
 @media (max-width: 520px) {
   .pfad-stand { grid-column: 3 / -1; text-align: left; }
 }
+/* Touch: 44 px Tippfläche für Stationen, Zurück-Link und „Lösung aufdecken“, ohne den Pfad zu verschieben */
+@media (max-width: 720px), (pointer: coarse) {
+  .pfad-titel { padding-block: 8px; margin-block: -8px; }
+  .michi-station > p.klein > a { padding-block: 14px; }
+  .michi-loesung > summary { min-height: 44px; }
+}
 
 /* Station */
+.michi-rechnen { display: grid; gap: 4px; margin-top: 16px; }
+.michi-rechnen [lang="ja"] { color: var(--shu); margin-right: 2px; }
+.michi-rechnen strong { color: var(--sumi); font-weight: 500; }
 .michi-uebungen { margin-top: 16px; border-top: 1px solid var(--linie); }
 .michi-uebungen li { border-bottom: 1px solid var(--linie); }
 .michi-uebungen a {
@@ -45,7 +53,8 @@
 }
 .michi-uebungen a:hover { background: var(--flaeche); }
 .michi-uebung { display: grid; min-width: 0; }
-.michi-test > * + * { margin-top: 16px; }
+.michi-station > .abschnitt > * + * { margin-top: 16px; }  /* auch die Einführung bekommt Luft unter der Überschrift; nur die Station, nicht der Mini-Test */
+.michi-hinweis { margin-top: 24px; }
 
 /* Mini-Test */
 .michi-testform > p:first-child { margin-top: 24px; }
