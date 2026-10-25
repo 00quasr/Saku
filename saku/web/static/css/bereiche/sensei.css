@@ -66,3 +66,4 @@ a.quelle:hover { border-color: var(--ai); }
 /* Seite /sensei/ */
 .sensei-modi td { padding: 8px; vertical-align: middle; }
 .sensei-modi td:first-child { width: 3rem; }
+.sensei-modi td:last-child { white-space: normal; }  /* die Beschreibung bricht um, schmal passt die Tabelle so in die Breite */

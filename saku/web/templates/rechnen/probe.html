@@ -105,8 +105,8 @@
       <p class="heft-daten zahl">{{ aufgaben|length }} Aufgaben · {{ dauer }} Minuten Prüfungszeit · {{ aufgaben|sum(attribute='punkte') }} Punkte</p>
       <ul class="heft-hinweise klein">
         <li>Lies jede Aufgabe ganz, bevor du anfängst. Plane etwa {{ '%.1f'|format(dauer / 100)|replace('.', ',') }} Minuten je Punkt.</li>
-        <li>Zahlen mit Komma oder Punkt, die Einheit darf dahinter stehen; {{ m.taste('↵') }} springt zum nächsten Feld.</li>
-        <li>SQL und Pseudocode darfst du ausführen ({{ m.taste('⌘↵') }}); gewertet wird, ob das Ergebnis wie bei der Musterlösung ist.</li>
+        <li>Zahlen mit Komma oder Punkt, die Einheit darf dahinter stehen<span class="nur-tastatur">; {{ m.taste('↵') }} springt zum nächsten Feld</span>.</li>
+        <li>SQL und Pseudocode darfst du ausführen<span class="nur-tastatur"> ({{ m.taste('⌘↵') }})</span>; gewertet wird, ob das Ergebnis wie bei der Musterlösung ist.</li>
         <li>Deine Antworten werden laufend gespeichert. Saku wertet bei der Abgabe alles selbst aus; läuft die Zeit ab, gibt Saku selbst ab.</li>
       </ul>
     </header>
