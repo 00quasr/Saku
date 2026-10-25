@@ -217,7 +217,8 @@ def create_app(daten: Path | None = None, server: bool = False) -> Flask:
             return None
         if request.headers.get("HX-Request"):
             return "", 401, {"HX-Redirect": url_for("anmeldung.anmelden")}
-        return redirect(url_for("anmeldung.anmelden"))
+        # nach dem Anmelden zurück zur gewünschten Seite (nur GET; anmeldung.ziel lässt nur eigene Pfade zu)
+        return redirect(url_for("anmeldung.anmelden", weiter=request.full_path.rstrip("?") if request.method == "GET" else None))
 
     if server:
         # sonst sicherte Saku nur bei jedem Deploy; ist die von heute schon da, kostet das einen Blick ins Verzeichnis

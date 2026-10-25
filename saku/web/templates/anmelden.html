@@ -17,6 +17,7 @@
   <main class="flaeche anmelden-karte">
     <p class="anmelden-logo"><span lang="ja" aria-hidden="true">咲</span> Saku</p>
     <form method="post" action="{{ url_for('anmeldung.anmelden') }}">
+      {% if weiter %}<input type="hidden" name="weiter" value="{{ weiter }}">{% endif %}
       {# Passwort-Manager (iCloud-Schlüsselbund) speichern ein Passwort nur zu einem Namen #}
       <input type="text" name="benutzer" value="Saku" autocomplete="username" hidden>
       <label class="einstellung-name" for="passwort">Passwort</label>

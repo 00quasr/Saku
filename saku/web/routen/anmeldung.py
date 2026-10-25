@@ -5,6 +5,8 @@ import hmac
 import threading
 import time
 
+from urllib.parse import urlsplit
+
 from flask import Blueprint, current_app, redirect, render_template, request, session, url_for
 
 bp = Blueprint("anmeldung", __name__)
@@ -37,25 +39,35 @@ def _gleich(eingabe: str, passwort: str) -> bool:
     return hmac.compare_digest(hashlib.sha256(eingabe.encode()).digest(), hashlib.sha256(passwort.encode()).digest())
 
 
+def ziel(weiter: str | None) -> str:
+    """Wohin nach dem Anmelden: nur ein Pfad in Saku selbst, sonst Heute (kein Weiterleiten auf fremde Adressen)."""
+    teile = urlsplit(weiter or "")
+    if not weiter or not weiter.startswith("/") or weiter.startswith(("//", "/\\")) or teile.scheme or teile.netloc \
+            or any(ord(z) < 32 for z in weiter) or teile.path.startswith("/anmelden"):
+        return url_for("heute.index")
+    return weiter
+
+
 @bp.route("/anmelden", methods=["GET", "POST"])
 def anmelden():
     passwort = current_app.config["PASSWORT"]
+    weiter = request.values.get("weiter")
     if not passwort or session.get("angemeldet"):
-        return redirect(url_for("heute.index"))
+        return redirect(ziel(weiter))
     if request.method == "GET":
-        return render_template("anmelden.html")
+        return render_template("anmelden.html", weiter=weiter)
     ip = request.remote_addr or "?"
     if not _versuch(ip):
-        return render_template("anmelden.html", fehler="Zu viele Versuche. In einer Viertelstunde geht es wieder."), 429
+        return render_template("anmelden.html", weiter=weiter, fehler="Zu viele Versuche. In einer Viertelstunde geht es wieder."), 429
     if _gleich(request.form.get("passwort", ""), passwort):
         with _sperre:
             _fehlversuche.pop(ip, None)
         session.clear()
         session.permanent = True  # 30 Tage (PERMANENT_SESSION_LIFETIME), sonst endete sie mit dem Browser
         session["angemeldet"] = True
-        return redirect(url_for("heute.index"))
+        return redirect(ziel(weiter))
     time.sleep(VERZOEGERUNG)
-    return render_template("anmelden.html", fehler="Das Passwort stimmt nicht."), 401
+    return render_template("anmelden.html", weiter=weiter, fehler="Das Passwort stimmt nicht."), 401
 
 
 @bp.post("/abmelden")

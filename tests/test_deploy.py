@@ -57,7 +57,7 @@ def test_mit_passwort_leitet_jede_seite_zur_anmeldung(daten, con, monkeypatch):
         if url in ("/anmelden",) or url.startswith("/static"):
             continue
         antwort = client.get(url)
-        assert antwort.status_code == 302 and antwort.headers["Location"] == "/anmelden", url
+        assert antwort.status_code == 302 and antwort.headers["Location"].startswith("/anmelden?weiter=/"), url
     htmx = client.get("/keiko/", headers={"HX-Request": "true"})
     assert htmx.status_code == 401 and htmx.headers["HX-Redirect"] == "/anmelden"
     assert client.post("/einstellungen/farbschema", data={"farbschema": "hell"}).status_code == 302
@@ -345,3 +345,19 @@ def test_lernstand_wandert_als_datei(server, tmp_path):
     con = db.verbinden(zuhause / "saku.db")
     assert lernstand.importieren(con, datei)["bewertungen"][0] == 1
     con.close()
+
+
+def test_nach_dem_anmelden_zur_gewuenschten_seite(daten, monkeypatch):
+    """Wer /fahrplan öffnet und sich anmeldet, landet auf dem Fahrplan – nie auf einer fremden Adresse."""
+    client = _app(daten, monkeypatch).test_client()
+    umweg = client.get("/fahrplan?tage=30")
+    assert umweg.headers["Location"] == "/anmelden?weiter=/fahrplan?tage%3D30"
+    assert 'name="weiter" value="/fahrplan?tage=30"' in client.get(umweg.headers["Location"]).get_data(as_text=True)
+    with client.application.test_request_context():
+        from saku.web.routen.anmeldung import ziel
+        for boese in ("//boese.example/x", "/\\boese.example", "https://boese.example/", "javascript:alert(1)", "fahrplan",
+                      "/\x0d\x0aSet-Cookie: x", "/anmelden?weiter=/", "", None):
+            assert ziel(boese) == "/", boese
+        assert ziel("/keiko/verlauf") == "/keiko/verlauf"
+    antwort = client.post("/anmelden", data={"passwort": PASSWORT, "weiter": "/fahrplan?tage=30"})
+    assert antwort.status_code == 302 and antwort.headers["Location"] == "/fahrplan?tage=30"
