@@ -90,6 +90,27 @@ def test_sperre_nach_fehlversuchen_je_ip(daten, monkeypatch):
     assert _anmelden(client, environ_base={"REMOTE_ADDR": "10.0.0.2"}).status_code == 302  # andere IP
 
 
+def test_sperre_auch_bei_gleichzeitigen_versuchen(daten, monkeypatch):
+    """gunicorn bedient 16 Anfragen zugleich: die Sperre zählt jeden Versuch, bevor das Passwort verglichen wird."""
+    import threading
+    import time
+    app = _app(daten, monkeypatch)
+    verglichen = []
+
+    def langsam(eingabe, passwort):
+        verglichen.append(eingabe)
+        time.sleep(0.2)
+        return False
+
+    monkeypatch.setattr(anmeldung, "_gleich", langsam)
+    threads = [threading.Thread(target=lambda: _anmelden(app.test_client(), "falsch")) for _ in range(12)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    assert len(verglichen) == anmeldung.VERSUCHE
+
+
 def test_neues_passwort_meldet_ab(daten, monkeypatch):
     monkeypatch.setattr(config, "GEHEIM", "fest")
     client = _app(daten, monkeypatch).test_client()

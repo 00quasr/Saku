@@ -16,8 +16,9 @@ _fehlversuche: dict[str, list[float]] = {}  # IP → Zeitpunkte (monotonic), nur
 _sperre = threading.Lock()
 
 
-def _fehler(ip: str) -> int:
-    """Fehlversuche dieser IP innerhalb der Sperrzeit; Abgelaufenes fällt dabei für alle IPs weg."""
+def _versuch(ip: str) -> bool:
+    """Zählt den Versuch dieser IP schon vor dem Vergleich, sonst kämen gleichzeitige Anfragen alle an der Sperre vorbei;
+    False, wenn sie gesperrt ist. Abgelaufenes fällt dabei für alle IPs weg."""
     jetzt = time.monotonic()
     with _sperre:
         for schluessel in list(_fehlversuche):
@@ -25,7 +26,10 @@ def _fehler(ip: str) -> int:
                 del _fehlversuche[schluessel]
             else:
                 _fehlversuche[schluessel] = frisch
-        return len(_fehlversuche.get(ip, []))
+        if len(versuche := _fehlversuche.setdefault(ip, [])) >= VERSUCHE:
+            return False
+        versuche.append(jetzt)
+        return True
 
 
 def _gleich(eingabe: str, passwort: str) -> bool:
@@ -41,7 +45,7 @@ def anmelden():
     if request.method == "GET":
         return render_template("anmelden.html")
     ip = request.remote_addr or "?"
-    if _fehler(ip) >= VERSUCHE:
+    if not _versuch(ip):
         return render_template("anmelden.html", fehler="Zu viele Versuche. In einer Viertelstunde geht es wieder."), 429
     if _gleich(request.form.get("passwort", ""), passwort):
         with _sperre:
@@ -50,8 +54,6 @@ def anmelden():
         session.permanent = True  # 30 Tage (PERMANENT_SESSION_LIFETIME), sonst endete sie mit dem Browser
         session["angemeldet"] = True
         return redirect(url_for("heute.index"))
-    with _sperre:
-        _fehlversuche.setdefault(ip, []).append(time.monotonic())
     time.sleep(VERZOEGERUNG)
     return render_template("anmelden.html", fehler="Das Passwort stimmt nicht."), 401
 
