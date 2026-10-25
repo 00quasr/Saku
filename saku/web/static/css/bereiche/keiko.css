@@ -154,6 +154,7 @@
   transition: border-color var(--kurz) ease-out, background var(--kurz) ease-out;
 }
 .punkt-knopf:hover { border-color: var(--shu); background: color-mix(in oklab, var(--shu) 12%, var(--washi-hell)); }
+@media (max-width: 720px), (pointer: coarse) { .punkt-knopf { min-width: 44px; height: 44px; } }
 
 /* Zeichnung hochladen */
 .zeichnung { display: grid; gap: 10px; margin-top: 4px; }

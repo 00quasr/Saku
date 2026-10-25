@@ -212,3 +212,8 @@
   .rechnen-marke:empty { display: none; }
   .rechnen-eingabe .input, :is(.rechnen-feld--text, .rechnen-feld--ipv6) .input { width: 100%; }
 }
+/* Touch: Links im Text bekommen eine größere Tippfläche, ohne dass die Zeile wächst */
+@media (max-width: 720px), (pointer: coarse) {
+  .rechnen-pruefungen a, .formel-titel a { padding-block: 12px; }
+  .sprint-liste a { padding-block: 12px; margin-block: -12px; }
+}

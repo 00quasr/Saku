@@ -140,7 +140,7 @@ a.flaeche:hover { border-color: var(--sumi-mittel); }
   .kalender-monate, .kalender { grid-auto-columns: 11px; gap: 3px; }
   .kalender { grid-template-rows: repeat(7, 11px); }
   .karte-kopf { flex-wrap: wrap; }
-  .heute-rechnen, .kalender-rechts a { min-height: 44px; display: inline-flex; align-items: center; }
+  .heute-rechnen, .kalender-rechts a, .fahrplan-umschalter a { min-height: 44px; display: inline-flex; align-items: center; }
 }
 
 /* Fahrplan: Kennzahlen im Bildband, Säulen der Prognose, gestapelte Balken der Abdeckung, was am meisten bringt */

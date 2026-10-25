@@ -328,6 +328,20 @@ window.saku = {
       saku.melden("Markiert, mit ⌘C kopieren");
     }
   },
+  // Waagrecht scrollende Kästen: quer--links/--rechts sagen, ob dort noch etwas kommt (der Rand blendet aus, siehe saku.css)
+  quer(wurzel) {
+    wurzel.querySelectorAll?.(".tabelle-rahmen, .table-container, .uml-bild, .saeulen-rahmen, .prosa table, .prosa pre, .formel--block, .bunseki-tabs > [role=tablist]").forEach((kasten) => {
+      const pruefen = () => {
+        kasten.classList.toggle("quer--links", kasten.scrollLeft > 1);
+        kasten.classList.toggle("quer--rechts", kasten.scrollLeft + kasten.clientWidth < kasten.scrollWidth - 1);
+      };
+      kasten.addEventListener("scroll", pruefen, { passive: true });
+      new ResizeObserver(pruefen).observe(kasten);
+      // Reiter per Adresse (Analyse ?reiter=ki): der gewählte steht im Bild, auch wenn die Zeile schmal scrollt
+      const gewaehlt = kasten.querySelector("[aria-selected='true']")?.getBoundingClientRect(), rand = kasten.getBoundingClientRect();
+      if (gewaehlt?.right > rand.right) kasten.scrollLeft += gewaehlt.left - rand.left - 16;
+    });
+  },
   // Formelsammlung: Karten nach Text filtern; Gruppen ohne Treffer und ihre Sprungmarken verschwinden
   formelSuche(text) {
     const q = text.trim().toLowerCase();
@@ -345,6 +359,7 @@ window.saku = {
 // nach dem Laden und nach jedem htmx-Tausch (Prüfen, Rechenweg, Sprint, Probeprüfung, Bereichswechsel)
 document.addEventListener("htmx:load", (e) => {
   saku.formeln(e.target);
+  saku.quer(e.target);
   e.target.querySelectorAll?.("[data-sprungmarken]").forEach((nav) => saku.sprungmarken(nav));
 });
 

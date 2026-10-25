@@ -34,6 +34,12 @@
 @media (max-width: 520px) {
   .pfad-stand { grid-column: 3 / -1; text-align: left; }
 }
+/* Touch: 44 px Tippfläche für Stationen, Zurück-Link und „Lösung aufdecken“, ohne den Pfad zu verschieben */
+@media (max-width: 720px), (pointer: coarse) {
+  .pfad-titel { padding-block: 8px; margin-block: -8px; }
+  .michi-station > p.klein > a { padding-block: 14px; }
+  .michi-loesung > summary { min-height: 44px; }
+}
 
 /* Station */
 .michi-rechnen { display: grid; gap: 4px; margin-top: 16px; }
