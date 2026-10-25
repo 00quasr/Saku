@@ -268,6 +268,36 @@ def test_hochladen_ersetzt_katalog_und_behaelt_lernstand(server, tmp_path):
     assert "Paket übernehmen" in client.get("/einstellungen").get_data(as_text=True)
 
 
+def test_jedes_paket_sichert_vorher_eigens(server, tmp_path):
+    """Was ein Paket nicht übernimmt (Sensei-Gespräche von hier), steckt nur in der Sicherung davor; ein zweites Paket am
+    selben Tag darf sie nicht überschreiben. Die tägliche Sicherung bleibt dabei, wie sie war."""
+    client, daten = server
+    db.sichern(daten / "saku.db")  # die tägliche, am Morgen
+    taeglich = next((daten / "backups").glob("saku-????-??-??.db")).read_bytes()
+    con = db.verbinden(daten / "saku.db")
+    con.execute("INSERT INTO sensei_nachricht (gespraech, rolle, inhalt) VALUES ('handy', 'user', 'Frage vom Handy')")
+    con.commit()
+    con.close()
+    zuhause = tmp_path / "zuhause"
+    anlegen(zuhause)
+    archiv = tmp_path / "paket.tar.gz"
+    paket.bauen(archiv, zuhause)
+    for _ in range(2):
+        assert _hochladen(client, archiv.read_bytes()).status_code == 200
+
+    def frage_vom_handy(datei):
+        con = sqlite3.connect(datei)
+        try:
+            return con.execute("SELECT COUNT(*) FROM sensei_nachricht WHERE gespraech = 'handy'").fetchone()[0]
+        finally:
+            con.close()
+
+    assert not frage_vom_handy(daten / "saku.db")
+    sicherungen = sorted((daten / "backups").glob("*.db"))
+    assert any(map(frage_vom_handy, sicherungen)), [s.name for s in sicherungen]
+    assert next((daten / "backups").glob("saku-????-??-??.db")).read_bytes() == taeglich
+
+
 def test_datenbank_herunterladen(server):
     client, daten = server
     antwort = client.get("/einstellungen/saku.db")
