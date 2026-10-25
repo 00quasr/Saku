@@ -37,6 +37,26 @@
   box-shadow: 0 24px 64px -32px rgb(0 0 0 / .5);
 }
 .notiz > * + * { margin-top: 12px; }
+
+/* Handy: der Graph lässt oben und unten Platz zum Scrollen (er fängt Wischen selbst ab), Werkzeuge in zwei Zeilen, die Legende
+   als eine Zeile zum Wischen; die Notiz kommt als Blatt von unten, so ist sie auch aus der Themenliste heraus zu sehen */
+@media (max-width: 720px) {
+  .graph { height: max(360px, 62dvh); }
+  .graph-werkzeuge { right: 12px; gap: 8px; }
+  .graph-suche { flex: 1; width: auto; }
+  .graph-alles { min-width: 44px; justify-content: center; }
+  .graph-alles-text { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .graph-filter { order: 1; padding-block: 0; }
+  .graph-filter label { min-height: 44px; }
+  .graph-legende { right: 12px; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; pointer-events: auto; white-space: nowrap; }
+  .graph-notiz {
+    position: fixed; top: auto; left: 0; right: 0; bottom: calc(var(--tab-hoehe) + env(safe-area-inset-bottom)); z-index: 35;
+    width: auto; max-height: 62dvh; overscroll-behavior: contain; padding: 16px var(--rand) 20px;
+    border-radius: 16px 16px 0 0; border-bottom: 0; box-shadow: 0 -24px 64px -24px rgb(0 0 0 / .45);
+    animation: blatt-ein var(--mittel) ease-out;
+  }
+  .chip { min-height: 44px; padding-inline: 12px; }
+}
 .notiz-kopf { display: flex; align-items: center; justify-content: space-between; margin: -6px -8px 0 0; }
 .notiz-kopf .etikett [lang="ja"], .notiz .etikett [lang="ja"] { color: var(--sumi); }
 .notiz-chips { display: flex; flex-wrap: wrap; gap: 6px; }

@@ -91,6 +91,7 @@ window.saku = {
     breiten();
     document.fonts.ready.then(breiten);  // Inter ist beim ersten Aufruf evtl. noch nicht geladen
     const pulsieren = new Set(daten.pulsieren);
+    const finger = matchMedia("(pointer: coarse)").matches;
 
     const nachbarn = new Map(daten.knoten.map((k) => [k.id, new Set()]));
     daten.kanten.forEach((l) => { nachbarn.get(l.source)?.add(l.target); nachbarn.get(l.target)?.add(l.source); });
@@ -151,10 +152,10 @@ window.saku = {
           ctx.fillText(k.name, k.x, y);
         }
       })
-      .nodePointerAreaPaint((k, c, ctx) => {
+      .nodePointerAreaPaint((k, c, ctx, zoom) => {
         ctx.fillStyle = c;
         ctx.beginPath();
-        ctx.arc(k.x, k.y, k._r + 2, 0, 2 * Math.PI);
+        ctx.arc(k.x, k.y, k._r + 2 + (finger ? 8 / zoom : 0), 0, 2 * Math.PI);  // mit dem Finger 8 px mehr Trefferfläche
         ctx.fill();
       })
       .linkColor((l) => anFokus(l) ? f.shu : mitte_() ? f.linie + "40" : l.art === "voraussetzung" ? f["sumi-mittel"] : f.linie + "b0")
@@ -180,10 +181,12 @@ window.saku = {
 
     const pfad = { t: "thema", lf: "lernfeld", b: "begriff" };
     let gezoomt = false, selbst = false;
-    // der gewählte Knoten in die Mitte der Fläche, die die Notiz frei lässt
+    // der gewählte Knoten in die Mitte der Fläche, die die Notiz frei lässt: rechts daneben, mobil darüber (Blatt von unten)
     const zeigeAuf = (k, zoom) => {
+      const blatt = !notiz.hidden && getComputedStyle(notiz).position === "fixed";
+      const unten = blatt ? Math.max(0, flaeche.getBoundingClientRect().bottom - notiz.getBoundingClientRect().top) : 0;
       g.zoom(zoom, 600);
-      g.centerAt(k.x + (notiz.hidden ? 0 : (notiz.offsetWidth + 12) / 2 / zoom), k.y, 600);
+      g.centerAt(k.x + (notiz.hidden || blatt ? 0 : (notiz.offsetWidth + 12) / 2 / zoom), k.y + unten / 2 / zoom, 600);
     };
     const waehlen = (k) => {
       auswahl = k.id;
